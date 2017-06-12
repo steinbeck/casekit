@@ -26,7 +26,7 @@ public class HOSECodePredictor {
  */
 	Hashtable<String,ArrayList<Double>> hoseLookup;
 	boolean verbose = false;
-	public HOSECodePredictor(String hoseTSVfileName) throws IOException
+	public HOSECodePredictor(File hoseTSVfile) throws IOException
 	{
 		String line = null;
 		StringTokenizer strtok;
@@ -35,9 +35,9 @@ public class HOSECodePredictor {
 		ArrayList<Double> shifts; 
 		int linecounter = 0;
 
-		BufferedReader br = new BufferedReader(new FileReader(hoseTSVfileName));
+		BufferedReader br = new BufferedReader(new FileReader(hoseTSVfile));
 		hoseLookup = new Hashtable<String,ArrayList<Double>>();
-		if (verbose) System.out.println("Start reading HOSE codes from " + hoseTSVfileName);
+		if (verbose) System.out.println("Start reading HOSE codes from " + hoseTSVfile);
 		while((line = br.readLine()) != null)
 		{
 			strtok = new StringTokenizer(line, "\t");
@@ -163,7 +163,7 @@ public class HOSECodePredictor {
 		// TODO Auto-generated method stub
 		IAtomContainer ac = null;
 		try {
-			HOSECodePredictor hp = new HOSECodePredictor(args[0]);
+			HOSECodePredictor hp = new HOSECodePredictor(new File(args[0]));
 			if (args[3].equals("true")) hp.verbose = true;
 			IteratingSDFReader iterator = new IteratingSDFReader(
 					new FileReader(args[1]),

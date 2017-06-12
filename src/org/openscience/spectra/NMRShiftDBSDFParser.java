@@ -72,7 +72,7 @@ public class NMRShiftDBSDFParser {
 			}		
 			if (hydrogenNMR != null) hydrogenNMRCount++;			
 			moleculeCount ++;			
-			if (generatePictures) generatePictures(ac);
+			if (generatePictures) generatePicture(ac);
 			//System.out.print(".");
 			//if (moleculeCount == 100) break;
 		}
@@ -137,7 +137,7 @@ public class NMRShiftDBSDFParser {
 		}
 	}
 	
-	void generatePictures(IAtomContainer ac) throws IOException, CDKException
+	public void generatePicture(IAtomContainer ac) throws IOException, CDKException
 	{
 		try
 		{

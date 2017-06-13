@@ -17,12 +17,13 @@ import org.openscience.cdk.AtomContainer;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.depict.DepictionGenerator;
+import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
 
 /**
- * SimilarityRanker takes a SpectrumPredictor and parses an SDF file, returning a configurable number of compounds and 
+ * SimilarityRanker uses a SpectrumPredictor and parses an SDF file, returning a configurable number of compounds and 
  * their ranked spectrum similarity.
  * 
  * @author steinbeck
@@ -31,9 +32,29 @@ import org.openscience.cdk.io.iterator.IteratingSDFReader;
 public class SimilarityRanker {
 	
 	public boolean verbose = true;
+	DecimalFormat df;
+	int resultListSize = 100;
+	
+	public boolean isVerbose() {
+		return verbose;
+	}
+
+	public void setVerbose(boolean verbose) {
+		this.verbose = verbose;
+	}
+
+	public int getResultListSize() {
+		return resultListSize;
+	}
+
+	public void setResultListSize(int resultListSize) {
+		this.resultListSize = resultListSize;
+	}
 
 	public SimilarityRanker() {
 		// TODO Auto-generated constructor stub
+		df = new DecimalFormat();
+		df.setMaximumFractionDigits(2);
 	}
 
 	public ArrayList<Signal> readSpectrum(File inFile) throws NumberFormatException, IOException
@@ -69,7 +90,7 @@ public class SimilarityRanker {
 	}
 	
 
-	public void rank(File inFile, ArrayList<Signal> spectrum, File outFile, File HOSEFile) throws Exception 
+	public ArrayList<Result> rank(File inFile, ArrayList<Signal> spectrum, File outFile, File HOSEFile) throws Exception 
 	{
 		/*
 		 * Iterate of SDF file given by input file, predict a spectrum and calculate a similarity with the 
@@ -77,15 +98,12 @@ public class SimilarityRanker {
 		 * Store the 10 most similar spectra in a list and write them to outFile in the end  
 		 */
 		
-		
 		HOSECodePredictor predictor = new HOSECodePredictor(HOSEFile);
 		IAtomContainer ac = null;
 		double similarity = 0.0;
-		IAtomContainer bestAc = null;
 		double bestSimilarity = 1000000000.0;
 		ArrayList<Result> results = new ArrayList<Result>();
 		ResultComparator comp = new ResultComparator();
-		DepictionGenerator dg = null; 
 		IteratingSDFReader iterator = new IteratingSDFReader(
 				new FileReader(inFile),
 				DefaultChemObjectBuilder.getInstance()
@@ -101,35 +119,24 @@ public class SimilarityRanker {
 				if (similarity < results.get(results.size()-1).getScore()) 
 				{
 					bestSimilarity = similarity;
-					bestAc = ac;
-					ac.setProperty(CDKConstants.TITLE, "Similarity " + similarity);
+					ac.setProperty(CDKConstants.TITLE, "Distance " + df.format(similarity));
 					results.add(new Result(ac, similarity));
 					results.sort(comp);
-					//System.out.println(results.size());
-					if (results.size() == 100) results.remove(99);
+					//After sorting, we remove the worst entry and thereby trim the results list to resultListSize
+					if (results.size() == resultListSize) results.remove(resultListSize - 1);
 				}
 			}
 			else results.add(new Result(ac, similarity));
 		}
 		iterator.close();
 		System.out.println("Best similarity = " + bestSimilarity);
-		String filename = null;
-		for (int f = 0; f < results.size(); f++)
-		{
-			filename = "~/temp/" + String.format("%03d", f) + "-mol.png";
-			dg = new DepictionGenerator().withSize(800, 800).withAtomColors().withAtomValues().withMolTitle().withFillToFit();
-			dg.depict(results.get(f).getAc()).writeTo(filename);
-		}
-		
+		return results;
 	}
-	
+
 	public double calculateSimilarity(IAtomContainer ac, ArrayList<Signal> spectrum)
 	{	
 		double similarity = 0.0;
 		double lastDiff = 0.0;
-	
-		DecimalFormat df = new DecimalFormat();
-		df.setMaximumFractionDigits(2);
 		int counter = 0;
 		String shift = null;
 		boolean matchFound = false;
@@ -145,12 +152,11 @@ public class SimilarityRanker {
 				counter ++;
 			}
 		}
-		//System.out.println(spectrum.size() + " " + counter);
 		for (int f = 0; f < spectrum.size(); f++)
 		{
 			lastDiff = 10000000000.0;
 			matchFound = false;
-			for (int g = f + 1; g < spectrum.size(); g++)
+			for (int g = 0; g < spectrum.size(); g++)
 			{
 				if (shifts[f] > spectrum.get(g).getShift().doubleValue()) diff = shifts[f] - spectrum.get(g).getShift().doubleValue();
 				else diff = spectrum.get(g).getShift().doubleValue() - shifts[f];
@@ -160,15 +166,23 @@ public class SimilarityRanker {
 					lastDiff = diff;
 					matchFound = true;
 				}
-				//System.out.println(shifts[f] + "-" + spectrum.get(g).getShift().doubleValue() + " " + diff );
 			}
-			//System.out.println("lastDiff = " + lastDiff);
 			if (matchFound) similarity += lastDiff;
 		}
-		
 		return similarity/spectrum.size();
 	}
 	
+	public void reportResults(ArrayList<Result> results) throws IOException, CDKException
+	{
+		String filename = null;
+		DepictionGenerator dg = null; 
+		for (int f = 0; f < results.size(); f++)
+		{
+			filename = "~/temp/" + String.format("%03d", f) + "-mol.png";
+			dg = new DepictionGenerator().withSize(800, 800).withAtomColors().withAtomValues().withMolTitle().withFillToFit();
+			dg.depict(results.get(f).getAc()).writeTo(filename);
+		}
+	}
 
 	
 	class ResultComparator implements Comparator<Result>
@@ -185,10 +199,13 @@ public class SimilarityRanker {
 	
 	public static void main(String[] args) {
 		SimilarityRanker sr = new SimilarityRanker();
+		sr.setResultListSize(Integer.parseInt(args[4]));
 		ArrayList<Signal> spectrum = null;
+		ArrayList<Result> results = null;		
 		try {
 			spectrum = sr.readSpectrum(new File(args[1]));
-			sr.rank(new File(args[0]),  spectrum, new File(args[2]), new File(args[3]));			
+			results = sr.rank(new File(args[0]),  spectrum, new File(args[2]), new File(args[3]));
+			sr.reportResults(results);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

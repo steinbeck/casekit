@@ -114,8 +114,8 @@ public class NMRShiftDBSDFParser {
 	{
 		String hose = null;
 		HOSECodeGenerator hcg = new HOSECodeGenerator();
-		 AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(ac);
-		 Aromaticity.cdkLegacy().apply(ac);
+		AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(ac);
+		Aromaticity.cdkLegacy().apply(ac);
 		for (int f = 0; f < ac.getAtomCount(); f++)
 		{
 			if (ac.getAtom(f).getAtomicNumber() == 6)
@@ -124,8 +124,6 @@ public class NMRShiftDBSDFParser {
 				for (int g = 0; g < 4; g++)
 				{
 					hose = hcg.getHOSECode(ac, ac.getAtom(f), g + 1);
-					//if (g == 1) ac.getAtom(f).setProperty(CDKConstants.COMMENT, hose);
-					//System.out.println(hose + ": " + ac.getAtom(f).getProperty(CDKConstants.NMRSHIFT_CARBON));
 					if (hose != null && ac.getAtom(f).getProperty(CDKConstants.NMRSHIFT_CARBON) != null)
 					{	
 						bw.write(hose + "\t" + ac.getAtom(f).getProperty(CDKConstants.NMRSHIFT_CARBON));

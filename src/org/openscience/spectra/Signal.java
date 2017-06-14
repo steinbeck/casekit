@@ -1,3 +1,10 @@
+/* 
+* This Open Source Software is provided to you under the MIT License
+ * Refer to doc/mit.license or https://opensource.org/licenses/MIT for more information
+ * 
+ * Copyright (c) 2017, Christoph Steinbeck 
+ */
+
 package org.openscience.spectra;
 
 public class Signal {

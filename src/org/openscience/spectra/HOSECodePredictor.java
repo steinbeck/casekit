@@ -1,3 +1,10 @@
+/* 
+* This Open Source Software is provided to you under the MIT License
+ * Refer to doc/mit.license or https://opensource.org/licenses/MIT for more information
+ * 
+ * Copyright (c) 2017, Christoph Steinbeck 
+ */
+
 package org.openscience.spectra;
 
 import java.io.BufferedReader;
@@ -18,14 +25,39 @@ import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
 import org.openscience.cdk.tools.HOSECodeGenerator;
 
-public class HOSECodePredictor {
+
 /**
- * We expect a tab separated text file with HOSE codes and associated shifts as input
- * @throws FileNotFoundException 
+ * Predicts NMRS spectra by lookup of HOSE codes
+ * (Bremser, W., HOSE - A Novel Substructure Code, Analytica Chimica Acta, 1978, 103:355-365)
+ * parsed from a tab-separated value file, produced, for example, by the <code>NMRShiftDBSDFParser</code> 
+ * tool provided in this package. 
+ * The current version is hard coded to predict carbon spectra only.
+ * 
+ * <p>
+ * This Open Source Software is provided to you under the MIT License
+ * Refer to doc/mit.license or https://opensource.org/licenses/MIT for more information
+ * 
+ * Copyright (c) 2017, Christoph Steinbeck 
+ * 
+ * @author Christoph Steinbeck
  * 
  */
+public class HOSECodePredictor {
+
 	Hashtable<String,ArrayList<Double>> hoseLookup;
 	boolean verbose = false;
+	
+	/**
+	 * Initializes a HOSECodePredictor by reading HOSECodes and assigned shift values from 
+	 * from a tab-separated values (TSV) file, produced, for example, by the <code>NMRShiftDBSDFParser</code> 
+	 * tool provided in this package. 
+	 * Each line in the TSV file has the format
+	 * <p>
+	 * <code>String hosecode &#60;&#92;t&#62;double shiftvalue</code>
+	 * <p>
+	 * @param hoseTSVfile tab-separated values (TSV) file with HOSECodes and assigned shift values
+	 * @throws IOException Exception if TSV file cannot be read
+	 */
 	public HOSECodePredictor(File hoseTSVfile) throws IOException
 	{
 		String line = null;
@@ -62,7 +94,18 @@ public class HOSECodePredictor {
 		br.close();
 		if (verbose) System.out.println("Finished reading " + linecounter + " lines of HOSE codes.");
 	}
-	
+	/**
+	 * Predicts NMR chemical shifts based on a given HOSE code table read by the 
+	 * Constructor of this class. 
+	 * The predicted chemical shifts are assigned to each atom by
+	 * as a property of type <code>CDKConstants.NMRSHIFT_CARBON</code>.
+	 * They are also written as <code>CDKConstants.COMMENT</code> to aid the
+	 * <code>DepictionGenerator</code> class to generate a picture with shift annotations 
+	 * for all carbon atoms.
+	 * 
+	 * @param ac The IAtomContainer for which to predict the shift values
+	 * @throws Exception	Thrown if something goes wrong. 
+	 */
 	public void predict(IAtomContainer ac) throws Exception
 	{
 		IAtom atom;
@@ -71,12 +114,18 @@ public class HOSECodePredictor {
 		HOSECodeGenerator hcg = new HOSECodeGenerator();
 		DecimalFormat df = new DecimalFormat();
 		df.setMaximumFractionDigits(2);
+		/**
+		 * A visual appendix to the <code>CDKConstants.NMRSHIFT_COMMENT</code> annotation to show 
+		 * how many HOSE code spheres where used to predict this shift value. 
+		 */
 		String[] sphereCount = 
 		{
 				"'",
 				"''",
 				"'''",
-				"''''"
+				"''''",
+				"'''''",
+				"'''''",
 		};
 		fixExplicitHydrogens(ac);
 		if (verbose) System.out.println("Entering prediction module");
@@ -86,8 +135,8 @@ public class HOSECodePredictor {
 			if (verbose) System.out.println("Atom no. " + f);
 			if (atom.getAtomicNumber() == 6)
 			{
-				// We descend from 4-sphere HOSE codes to those with lower spheres
-				for (int g = 4; g > 0; g--)
+				// We descend from 6-sphere HOSE codes to those with lower spheres
+				for (int g = 6; g > 0; g--)
 				{
 					hose = hcg.getHOSECode(ac, atom, g);
 					//System.out.println("Look-up for HOSE code " + hose);

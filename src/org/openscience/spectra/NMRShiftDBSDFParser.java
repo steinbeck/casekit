@@ -1,3 +1,9 @@
+/* 
+* This Open Source Software is provided to you under the MIT License
+ * Refer to doc/mit.license or https://opensource.org/licenses/MIT for more information
+ * 
+ * Copyright (c) 2017, Christoph Steinbeck 
+ */
 package org.openscience.spectra;
 
 import java.awt.image.BufferedImageFilter;
@@ -15,6 +21,14 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.openscience.cdk.AtomContainer;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.DefaultChemObjectBuilder;
@@ -27,6 +41,16 @@ import org.openscience.cdk.io.iterator.IteratingSDFReader;
 import org.openscience.cdk.tools.HOSECodeGenerator;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
+
+/** 
+ * Helper class to parse an NMRShiftDB SDF file with spectra assignments 
+ * and convert it to a tab-separated values file with HOSE codes
+ * (Bremser, W., HOSE - A Novel Substructure Code, Analytica Chimica Acta, 1978, 103:355-365)
+ * and associated shift values.
+ * The TSV file can then be used by <code>HOSECodePredictor</code> to predict spectra 
+ * 
+ * @author Christoph Steinbeck
+ */
 
 public class NMRShiftDBSDFParser {
 	BufferedWriter bw;
@@ -41,13 +65,18 @@ public class NMRShiftDBSDFParser {
 	String report = "";
 	String temp = "";
 	boolean generatePictures = false;
+	String picdir = null;
 	int hoseCodeCounter = 0;
 	int carbonCounter = 0;
+	String inFile = null;
+	String outFile = null;
+	boolean verbose = false;
+	int maxSpheres;
 	
 	public NMRShiftDBSDFParser(String[] args) throws Exception
 	{
-		String inFile = args[0];
-		String outFile = args[1];
+		parseArgs(args);
+		if (verbose) System.out.println("Starting HOSE code generation with " + maxSpheres + " sphere from " + inFile);
 		File fout = new File(outFile);
 		FileOutputStream fos = new FileOutputStream(fout);
 		bw = new BufferedWriter(new OutputStreamWriter(fos));
@@ -68,18 +97,16 @@ public class NMRShiftDBSDFParser {
 			{
 				carbonNMRCount++;
 				ac = assignCarbonNMR(ac, carbonNMR);
-				generateHOSECodes(ac);
+				generateHOSECodes(ac, maxSpheres);
 			}		
 			if (hydrogenNMR != null) hydrogenNMRCount++;			
 			moleculeCount ++;			
-			if (generatePictures) generatePicture(ac);
-			//System.out.print(".");
-			//if (moleculeCount == 100) break;
+			if (generatePictures) generatePicture(ac, picdir);
 		}
 		iterator.close();
 		report = "File contains " + moleculeCount + " molecules with " + carbonNMRCount + " carbon spectra and " + hydrogenNMRCount + " hydrogen spectra.\n";
 		report += hoseCodeCounter + " HOSE codes generated for " + carbonCounter + "carbon atoms, and written to file.";
-		System.out.println(report);
+		if (verbose) System.out.println(report);
 		bw.close();
 	}
 
@@ -110,7 +137,7 @@ public class NMRShiftDBSDFParser {
 		return ac;
 	}
 	
-	public void generateHOSECodes(IAtomContainer ac) throws Exception
+	public void generateHOSECodes(IAtomContainer ac, int maxSpheres) throws Exception
 	{
 		String hose = null;
 		HOSECodeGenerator hcg = new HOSECodeGenerator();
@@ -121,7 +148,7 @@ public class NMRShiftDBSDFParser {
 			if (ac.getAtom(f).getAtomicNumber() == 6)
 			{
 				carbonCounter ++;
-				for (int g = 0; g < 4; g++)
+				for (int g = 0; g < maxSpheres; g++)
 				{
 					hose = hcg.getHOSECode(ac, ac.getAtom(f), g + 1);
 					if (hose != null && ac.getAtom(f).getProperty(CDKConstants.NMRSHIFT_CARBON) != null)
@@ -135,7 +162,7 @@ public class NMRShiftDBSDFParser {
 		}
 	}
 	
-	public void generatePicture(IAtomContainer ac) throws IOException, CDKException
+	public void generatePicture(IAtomContainer ac, String picdir) throws IOException, CDKException
 	{
 		try
 		{
@@ -147,10 +174,79 @@ public class NMRShiftDBSDFParser {
 		{
 			System.out.println("Problem with title " + temp);
 		}
-		
-		moleculeTitle = "~/temp/structures/" + String.format("%03d", moleculeCount) + "-mol.png";
+		if (!picdir.endsWith(File.pathSeparator)) picdir += File.separator;
+		moleculeTitle = picdir + String.format("%03d", moleculeCount) + "-mol.png";
+		if (verbose) System.out.println(moleculeTitle);
 		DepictionGenerator dg = new DepictionGenerator().withSize(800, 800).withAtomColors().withAtomValues().withMolTitle().withFillToFit();
 		dg.depict(ac).writeTo(moleculeTitle);
+	}
+	
+	private void parseArgs(String[] args) throws ParseException
+	{
+		Options options = setupOptions(args);	
+		CommandLineParser parser = new DefaultParser();
+		try {
+			CommandLine cmd = parser.parse( options, args);
+			this.inFile = cmd.getOptionValue("infile");
+			this.outFile = cmd.getOptionValue("outfile");
+			if (cmd.hasOption("maxspheres")) 
+			{
+				this.maxSpheres = Integer.parseInt(cmd.getOptionValue("maxspheres"));
+			}
+			if (cmd.hasOption("verbose")) this.verbose = true;
+
+			if (cmd.hasOption("picdir")) 
+			{
+				this.generatePictures = true;
+				this.picdir = cmd.getOptionValue("picdir");
+				
+			}
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			HelpFormatter formatter = new HelpFormatter();
+			formatter.printHelp( "java -jar spectra.jar NMRShiftDBSDFParser", options );
+			throw new ParseException("Problem parsing command line");
+		}
+	}
+	
+	private Options setupOptions(String[] args)
+	{
+		Options options = new Options();
+		Option infile = Option.builder("i")
+			     .required(true)
+			     .hasArg()
+			     .longOpt("infile")
+			     .desc("filename of NMRShiftDB SDF with spectra (required)")
+			     .build();
+		options.addOption(infile);
+		Option outfile = Option.builder("o")
+			     .required(true)
+			     .hasArg()
+			     .longOpt("outfile")
+			     .desc("filename of generated HOSE code table (required)")
+			     .build();
+		options.addOption(outfile);
+		Option verbose = Option.builder("v")
+			     .required(false)
+			     .longOpt("verbose")
+			     .desc("generate messages about progress of operation")
+			     .build();
+		options.addOption(verbose);	
+		Option picdir = Option.builder("d")
+			     .required(false)
+			     .hasArg()
+			     .longOpt("picdir")
+			     .desc("store pictures in given directory")
+			     .build();
+		options.addOption(picdir);
+		Option maxspheres = Option.builder("m")
+			     .required(false)
+			     .hasArg()
+			     .longOpt("maxspheres")
+			     .desc("maximum sphere size up to which to generate HOSE codes")
+			     .build();
+		options.addOption(maxspheres);
+		return options;
 	}
 	
 	public static void main(String[] args)

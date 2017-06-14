@@ -1,3 +1,10 @@
+
+/* 
+* This Open Source Software is provided to you under the MIT License
+ * Refer to doc/mit.license or https://opensource.org/licenses/MIT for more information
+ * 
+ * Copyright (c) 2017, Christoph Steinbeck 
+ */
 package org.openscience.spectra;
 
 import java.io.BufferedReader;
@@ -22,9 +29,14 @@ import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
 
-/**
+/** 
  * SimilarityRanker uses a SpectrumPredictor and parses an SDF file, returning a configurable number of compounds and 
  * their ranked spectrum similarity.
+ *
+ * This Open Source Software is provided to you under the MIT License
+ * Refer to doc/mit.license or https://opensource.org/licenses/MIT for more information
+ * 
+ * Copyright (c) 2017, Christoph Steinbeck 
  * 
  * @author steinbeck
  *

@@ -3,7 +3,7 @@
  
 Copyright 2017 Christoph Steinbeck
 
-License: LGPL v3, see doc/lgpl.license
+License: MIT, see doc/mit.license
 
 ## Introduction
 

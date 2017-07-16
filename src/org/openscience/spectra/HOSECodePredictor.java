@@ -9,6 +9,7 @@ package org.openscience.spectra;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -16,6 +17,13 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.depict.DepictionGenerator;
@@ -45,7 +53,13 @@ import org.openscience.cdk.tools.HOSECodeGenerator;
 public class HOSECodePredictor {
 
 	Hashtable<String,ArrayList<Double>> hoseLookup;
-	boolean verbose = false;
+	public boolean verbose = false;
+	int maxSpheres = 6; //How many maximum spheres to use for the prediction	
+	boolean generatePictures = false;
+	String picdir = null;
+	String inFile = null;
+	String hoseCodeFile = null;
+	String hoseTSVfile = null;
 	
 	/**
 	 * Initializes a HOSECodePredictor by reading HOSECodes and assigned shift values from 
@@ -56,9 +70,63 @@ public class HOSECodePredictor {
 	 * <code>String hosecode &#60;&#92;t&#62;double shiftvalue</code>
 	 * <p>
 	 * @param hoseTSVfile tab-separated values (TSV) file with HOSECodes and assigned shift values
+	 * @throws Exception Exception if TSV file cannot be read
+	 */
+	public HOSECodePredictor(String hoseTSVfile) throws Exception
+	{
+		readHOSECodeTable(hoseTSVfile);
+	}
+	
+	/**
+	 * Initializes an empty HOSECodePredictor. Use readHOSECodeTable(String hoseTSVfile) to initialise.
+	 * 
+	 * Each line in the TSV file has the format
+	 * <p>
+	 * <code>String hosecode &#60;&#92;t&#62;double shiftvalue</code>
+	 * <p>
+	 * @param hoseTSVfile tab-separated values (TSV) file with HOSECodes and assigned shift values
 	 * @throws IOException Exception if TSV file cannot be read
 	 */
-	public HOSECodePredictor(File hoseTSVfile) throws IOException
+	public HOSECodePredictor() throws Exception
+	{
+		
+	}
+	
+	public void predictFile(String outFile) throws Exception
+	{
+		
+		IAtomContainer ac = null;
+		File hoseTSVfile  = new File(inFile);
+		IteratingSDFReader iterator = new IteratingSDFReader(
+				new FileReader(outFile),
+				DefaultChemObjectBuilder.getInstance()
+				);
+		
+		while (iterator.hasNext()) 
+		{
+			ac = iterator.next();
+			predict(ac);
+			generatePicture(ac, picdir);
+		}
+		iterator.close();
+	}
+	
+	public void readHOSECodeTable() throws Exception
+	{
+			readHOSECodeTable(this.hoseTSVfile);
+	}
+	
+	/**
+	 * Reads HOSE code table from TSV file. Without this, no prediction can be performed.
+	 * Each line in the TSV file has the format
+	 * <p>
+	 * <code>String hosecode &#60;&#92;t&#62;double shiftvalue</code>
+	 * <p>
+	 * 
+	 * @param hoseTSVfile
+	 * @throws Exception
+	 */
+	public void readHOSECodeTable(String hoseTSVfile) throws Exception
 	{
 		String line = null;
 		StringTokenizer strtok;
@@ -66,10 +134,11 @@ public class HOSECodePredictor {
 		Double shift;
 		ArrayList<Double> shifts; 
 		int linecounter = 0;
+ 
+		if (verbose) System.out.println("Start reading HOSE codes from " + hoseTSVfile);
 
 		BufferedReader br = new BufferedReader(new FileReader(hoseTSVfile));
 		hoseLookup = new Hashtable<String,ArrayList<Double>>();
-		if (verbose) System.out.println("Start reading HOSE codes from " + hoseTSVfile);
 		while((line = br.readLine()) != null)
 		{
 			strtok = new StringTokenizer(line, "\t");
@@ -93,7 +162,9 @@ public class HOSECodePredictor {
 		}	
 		br.close();
 		if (verbose) System.out.println("Finished reading " + linecounter + " lines of HOSE codes.");
+		
 	}
+	
 	/**
 	 * Predicts NMR chemical shifts based on a given HOSE code table read by the 
 	 * Constructor of this class. 
@@ -126,6 +197,8 @@ public class HOSECodePredictor {
 				"''''",
 				"'''''",
 				"'''''",
+				"''''''",
+				"'''''''"
 		};
 		fixExplicitHydrogens(ac);
 		if (verbose) System.out.println("Entering prediction module");
@@ -135,8 +208,8 @@ public class HOSECodePredictor {
 			if (verbose) System.out.println("Atom no. " + f);
 			if (atom.getAtomicNumber() == 6)
 			{
-				// We descend from 6-sphere HOSE codes to those with lower spheres
-				for (int g = 6; g > 0; g--)
+				// We descend from N-sphere HOSE codes defined by maxSpheres to those with lower spheres
+				for (int g = maxSpheres; g > 0; g--)
 				{
 					hose = hcg.getHOSECode(ac, atom, g);
 					//System.out.println("Look-up for HOSE code " + hose);
@@ -181,10 +254,10 @@ public class HOSECodePredictor {
 		String moleculeTitle = "";
 		/* Path separators differ in operating systems. Unix uses slash, windows backslash.
 		   That's why Java offers this constant File.pathSeparator since it knows what OS it is running on */
-		if (path.endsWith(File.pathSeparator)) 
+		if (path.endsWith(File.separator)) 
 			moleculeTitle = path + "mol.png";
 		else
-			moleculeTitle = path + File.pathSeparator + "mol.png";
+			moleculeTitle = path + File.separator + "mol.png";
 		DepictionGenerator dg = new DepictionGenerator().withSize(800, 800).withAtomColors().withAtomValues().withMolTitle().withFillToFit();
 		dg.depict(ac).writeTo(moleculeTitle);
 	}
@@ -208,30 +281,89 @@ public class HOSECodePredictor {
 		}
 	}
 	
+	private void parseArgs(String[] args) throws ParseException
+	{
+		Options options = setupOptions(args);	
+		CommandLineParser parser = new DefaultParser();
+		try {
+			CommandLine cmd = parser.parse( options, args);
+			this.inFile = cmd.getOptionValue("infile");
+			this.hoseTSVfile = cmd.getOptionValue("hosecodes");
+			if (cmd.hasOption("maxspheres")) 
+			{
+				this.maxSpheres = Integer.parseInt(cmd.getOptionValue("maxspheres"));
+			}
+			if (cmd.hasOption("verbose")) this.verbose = true;
+
+			if (cmd.hasOption("picdir")) 
+			{
+				this.generatePictures = true;
+				this.picdir = cmd.getOptionValue("picdir");
+				
+			}
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			HelpFormatter formatter = new HelpFormatter();
+			formatter.setOptionComparator(null);
+			 String header = "Predict NMR chemical shifts for a given molecule based on table of HOSE codes and assigned shifts.\n\n";
+			 String footer = "\nPlease report issues at https://github.com/steinbeck/spectra";
+			formatter.printHelp( "java -jar spectra.jar HOSECodePredictor", header, options, footer, true );
+			throw new ParseException("Problem parsing command line");
+		}
+	}
+	
+	private Options setupOptions(String[] args)
+	{
+		Options options = new Options();
+		Option hosefile = Option.builder("s")
+			     .required(true)
+			     .hasArg()
+			     .longOpt("hosecodes")
+			     .desc("filename of TSV file with HOSE codes (required)")
+			     .build();
+		options.addOption(hosefile);
+		Option infile = Option.builder("i")
+			     .required(true)
+			     .hasArg()
+			     .longOpt("infile")
+			     .desc("filename of with SDF/MOL file of structures to be predicted (required)")
+			     .build();
+		options.addOption(infile);
+		Option verbose = Option.builder("v")
+			     .required(false)
+			     .longOpt("verbose")
+			     .desc("generate messages about progress of operation")
+			     .build();
+		options.addOption(verbose);	
+		Option picdir = Option.builder("d")
+			     .required(false)
+			     .hasArg()
+			     .longOpt("picdir")
+			     .desc("store pictures of structures with assigned shifts in given directory")
+			     .build();
+		options.addOption(picdir);
+		Option maxspheres = Option.builder("m")
+			     .required(false)
+			     .hasArg()
+			     .longOpt("maxspheres")
+			     .desc("maximum sphere size up to which to generate HOSE codes. Default is 6 spheres if this option is ommitted.")
+			     .build();
+		options.addOption(maxspheres);
+		return options;
+	}
+	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		IAtomContainer ac = null;
+		HOSECodePredictor hcp = null;
 		try {
-			HOSECodePredictor hp = new HOSECodePredictor(new File(args[0]));
-			if (args[3].equals("true")) hp.verbose = true;
-			IteratingSDFReader iterator = new IteratingSDFReader(
-					new FileReader(args[1]),
-					DefaultChemObjectBuilder.getInstance()
-					);
-			
-			while (iterator.hasNext()) 
-			{
-				ac = iterator.next();
-				hp.predict(ac);
-				hp.generatePicture(ac, args[2]);
-			}
-			iterator.close();
+			hcp = new HOSECodePredictor();
+			hcp.parseArgs(args);
+			hcp.readHOSECodeTable();
+			hcp.predictFile(hcp.inFile);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			
+			// We don't do anything here. Apache CLI will print a usage text.
+			if (hcp.verbose) e.printStackTrace(); 
 		}
 
 	}
-
 }

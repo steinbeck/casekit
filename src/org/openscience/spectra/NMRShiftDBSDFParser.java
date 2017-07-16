@@ -174,7 +174,7 @@ public class NMRShiftDBSDFParser {
 		{
 			System.out.println("Problem with title " + temp);
 		}
-		if (!picdir.endsWith(File.pathSeparator)) picdir += File.separator;
+		if (!picdir.endsWith(File.separator)) picdir += File.separator;
 		moleculeTitle = picdir + String.format("%03d", moleculeCount) + "-mol.png";
 		if (verbose) System.out.println(moleculeTitle);
 		DepictionGenerator dg = new DepictionGenerator().withSize(800, 800).withAtomColors().withAtomValues().withMolTitle().withFillToFit();
@@ -204,7 +204,11 @@ public class NMRShiftDBSDFParser {
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			HelpFormatter formatter = new HelpFormatter();
-			formatter.printHelp( "java -jar spectra.jar NMRShiftDBSDFParser", options );
+			
+			formatter.setOptionComparator(null);
+			 String header = "Generates a table of HOSE codes and assigned shifts from an NMRShiftDB SDF file from http://nmrshiftdb.nmr.uni-koeln.de/portal/js_pane/P-Help.\n\n";
+			 String footer = "\nPlease report issues at https://github.com/steinbeck/spectra";
+			formatter.printHelp( "java -jar spectra.jar NMRShiftDBSDFParser", header, options, footer, true );
 			throw new ParseException("Problem parsing command line");
 		}
 	}

@@ -20,6 +20,13 @@ import java.util.Comparator;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.openscience.cdk.AtomContainer;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.DefaultChemObjectBuilder;
@@ -45,7 +52,13 @@ public class SimilarityRanker {
 	
 	public boolean verbose = true;
 	DecimalFormat df;
-	int resultListSize = 100;
+	public int resultListSize = 100;
+	public String inFile = null;
+	public String outPath = null;
+	public String spectrumFile = null;
+	public String hoseTSVFile = null;
+	ArrayList<Signal> spectrum = null;
+	ArrayList<Result> results = null;
 	
 	public boolean isVerbose() {
 		return verbose;
@@ -69,7 +82,7 @@ public class SimilarityRanker {
 		df.setMaximumFractionDigits(2);
 	}
 
-	public ArrayList<Signal> readSpectrum(File inFile) throws NumberFormatException, IOException
+	public void readSpectrum() throws NumberFormatException, IOException
 	{
 		String line;
 		StringTokenizer strtok;
@@ -79,8 +92,8 @@ public class SimilarityRanker {
 		Signal signal; 
 		String tempString;
 		ArrayList<Signal> spectrum = new ArrayList<Signal>();
-		BufferedReader br = new BufferedReader(new FileReader(inFile));
-		if (verbose) System.out.println("Start reading spectrum from  " + inFile);
+		BufferedReader br = new BufferedReader(new FileReader(spectrumFile));
+		if (verbose) System.out.println("Start reading spectrum from  " + spectrumFile);
 		while((line = br.readLine()) != null)
 		{
 			if (!line.startsWith("#") && line.trim().length() > 0)
@@ -96,13 +109,13 @@ public class SimilarityRanker {
 			}
 		}	
 		br.close();
-		if (verbose) System.out.println("Read " + linecounter + " signals from spectrum in file " +  inFile);
+		if (verbose) System.out.println("Read " + linecounter + " signals from spectrum in file " +  spectrumFile);
 		
-		return spectrum;
+		this.spectrum = spectrum;
 	}
 	
 
-	public ArrayList<Result> rank(File inFile, ArrayList<Signal> spectrum, File outFile, File HOSEFile) throws Exception 
+	public ArrayList<Result> rank() throws Exception 
 	{
 		/*
 		 * Iterate of SDF file given by input file, predict a spectrum and calculate a similarity with the 
@@ -110,11 +123,11 @@ public class SimilarityRanker {
 		 * Store the 10 most similar spectra in a list and write them to outFile in the end  
 		 */
 		
-		HOSECodePredictor predictor = new HOSECodePredictor(HOSEFile);
+		HOSECodePredictor predictor = new HOSECodePredictor(hoseTSVFile);
 		IAtomContainer ac = null;
 		double similarity = 0.0;
 		double bestSimilarity = 1000000000.0;
-		ArrayList<Result> results = new ArrayList<Result>();
+		results = new ArrayList<Result>();
 		ResultComparator comp = new ResultComparator();
 		IteratingSDFReader iterator = new IteratingSDFReader(
 				new FileReader(inFile),
@@ -141,7 +154,7 @@ public class SimilarityRanker {
 			else results.add(new Result(ac, similarity));
 		}
 		iterator.close();
-		System.out.println("Best similarity = " + bestSimilarity);
+		if (verbose) System.out.println("Calculation finished. Best similarity = " + bestSimilarity);
 		return results;
 	}
 
@@ -184,13 +197,15 @@ public class SimilarityRanker {
 		return similarity/spectrum.size();
 	}
 	
-	public void reportResults(ArrayList<Result> results) throws IOException, CDKException
+	public void reportResults() throws IOException, CDKException
 	{
 		String filename = null;
 		DepictionGenerator dg = null; 
+		if (!outPath.endsWith(File.separator)) 
+			outPath += File.separator;
 		for (int f = 0; f < results.size(); f++)
 		{
-			filename = "~/temp/" + String.format("%03d", f) + "-mol.png";
+			filename = outPath + String.format("%03d", f) + "-mol.png";
 			dg = new DepictionGenerator().withSize(800, 800).withAtomColors().withAtomValues().withMolTitle().withFillToFit();
 			dg.depict(results.get(f).getAc()).writeTo(filename);
 		}
@@ -199,29 +214,98 @@ public class SimilarityRanker {
 	
 	class ResultComparator implements Comparator<Result>
 	{
-
 		public int compare(Result o1, Result o2) {
 
 			if (o1.getScore() < o2.getScore()) return -1; 
 			return 1;
 		}
-		
+	}
+	
+	private void parseArgs(String[] args) throws ParseException
+	{
+		Options options = setupOptions(args);	
+		CommandLineParser parser = new DefaultParser();
+		try {
+			CommandLine cmd = parser.parse( options, args);
+			this.inFile = cmd.getOptionValue("infile");
+			this.hoseTSVFile = cmd.getOptionValue("hosecodes");
+			this.outPath = cmd.getOptionValue("outpath");
+			this.spectrumFile = cmd.getOptionValue("spectrum");
+			if (cmd.hasOption("numbers")) this.resultListSize = Integer.parseInt(cmd.getOptionValue("numbers"));
+			if (cmd.hasOption("verbose")) this.verbose = true;
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			HelpFormatter formatter = new HelpFormatter();
+			formatter.setOptionComparator(null);
+			 String header = "Ranke structures based on given experimental spectrum and similarity to predicted spectrum.\n\n";
+			 String footer = "\nPlease report issues at https://github.com/steinbeck/spectra";
+			formatter.printHelp( "java -jar spectra.jar SimilarityRanker", header, options, footer, true );
+			throw e;
+		}
+	}
+	
+	private Options setupOptions(String[] args)
+	{
+		Options options = new Options();
+
+		Option infile = Option.builder("i")
+			     .required(true)
+			     .hasArg()
+			     .longOpt("infile")
+			     .desc("filename of with SDF/MOL file of structures to be ranked (required)")
+			     .build();
+		options.addOption(infile);
+		Option spectrumfile = Option.builder("p")
+			     .required(true)
+			     .hasArg()
+			     .longOpt("spectrum")
+			     .desc("filename of CSV file with spectrum. Format of each line: <shift>;<number of attached H> (required)")
+			     .build();
+		options.addOption(spectrumfile);	
+		Option outpath = Option.builder("o")
+			     .required(true)
+			     .hasArg()
+			     .longOpt("outpath")
+			     .desc("path to store pictures of ranked output structures (required)")
+			     .build();
+		options.addOption(outpath);
+		Option hosefile = Option.builder("s")
+			     .required(true)
+			     .hasArg()
+			     .longOpt("hosecodes")
+			     .desc("filename of TSV file with HOSE codes (required)")
+			     .build();
+		options.addOption(hosefile);
+		Option outputnumber = Option.builder("n")
+			     .hasArg()
+			     .longOpt("number")
+			     .desc("number of structures in output file. Default is 10, if this option is ommitted")
+			     .build();
+		options.addOption(outputnumber);
+
+		Option verbose = Option.builder("v")
+			     .required(false)
+			     .longOpt("verbose")
+			     .desc("generate messages about progress of operation")
+			     .build();
+		options.addOption(verbose);	
+
+		return options;
 	}
 	
 	
 	public static void main(String[] args) {
 		SimilarityRanker sr = new SimilarityRanker();
-		sr.setResultListSize(Integer.parseInt(args[4]));
-		ArrayList<Signal> spectrum = null;
-		ArrayList<Result> results = null;		
 		try {
-			spectrum = sr.readSpectrum(new File(args[1]));
-			results = sr.rank(new File(args[0]),  spectrum, new File(args[2]), new File(args[3]));
-			sr.reportResults(results);
+			sr.parseArgs(args);
+			sr.readSpectrum();
+			sr.rank();
+			sr.reportResults();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 	}
 
 }

@@ -25,12 +25,12 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.openscience.cdk.CDKConstants;
-import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.depict.DepictionGenerator;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
+import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.HOSECodeGenerator;
 
 
@@ -99,7 +99,7 @@ public class HOSECodePredictor {
 		File hoseTSVfile  = new File(inFile);
 		IteratingSDFReader iterator = new IteratingSDFReader(
 				new FileReader(outFile),
-				DefaultChemObjectBuilder.getInstance()
+				SilentChemObjectBuilder.getInstance()
 				);
 		
 		while (iterator.hasNext()) 

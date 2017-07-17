@@ -8,16 +8,12 @@
 package org.openscience.spectra;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Hashtable;
 import java.util.StringTokenizer;
 
 import org.apache.commons.cli.CommandLine;
@@ -27,14 +23,12 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.openscience.cdk.AtomContainer;
 import org.openscience.cdk.CDKConstants;
-import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.depict.DepictionGenerator;
-import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
+import org.openscience.cdk.silent.SilentChemObjectBuilder;
 
 /** 
  * SimilarityRanker uses a SpectrumPredictor and parses an SDF file, returning a configurable number of compounds and 
@@ -131,7 +125,7 @@ public class SimilarityRanker {
 		ResultComparator comp = new ResultComparator();
 		IteratingSDFReader iterator = new IteratingSDFReader(
 				new FileReader(inFile),
-				DefaultChemObjectBuilder.getInstance()
+				SilentChemObjectBuilder.getInstance()
 				);
 		
 		while (iterator.hasNext()) 
@@ -197,7 +191,7 @@ public class SimilarityRanker {
 		return similarity/spectrum.size();
 	}
 	
-	public void reportResults() throws IOException, CDKException
+	public void reportResults() throws Exception
 	{
 		String filename = null;
 		DepictionGenerator dg = null; 

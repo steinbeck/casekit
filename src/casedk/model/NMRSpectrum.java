@@ -1,4 +1,4 @@
-package org.openscience.spectra.model;
+package casedk.model;
 
 /* NMRSpectrum.java
 *

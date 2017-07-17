@@ -1,5 +1,5 @@
-# spectra
-# 
+# casedk
+# The Computer-Assisted-Structure-Elucidation Development Kit
  
 Copyright 2017 Christoph Steinbeck
 

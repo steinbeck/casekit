@@ -5,7 +5,7 @@
  * Copyright (c) 2017, Christoph Steinbeck 
  */
 
-package org.openscience.spectra;
+package casedk;
 
 public class Signal {
 

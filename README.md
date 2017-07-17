@@ -1,5 +1,5 @@
-# casedk
-# The Computer-Assisted-Structure-Elucidation Development Kit
+# 
+# The Computer-Assisted-Structure-Elucidation Kit (CASEkit)
  
 Copyright 2017 Christoph Steinbeck
 
@@ -18,7 +18,7 @@ This assumes that you have git working on your system and you have initialised y
 Then, downloading spectra is just a matter of
 
 ```bash
-$ git clone https://github.com/steinbeck/spectra.git
+$ git clone https://github.com/steinbeck/casedk.git
 ```
 
 ## Compiling

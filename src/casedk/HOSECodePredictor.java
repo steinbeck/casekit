@@ -307,7 +307,7 @@ public class HOSECodePredictor {
 			formatter.setOptionComparator(null);
 			 String header = "Predict NMR chemical shifts for a given molecule based on table of HOSE codes and assigned shifts.\n\n";
 			 String footer = "\nPlease report issues at https://github.com/steinbeck/spectra";
-			formatter.printHelp( "java -jar spectra.jar org.openscience.spectra.HOSECodePredictor", header, options, footer, true );
+			formatter.printHelp( "java -jar spectra.jar casedk.HOSECodePredictor", header, options, footer, true );
 			throw new ParseException("Problem parsing command line");
 		}
 	}

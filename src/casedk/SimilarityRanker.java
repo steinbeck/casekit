@@ -233,7 +233,7 @@ public class SimilarityRanker {
 			formatter.setOptionComparator(null);
 			 String header = "Ranke structures based on given experimental spectrum and similarity to predicted spectrum.\n\n";
 			 String footer = "\nPlease report issues at https://github.com/steinbeck/spectra";
-			formatter.printHelp( "java -jar spectra.jar org.openscience.spectra.SimilarityRanker", header, options, footer, true );
+			formatter.printHelp( "java -jar spectra.jar casedk.SimilarityRanker", header, options, footer, true );
 			throw e;
 		}
 	}

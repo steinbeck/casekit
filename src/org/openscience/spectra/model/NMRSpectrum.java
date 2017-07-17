@@ -14,8 +14,6 @@ package org.openscience.spectra.model;
 *
 */
 
-import org.apache.log4j.Logger;
-
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.EventListenerList;

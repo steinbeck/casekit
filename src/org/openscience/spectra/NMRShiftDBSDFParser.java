@@ -6,19 +6,12 @@
  */
 package org.openscience.spectra;
 
-import java.awt.image.BufferedImageFilter;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.apache.commons.cli.CommandLine;
@@ -26,21 +19,18 @@ import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.openscience.cdk.AtomContainer;
 import org.openscience.cdk.CDKConstants;
-import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.depict.DepictionGenerator;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
+import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.HOSECodeGenerator;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
-import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 
 /** 
  * Helper class to parse an NMRShiftDB SDF file with spectra assignments 
@@ -81,11 +71,11 @@ public class NMRShiftDBSDFParser {
 		FileOutputStream fos = new FileOutputStream(fout);
 		bw = new BufferedWriter(new OutputStreamWriter(fos));
 		
-		IAtomContainer ac = new AtomContainer();
+		IAtomContainer ac = SilentChemObjectBuilder.getInstance().newAtomContainer();
 		
 		IteratingSDFReader iterator = new IteratingSDFReader(
 				new FileReader(inFile),
-				DefaultChemObjectBuilder.getInstance()
+				SilentChemObjectBuilder.getInstance()
 				);
 		
 		while (iterator.hasNext()) 

@@ -41,7 +41,7 @@ The following classes are to demonstrate the prediction of Carbon-13 NMR spectra
 Take the NMRShiftDB SDF with assigned spectra (download from help section of NMRShiftDB.org) and produces a Tab-separated file with HOSE codes and assigned shift values. This file can then be read by HOSECodePredictor and SimilarityRanker. 
 
 ```bash
-usage: java -jar spectra.jar NMRShiftDBSDFParser -i <arg> -o <arg> [-v]
+usage: java -jar spectra.jar org.openscience.spectra.NMRShiftDBSDFParser -i <arg> -o <arg> [-v]
        [-d <arg>] [-m <arg>]
 Generates a table of HOSE codes and assigned shifts from an NMRShiftDB SDF
 file from http://nmrshiftdb.nmr.uni-koeln.de/portal/js_pane/P-Help.

@@ -13,6 +13,13 @@ Please refer to these pages for updated information and the latest version of th
 
 ## Download Spectra Source code
 
+This assumes that you have git working on your system and you have initialised your local repository. Refer to https://help.github.com/articles/set-up-git/ for more
+
+Then, downloading spectra is just a matter of
+
+```bash
+$ git clone https://github.com/steinbeck/spectra.git
+```
 
 ## Compiling
 

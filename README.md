@@ -11,6 +11,10 @@ This project hosts various Java classes for teaching and research dealing with s
 This project depends on the Chemistry Development Project (CDK), hosted under http://cdk.github.io/
 Please refer to these pages for updated information and the latest version of the CDK. CDK's API documentation is available though our [Github site](http://cdk.github.io/cdk/).
 
+## Releases
+
+Latest release of casekit is at https://github.com/steinbeck/casekit/releases/latest
+
 ## Download Spectra Source code
 
 This assumes that you have git working on your system and you have initialised your local repository. Refer to https://help.github.com/articles/set-up-git/ for more

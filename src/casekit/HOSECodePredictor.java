@@ -197,8 +197,8 @@ public class HOSECodePredictor {
 				"'''",
 				"''''",
 				"'''''",
-				"'''''",
 				"''''''",
+				"'''''''",
 				"''''''''"
 		};
 		fixExplicitHydrogens(ac);

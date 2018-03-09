@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.StringTokenizer;
 
 import org.apache.commons.cli.CommandLine;
@@ -198,7 +199,7 @@ public class HOSECodePredictor {
 				"'''''",
 				"'''''",
 				"''''''",
-				"'''''''"
+				"''''''''"
 		};
 		fixExplicitHydrogens(ac);
 		if (verbose) System.out.println("Entering prediction module");
@@ -269,6 +270,7 @@ public class HOSECodePredictor {
 	 */
 	void fixExplicitHydrogens(IAtomContainer ac)
 	{
+                List<IAtom> toRemoveList = new ArrayList<>();
 		IAtom atomB;
 		for (IAtom atomA : ac.atoms())
 		{
@@ -276,9 +278,12 @@ public class HOSECodePredictor {
 			{
 				atomB = ac.getConnectedAtomsList(atomA).get(0);
 				atomB.setImplicitHydrogenCount(atomB.getImplicitHydrogenCount() +1 );
-				ac.removeAtom(atomA);
+				toRemoveList.add(atomA);
 			}
 		}
+                for (IAtom iAtom : toRemoveList) {
+                    ac.removeAtom(iAtom);
+                }
 	}
 	
 	private void parseArgs(String[] args) throws ParseException

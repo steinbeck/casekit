@@ -16,7 +16,7 @@ package casekit.model;
 
 public class NMRSignal {
 
-    int dim;
+   int dim;
 
    /**
     * Am array of doubles to store the chemical shift of

@@ -1,0 +1,942 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2018 Michael Wenk [https://github.com/michaelwenk].
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package NMR;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Scanner;
+import javax.xml.parsers.ParserConfigurationException;
+import org.apache.commons.lang3.ArrayUtils;
+import org.openscience.cdk.Atom;
+import org.openscience.cdk.CDKConstants;
+import org.openscience.cdk.interfaces.IAtom;
+import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.interfaces.IElement;
+import org.openscience.cdk.interfaces.IMolecularFormula;
+import org.openscience.cdk.silent.SilentChemObjectBuilder;
+import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
+import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
+import org.xml.sax.SAXException;
+
+/**
+ *
+ * @author Michael Wenk [https://github.com/michaelwenk]
+ */
+public class ParseRawData {
+    
+    final private IAtomContainer mol;
+    final private IMolecularFormula molFormula;
+    final private HashMap<String, ArrayList<Integer>> atomTypeIndices = new HashMap<>();
+    final public static String CONST_STRING_EQUIVALENCE = "Equivalence";
+    final public static String CONST_STRING_HYDROGENSHIFTS = "HydrogenShifts";
+    final public static String CONST_STRING_COSY = "COSY";
+    final public static String CONST_STRING_HMBC = "HMBC";
+    final public static String CONST_STRING_INADEQUATE = "INADEQUATE";
+
+    
+    public ParseRawData(){
+        
+        this.molFormula = null;
+        this.mol = SilentChemObjectBuilder.getInstance().newAtomContainer();
+    }
+    
+    
+    public ParseRawData(final IMolecularFormula molFormula){
+        
+        this.molFormula = molFormula;
+        this.mol = Utils.removeAtoms(MolecularFormulaManipulator.getAtomContainer(this.molFormula), "H");
+        this.setAtomTypeIndices();
+    }
+    
+    
+    /**
+     *
+     * @return used IMolecularFormula object for this class instance
+     */
+    public final IMolecularFormula getMolecularFormula() {
+
+        return this.molFormula;
+    }
+
+    
+    /**
+     *
+     * @return used IAtomContainer object for this class instance
+     */
+    public final IAtomContainer getAtomContainer() {
+
+        return this.mol;
+    }
+
+    public final void setAtomTypeIndices() {
+        
+        final HashSet<String> atomTypes = new HashSet<>();
+        if(this.molFormula != null){
+            for (final IElement heavyElem : MolecularFormulaManipulator.getHeavyElements(this.molFormula)) {
+                atomTypes.add(heavyElem.getSymbol());
+            }
+        } else {
+            for (final IAtom heavyAtom : AtomContainerManipulator.getHeavyAtoms(this.mol)) {
+                atomTypes.add(heavyAtom.getSymbol());
+            }
+        }
+        for (final String atomType : atomTypes) {
+            this.atomTypeIndices.put(atomType, Utils.getAtomTypeIndicesInAtomContainer(this.mol, atomType));
+        }
+    }
+
+    
+    /**
+     * Returns a HashMap object with the indices of all atoms for all atom types
+     * (elements) within the atom container of this class.
+     *
+     * @return
+     */
+    public final HashMap<String, ArrayList<Integer>> getAtomTypeIndices() {
+
+        return this.atomTypeIndices;
+    }
+    
+    
+    /**
+     * Copies all up to here set properties from an atom in atom container to its 
+     * linked atoms with equivalent shift values.
+     *
+     */
+    public final void setEquivalentProperties() {
+        
+        Map<Object, Object> properties;
+        for (int i = 0; i < this.mol.getAtomCount(); i++) {
+            if (this.mol.getAtom(i).getProperty(ParseRawData.CONST_STRING_EQUIVALENCE) != null) {
+                properties = this.mol.getAtom(i).getProperties();
+                for (final Object prop: properties.keySet()) {
+                    if (this.mol.getAtom(i).getProperty(prop) != null && !prop.equals(ParseRawData.CONST_STRING_EQUIVALENCE)) {
+                        for (final int k : (ArrayList<Integer>) this.mol.getAtom(i).getProperty(ParseRawData.CONST_STRING_EQUIVALENCE)) {
+                            this.mol.getAtom(k).setProperty(prop, this.mol.getAtom(i).getProperty(prop));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    /**
+     * Wrapper function for automatically choosing which file format to take.
+     * For more details see {@link NMR.ParseRawData#parse1DNMRviaPeakTable(String, String)} 
+     * and {@link NMR.ParseRawData#parse1DNMRviaXML(String, String)}
+     * 
+     * @param pathToPeakList
+     * @param atomType
+     * @return
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     */
+    public final boolean parse1DNMR(final String pathToPeakList, final String atomType) throws IOException, ParserConfigurationException, SAXException{
+        
+        switch (NMR.Utils.getFileFormat(pathToPeakList)) {
+            case "csv":
+                return this.parse1DNMRviaPeakTable(pathToPeakList, atomType);
+            case "xml":
+                return this.parse1DNMRviaXML(pathToPeakList, atomType);
+            default: 
+                return false;
+        }
+    }
+    
+    
+    /**
+     * Assigns shift values from 1D NMR peak list to atoms of an IAtomContainer.
+     * The shift values will be assigned sequentially.  
+     * In case of a molecular formula  is given in this class, the number of 
+     * shifts must be equal to the number of atoms in this molecular formula. 
+     * Otherwise this function will return a false value.
+     * In case of no molecular was given to class, new atom in the atom container 
+     * will be created regarding to the inpout peak list.
+     *
+     * 
+     * @param pathToPeakList Path to peak list (Bruker's TopSpin csv file
+     * format)
+     * @param atomType Element name (e.g. "C") which also occurrs in
+     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * @return false if input shift list size greater than the number of atoms in 
+     * molecular formula, if such was given to the class
+     * @throws java.io.IOException
+     */
+    public final boolean parse1DNMRviaPeakTable(final String pathToPeakList, final String atomType) throws IOException {
+
+        final ArrayList<Double> shifts = NMR.Utils.parsePeakTable(pathToPeakList, 4);
+
+        return this.set1DNMRShifts(shifts, atomType);
+    }
+
+    /**
+     * Assigns shift values from 1D NMR XML file to atoms of an IAtomContainer.
+     * The shift values will be assigned sequentially.  
+     * In case of a molecular formula  is given in this class, the number of 
+     * shifts must be equal to the number of atoms in this molecular formula. 
+     * Otherwise this function will return a false value.
+     * In case of no molecular was given to class, new atom in the atom container 
+     * will be created regarding to the inpout peak list.
+     *
+     * @param pathToXML Path to XML file (Bruker's TopSpin XML file
+     * format)
+     * @param atomType Element name (e.g. "C") which also occurrs in
+     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * @return false if input shift list size greater than the number of atoms in 
+     * molecular formula, if such was given to the class
+     * @throws java.io.IOException
+     * @throws javax.xml.parsers.ParserConfigurationException
+     * @throws org.xml.sax.SAXException
+     */
+    public final boolean parse1DNMRviaXML(final String pathToXML, final String atomType) throws IOException, ParserConfigurationException, SAXException {
+
+        final ArrayList<Double> shifts = NMR.Utils.parseXML(pathToXML, 1, 1);
+
+        return this.set1DNMRShifts(shifts, atomType);
+    }
+
+    /**
+     *
+     * @param shifts
+     * @param atomType
+     * @return false, if shift list size is not equal to number of atoms in the
+     * atom container for the given atom type; otherwise true
+     */
+    private boolean set1DNMRShifts(final ArrayList<Double> shifts, final String atomType) {
+
+        // check whether indices for that atom type exist or the number of input signals are greater than the atom number in atom container for that atom type
+        if (!this.atomTypeIndices.containsKey(atomType) || shifts.size() > this.atomTypeIndices.get(atomType).size()) {
+            // if molecular formula is known and too much picked peak are to be assigned
+            if(this.atomTypeIndices.containsKey(atomType)){
+                System.err.println("Too many peaks in peak list for \"" + atomType + "\" and molecular formula \"" + MolecularFormulaManipulator.getString(this.molFormula) + "\"!!!");
+                return false;
+            } else { // 
+                // "fill up" the first peaks for that atom type from given peak list
+                IAtom atom;
+                for (final double shift : shifts) {
+                    atom = new Atom(atomType);
+                    atom.setProperty(NMR.Utils.getNMRShiftConstant(atomType), shift);
+                    atom.setImplicitHydrogenCount(null);
+                    this.mol.addAtom(atom);
+                }
+                this.setAtomTypeIndices();
+            }
+        }
+        int assignedShiftCount = 0;
+        for (final int i : this.atomTypeIndices.get(atomType)) {
+            if(assignedShiftCount < shifts.size()){
+                // shift assignment
+                this.mol.getAtom(i).setProperty(NMR.Utils.getNMRShiftConstant(atomType), shifts.get(assignedShiftCount));
+            }
+            assignedShiftCount++;
+        }
+        // "fill up" the missing equivalent peaks
+        // check whether the number of input signals is smaller than the number of atoms in atom container from that atom type
+        if (shifts.size() < this.atomTypeIndices.get(atomType).size()) {
+            System.out.println("Not enough peaks in 1D peak list for \"" + atomType + "\"!!!");
+            this.askForEquivalentPeaks(atomType);
+        }
+        
+        this.setAtomTypeIndices();
+        
+        return true;
+    }
+    
+    
+    private void askForEquivalentPeaks(final String atomType) {
+
+        final Scanner reader = new Scanner(System.in); int n = -1;
+        final HashSet<Integer> validIndices = new HashSet<>();
+        for (final int i : this.atomTypeIndices.get(atomType)) {
+            if (this.mol.getAtom(i).getProperty(Utils.getNMRShiftConstant(atomType)) != null) {
+                continue;
+            }
+            System.out.println("\nThe " + i + "th shift value is missing!\nWhich shift value is not unique?");
+            for (final int k : this.atomTypeIndices.get(atomType)) {
+                if(this.mol.getAtom(k).getProperty(Utils.getNMRShiftConstant(atomType)) != null){
+                    System.out.println(k + "\t: " + this.mol.getAtom(k).getProperty(Utils.getNMRShiftConstant(atomType)));
+                    validIndices.add(k);
+                }
+            }
+            n = -1;
+            while(!validIndices.contains(n)){
+                System.out.println("Enter the index: ");
+                n = reader.nextInt();
+            }
+            this.mol.getAtom(i).setProperty(Utils.getNMRShiftConstant(atomType), this.mol.getAtom(n).getProperty(Utils.getNMRShiftConstant(atomType)));
+            if(this.mol.getAtom(i).getProperty(ParseRawData.CONST_STRING_EQUIVALENCE) == null){
+                this.mol.getAtom(i).setProperty(ParseRawData.CONST_STRING_EQUIVALENCE, new ArrayList<>());
+            }
+            if(this.mol.getAtom(n).getProperty(ParseRawData.CONST_STRING_EQUIVALENCE) == null){
+                this.mol.getAtom(n).setProperty(ParseRawData.CONST_STRING_EQUIVALENCE, new ArrayList<>());
+            }
+            ((ArrayList<Integer>) this.mol.getAtom(i).getProperty(ParseRawData.CONST_STRING_EQUIVALENCE)).add(n);
+            ((ArrayList<Integer>) this.mol.getAtom(n).getProperty(ParseRawData.CONST_STRING_EQUIVALENCE)).add(i);
+        }
+        reader.close();
+    }
+    
+    
+    /**
+     * Wrapper function for automatically choosing which file format to take.
+     * For more details see
+     * {@link NMR.ParseRawData#parseDEPTviaPeakTable(java.lang.String, java.lang.String, double) }
+     * and {@link NMR.ParseRawData#parseDEPTviaXML(java.lang.String, java.lang.String, double) }
+     * @param pathToDEPT90
+     * @param pathToDEPT135 
+     * @param tol 
+     * @return 
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     */
+    public final boolean parseDEPT(final String pathToDEPT90, final String pathToDEPT135, final double tol) throws IOException, ParserConfigurationException, SAXException {
+
+        if(NMR.Utils.getFileFormat(pathToDEPT90).equals("csv") && NMR.Utils.getFileFormat(pathToDEPT135).equals("csv")) {
+            this.parseDEPTviaPeakTable(pathToDEPT90, pathToDEPT135, tol);
+        } else if(NMR.Utils.getFileFormat(pathToDEPT90).equals("xml") && NMR.Utils.getFileFormat(pathToDEPT135).equals("xml")) {
+            this.parseDEPTviaXML(pathToDEPT90, pathToDEPT135, tol);
+        } else {
+            return false;
+        }
+        
+        return true;
+    }
+    
+
+    /**
+     * Sets the number of implicit hydrogens from two carbon DEPT90 and DEPT135
+     * peak
+     * tables to carbon atoms. The meanwhile found matches are corrected,
+     * see
+     * {@link testkit.Utils#correctShiftMatches(IAtomContainer, ArrayList, ArrayList, double,String)}.
+     *
+     * @param pathToDEPT90 Path to DEPT90 peak list (Bruker's TopSpin csv file
+     * format)
+     * @param pathToDEPT135 Path to DEPT135 peak list (Bruker's TopSpin csv file
+     * format)
+     * @param tol Tolance value [ppm] when matching carbon shifts
+     * @throws java.io.IOException
+     */
+    public final void parseDEPTviaPeakTable(final String pathToDEPT90, final String pathToDEPT135, final double tol) throws IOException {
+
+        final ArrayList<Integer> matchesDEPT90 = NMR.Utils.matchShiftsFromPeakTable(this.mol, pathToDEPT90, "C", tol, 4);
+        final ArrayList<Integer> matchesDEPT135 = NMR.Utils.matchShiftsFromPeakTable(this.mol, pathToDEPT135, "C", tol, 4);
+        final ArrayList<Double> intensitiesDEPT135 = NMR.Utils.parsePeakTable(pathToDEPT135, 6);
+
+        this.setImplicitHydrogenNumberFromDEPT(matchesDEPT90, matchesDEPT135, intensitiesDEPT135);
+    }
+
+    /**
+     * Sets the number of implicit hydrogens from two carbon DEPT90 and DEPT135
+     * XML files to carbon atoms. The meanwhile found matches are corrected, see
+     * {@link testkit.Utils#correctShiftMatches(IAtomContainer, ArrayList, ArrayList, double,String)}.
+     *
+     * @param pathToDEPT90 Path to DEPT90 peak list (Bruker's TopSpin XML file
+     * format)
+     * @param pathToDEPT135 Path to DEPT135 peak list (Bruker's TopSpin XML file
+     * format)
+     * @param tol Tolance value [ppm] when matching carbon shifts
+     * @throws java.io.IOException
+     * @throws javax.xml.parsers.ParserConfigurationException
+     * @throws org.xml.sax.SAXException
+     */
+    public final void parseDEPTviaXML(final String pathToDEPT90, final String pathToDEPT135, final double tol) throws IOException, ParserConfigurationException, SAXException {
+
+        final ArrayList<Integer> matchesDEPT90 = NMR.Utils.matchShiftsFromXML(this.mol, pathToDEPT90, "C", tol, 1, 1);
+        final ArrayList<Integer> matchesDEPT135 = NMR.Utils.matchShiftsFromXML(this.mol, pathToDEPT135, "C", tol, 1, 1);
+        final ArrayList<Double> intensitiesDEPT135 = NMR.Utils.parseXML(pathToDEPT135, 1, 2);
+
+        this.setImplicitHydrogenNumberFromDEPT(matchesDEPT90, matchesDEPT135, intensitiesDEPT135);
+    }
+
+    /**
+     *
+     * @param matchesDEPT90
+     * @param matchesDEPT135
+     * @param intensitiesDEPT135
+     */
+    private void setImplicitHydrogenNumberFromDEPT(final ArrayList<Integer> matchesDEPT90, final ArrayList<Integer> matchesDEPT135, final ArrayList<Double> intensitiesDEPT135) {
+
+        int matchDEPT90, matchDEPT135, hCount, hCountAll = 0;
+        for (int i : this.atomTypeIndices.get("C")) {
+            if ((this.mol.getAtom(i).getProperty(CDKConstants.NMRSHIFT_CARBON) != null) && (this.mol.getAtom(i).getImplicitHydrogenCount() == null)) {
+                matchDEPT90 = matchesDEPT90.indexOf(i);
+                matchDEPT135 = matchesDEPT135.indexOf(i);
+                if (matchDEPT90 >= 0) {
+                    // CH
+                    hCount = 1;
+                } else if (matchDEPT90 == -1 && matchDEPT135 >= 0) {
+                    // CH2 or CH3
+                    if (intensitiesDEPT135.get(matchDEPT135) < 0) {
+                        hCount = 2;
+                    } else if (intensitiesDEPT135.get(matchDEPT135) > 0) {
+                        hCount = 3;
+                    } else {
+                        // qC
+                        hCount = 0;
+                    }
+                } else {
+                    // qC
+                    hCount = 0;
+                }
+                this.mol.getAtom(i).setImplicitHydrogenCount(hCount);
+                hCountAll += hCount;
+                if (this.mol.getAtom(i).getProperty(ParseRawData.CONST_STRING_EQUIVALENCE) != null) {
+                    for (Integer k : (ArrayList<Integer>) this.mol.getAtom(i).getProperty(ParseRawData.CONST_STRING_EQUIVALENCE)) {
+                        this.mol.getAtom(k).setImplicitHydrogenCount(hCount);
+                        hCountAll += hCount;
+                    }
+                }
+
+            }
+        }
+        if(this.molFormula != null){
+            System.out.println("assigned protons to carbons: " + hCountAll + " (" + MolecularFormulaManipulator.getElementCount(this.molFormula, "H") + ") -> " + (MolecularFormulaManipulator.getElementCount(this.molFormula, "H") - hCountAll) + " protons to be attached on hetero atoms!!!");
+        } else {
+            System.out.println("assigned protons to carbons: " + hCountAll+ "!!!");
+        }
+    }
+    
+    
+    /**
+     * Wrapper function for automatically choosing which file format to take.
+     * For more details see
+     * {@link NMR.ParseRawData#parseHSQCviaPeakTable(java.lang.String, java.lang.String, double)}
+     * and {@link NMR.ParseRawData#parseHSQCviaXML(java.lang.String, java.lang.String, double)}
+     *
+     * @param pathToPeakList
+     * @param atomType
+     * @param tol 
+     * @return
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     */
+    public final boolean parseHSQC(final String pathToPeakList, final String atomType, final double tol) throws IOException, ParserConfigurationException, SAXException {
+
+        switch (NMR.Utils.getFileFormat(pathToPeakList)) {
+            case "csv":
+                parseHSQCviaPeakTable(pathToPeakList, atomType, tol);
+                break;
+            case "xml":
+                parseHSQCviaXML(pathToPeakList, atomType, tol);
+                break;
+            default:
+                return false;
+        }
+        
+        return true;
+    }
+    
+
+    /**
+     * Assigns shifts to implicit hydrogens of a given atom type from HSQC
+     * peak table, e.g. 1H,13C-HSQC or 1H,15N-HSQC. The implicit hydrogen
+     * number for an atom of the given atom type must be set beforehand.
+     * In case of 1H,13C-HSQC, this could be done by
+     * {@link ParseRawData#parseDEPT(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaPeakTable(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaXML(String, String, double) }.
+     *
+     * @param pathToPeakList path to HSQC peak table (Bruker's TopSpin csv file
+     * format)
+     * @param atomType Element name (e.g. "C") which also occurrs in
+     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * @param tol tolerance value [ppm] for matching the atoms of given atom
+     * type
+     * within the atom container
+     * @throws IOException
+     */
+    public final void parseHSQCviaPeakTable(final String pathToPeakList, final String atomType, final double tol) throws IOException {
+
+        final ArrayList<Double> hydrogenShifts = NMR.Utils.parsePeakTable(pathToPeakList, 5);
+        final ArrayList<Integer> matchesAtomType = NMR.Utils.matchShiftsFromPeakTable(this.mol, pathToPeakList, atomType, tol, 6);
+
+        this.setImplicitHydrogenShifts(hydrogenShifts, matchesAtomType);
+    }
+
+    /**
+     * Assigns shifts to implicit hydrogens of a given atom type from HSQC XML
+     * file, e.g. 1H,13C-HSQC or 1H,15N-HSQC. The implicit hydrogen
+     * number for an atom of the given atom type must be set beforehand.
+     * In case of 1H,13C-HSQC, this could be done by
+     * {@link ParseRawData#parseDEPT(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaPeakTable(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaXML(String, String, double) }.
+     *
+     * @param pathToXML path to HSQC XML file
+     * @param atomType Element name (e.g. "C") which also occurrs in
+     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * @param tol tolerance value [ppm] for matching the atoms of given atom
+     * type
+     * within the atom container
+     * @throws IOException
+     * @throws javax.xml.parsers.ParserConfigurationException
+     * @throws org.xml.sax.SAXException
+     */
+    public final void parseHSQCviaXML(final String pathToXML, final String atomType, final double tol) throws IOException, ParserConfigurationException, SAXException {
+
+        final ArrayList<Double> hydrogenShifts = NMR.Utils.parseXML(pathToXML, 2, 2);
+        final ArrayList<Integer> matchesAtomType = NMR.Utils.matchShiftsFromXML(this.mol, pathToXML, atomType, tol, 2, 1);
+
+        this.setImplicitHydrogenShifts(hydrogenShifts, matchesAtomType);
+    }
+
+    private void setImplicitHydrogenShifts(final ArrayList<Double> hydrogenShifts, final ArrayList<Integer> matchesAtomType) {
+
+        IAtom matchAtom;
+        ArrayList<Double> assignedHydrogensShifts;
+        for (int i = 0; i < matchesAtomType.size(); i++) {
+            if (matchesAtomType.get(i) >= 0) {
+                matchAtom = this.mol.getAtom(matchesAtomType.get(i));
+                if (matchAtom.getImplicitHydrogenCount() == null || matchAtom.getImplicitHydrogenCount() == 0) {
+                    continue;
+                }
+                if (matchAtom.getProperty(ParseRawData.CONST_STRING_HYDROGENSHIFTS) == null) {
+                    matchAtom.setProperty(ParseRawData.CONST_STRING_HYDROGENSHIFTS, new ArrayList<>(matchAtom.getImplicitHydrogenCount()));
+                }
+                assignedHydrogensShifts = matchAtom.getProperty(ParseRawData.CONST_STRING_HYDROGENSHIFTS);
+                if (assignedHydrogensShifts.size() < matchAtom.getImplicitHydrogenCount()) {
+                    assignedHydrogensShifts.add(hydrogenShifts.get(i));
+                }
+            }
+        }
+    }
+
+    /**
+     * Finds the matches with the lowest deviations between a given hydrogen
+     * shift value set and implicit hydrogens of heavy atoms in the atom
+     * container.
+     *
+     * @param shiftList shift value list to match
+     * @param tol tolerance value [ppm]
+     * @return
+     */
+    private ArrayList<Integer> findImplicitHydrogenShiftMatches(final ArrayList<Double> shiftList, final double tol) {
+
+        final ArrayList<Integer> matches = new ArrayList<>();
+        for (int i = 0; i < shiftList.size(); i++) {
+            matches.add(this.findSingleImplicitHydrogenShiftMatch(shiftList.get(i), tol)[0]);
+        }
+
+        return matches;
+    }
+
+    /**
+     * Finds a match with the lowest deviations between a given hydrogen
+     * shift value and implicit hydrogens of heavy atoms in the atom
+     * container.
+     *
+     * @param queryShift hydrogen shift value [ppm] to match
+     * @param tol tolerance value [ppm] for matching
+     * @return int array of two values: 1. index of matched heavy atom in
+     * atom container, 2. index of matched hydrogen in hydrogen shift list
+     * of corresponding found heavy atom
+     */
+    private int[] findSingleImplicitHydrogenShiftMatch(final double queryShift, final double tol) {
+
+        int matchIndexAtom = -1;
+        int matchIndexProton = -1;
+        double minDiff = tol;
+        ArrayList<Double> protonShiftList;
+        for (int i = 0; i < this.mol.getAtomCount(); i++) {
+            // skip atoms without implicit hydrogens
+            if (this.mol.getAtom(i).getProperty(ParseRawData.CONST_STRING_HYDROGENSHIFTS) == null) {
+                continue;
+            }
+            protonShiftList = this.mol.getAtom(i).getProperty(ParseRawData.CONST_STRING_HYDROGENSHIFTS);
+            for (int j = 0; j < protonShiftList.size(); j++) {
+                // figure out the atom with lowest shift deviation
+                if ((queryShift - tol <= protonShiftList.get(j)) && (protonShiftList.get(j) <= queryShift + tol) && (Math.abs(queryShift - protonShiftList.get(j)) < minDiff)) {
+                    minDiff = Math.abs(queryShift - protonShiftList.get(j));
+                    matchIndexProton = j;
+                    matchIndexAtom = i;
+                }
+            }
+        }
+
+        return new int[]{matchIndexAtom, matchIndexProton};
+    }
+
+    /**
+     * Corrects a hydrogen match list regarding a given shift list and an atom
+     * container.
+     * This is useful when two ore more hydrogen shift values match
+     * with the same hydrogen shift (actually heavy atom) in the atom container.
+     * So the purpose here is to enable more unambiguous matches. This method
+     * first looks for unambiguous matches and calculates the median of the
+     * difference values between the shift list values and the shifts of atom
+     * container. Then, all shift list values are adjusted (+/-) with this
+     * median value.
+     *
+     * @param shifts Shift value list to match
+     * @param matches Match list to correct
+     * @param tol Tolerance value [ppm] for hydrogen rematching
+     * @return
+     */
+    private ArrayList<Integer> correctHydrogenShiftMatches(final ArrayList<Double> shifts, ArrayList<Integer> matches, final double tol) {
+
+        int matchIndex, middle;
+        double diff, median;
+        int[] singleMatchIndex;
+        ArrayList<Double> singleMatchShifts;
+        ArrayList<Double> diffs = new ArrayList<>();
+        final HashSet<Integer> uniqueMatchIndicesSet = new HashSet<>(matches);
+        for (Integer matchIndexAtomContainer : uniqueMatchIndicesSet) {
+            if (Collections.frequency(matches, matchIndexAtomContainer) == 1) {
+                matchIndex = matches.indexOf(matchIndexAtomContainer);
+                if (matches.get(matchIndex) >= 0) {
+                    singleMatchIndex = this.findSingleImplicitHydrogenShiftMatch(shifts.get(matchIndex), tol);
+                    singleMatchShifts = this.mol.getAtom(singleMatchIndex[0]).getProperty(ParseRawData.CONST_STRING_HYDROGENSHIFTS);
+                    diff = shifts.get(matchIndex) - singleMatchShifts.get(singleMatchIndex[1]);
+                    diffs.add(diff);
+                }
+            }
+        }
+        if (diffs.size() > 0) {
+            middle = diffs.size() / 2;
+            if (diffs.size() % 2 == 1) {
+                median = diffs.get(middle);
+            } else {
+                median = (diffs.get(middle - 1) + diffs.get(middle)) / 2.0;
+            }
+            // add or subtract the median of the differences to all shift list values (input) and match again then
+            for (int i = 0; i < shifts.size(); i++) {
+                shifts.set(i, shifts.get(i) - median);
+            }
+            // rematch
+            matches = this.findImplicitHydrogenShiftMatches(shifts, tol);
+        }
+
+        return matches;
+    }
+    
+    
+    /**
+     * Wrapper function for automatically choosing which file format to take.
+     * For more details see
+     * {@link NMR.ParseRawData#parseCOSYviaPeakTable(java.lang.String, double)}
+     * and {@link NMR.ParseRawData#parseCOSYviaXML(java.lang.String, double)}
+     *
+     * @param pathToPeakList
+     * @param tol 
+     * @return
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     */
+    public final boolean parseCOSY(final String pathToPeakList, final double tol) throws IOException, ParserConfigurationException, SAXException {
+
+        switch (NMR.Utils.getFileFormat(pathToPeakList)) {
+            case "csv":
+                parseCOSYviaPeakTable(pathToPeakList, tol);
+                break;
+            case "xml":
+                parseCOSYviaXML(pathToPeakList, tol);
+                break;
+            default:
+                return false;
+        }
+        
+        return true;
+    }
+    
+
+    /**
+     * Sets links between implicit hydrogens from H,H-COSY peak table to heavy
+     * atoms in the atom container. The implicit hydrogen number for
+     * a heavy atom, which is the corresponding heavy atom for an H shift value,
+     * must be set beforehand. In case of carbons, this could be done by parsing
+     * the DEPT information:
+     * {@link ParseRawData#parseDEPT(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaPeakTable(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaXML(String, String, double)}.
+     * Returns true if all signals are bidirectional, so that atom A has a
+     * signal according to atom B and vice versa.
+     *
+     * @param pathToPeakList path to H,H-COSY peak table (Bruker's TopSpin csv
+     * file
+     * format)
+     * @param tol tolerance value [ppm] for hydrogen shift matching
+     * @return
+     * @throws IOException
+     */
+    public final boolean parseCOSYviaPeakTable(final String pathToPeakList, final double tol) throws IOException {
+
+        final ArrayList<Double> hydrogenShifts1 = NMR.Utils.parsePeakTable(pathToPeakList, 5);
+        final ArrayList<Double> hydrogenShifts2 = NMR.Utils.parsePeakTable(pathToPeakList, 6);
+
+        return this.setCOSY(hydrogenShifts1, hydrogenShifts2, tol);
+    }
+
+    /**
+     * Sets links between implicit hydrogens from H,H-COSY peak XML file to
+     * heavy
+     * atoms in the atom container. The implicit hydrogen number for a heavy
+     * atom, which is the corresponding heavy atom for an H shift value, must be
+     * set beforehand. In case of carbons, this could be done by parsing the
+     * DEPT information:
+     * {@link ParseRawData#parseDEPT(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaPeakTable(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaXML(String, String, double)}. Returns true if
+     * all signals are bidirectional, so that atom A has a signal according to
+     * atom B and vice versa.
+     *
+     * @param pathToXML path to H,H-COSY peak XML file (Bruker's TopSpin XML
+     * file format)
+     * @param tol tolerance value [ppm] for hydrogen shift matching
+     * @return
+     * @throws IOException
+     * @throws javax.xml.parsers.ParserConfigurationException
+     * @throws org.xml.sax.SAXException
+     */
+    public final boolean parseCOSYviaXML(final String pathToXML, final double tol) throws IOException, ParserConfigurationException, SAXException {
+
+        final ArrayList<Double> hydrogenShifts1 = NMR.Utils.parseXML(pathToXML, 2, 1);
+        final ArrayList<Double> hydrogenShifts2 = NMR.Utils.parseXML(pathToXML, 2, 2);
+
+        return this.setCOSY(hydrogenShifts1, hydrogenShifts2, tol);
+    }
+
+    private boolean setCOSY(final ArrayList<Double> hydrogenShifts1, final ArrayList<Double> hydrogenShifts2, final double tol) {
+
+        final ArrayList<Integer> hydrogenShiftMatches1 = this.findImplicitHydrogenShiftMatches(hydrogenShifts1, tol);
+        final ArrayList<Integer> hydrogenShiftMatches2 = this.findImplicitHydrogenShiftMatches(hydrogenShifts2, tol);
+        // are all signals bidirectional?
+        if (!NMR.Utils.isBidirectional(hydrogenShiftMatches1, hydrogenShiftMatches2)) {
+            return false;
+        }
+        NMR.Utils.setBidirectionalLinks(this.mol, hydrogenShiftMatches1, hydrogenShiftMatches2, ParseRawData.CONST_STRING_COSY);
+
+        return true;
+    }
+
+    
+    /**
+     * Wrapper function for automatically choosing which file format to take.
+     * For more details see
+     * {@link NMR.ParseRawData#parseINADEQUATEviaPeakTable(java.lang.String, double)}
+     * and {@link NMR.ParseRawData#parseINADEQUATEviaXML(java.lang.String, double)}
+     *
+     * @param pathToPeakList
+     * @param tol
+     * @return
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     */
+    public final boolean parseINADEQUATE(final String pathToPeakList, final double tol) throws IOException, ParserConfigurationException, SAXException {
+
+        switch (NMR.Utils.getFileFormat(pathToPeakList)) {
+            case "csv":
+                parseINADEQUATEviaPeakTable(pathToPeakList, tol);
+                break;
+            case "xml":
+                parseINADEQUATEviaXML(pathToPeakList, tol);
+                break;
+            default:
+                return false;
+        }
+
+        return true;
+    }
+    
+    
+    /**
+     * Sets links between carbons from INADEQUATE peak table in the atom
+     * container.
+     * To match the shift values, the carbon shifts must be set beforehand.
+     * This could be done by
+     * {@link ParseRawData#parse1DNMR(String, String)} or
+     * {@link ParseRawData#parse1DNMRviaPeakTable(String, String)} or
+     * {@link ParseRawData#parse1DNMRviaXML(String, String) }.
+     * Returns true if all signals are bidirectional, so that atom A has a
+     * signal according to atom B and vice versa.
+     *
+     * @param pathToPeakList path to INADEQUATE peak table (Bruker's TopSpin csv
+     * file format)
+     * @param tol tolerance value [ppm] for carbon shift matching
+     * @return
+     * @throws IOException
+     */
+    public final boolean parseINADEQUATEviaPeakTable(final String pathToPeakList, final double tol) throws IOException {
+
+        final ArrayList<Double> carbonShifts1 = NMR.Utils.parsePeakTable(pathToPeakList, 5);
+        final ArrayList<Double> carbonShifts2 = NMR.Utils.parsePeakTable(pathToPeakList, 6);
+
+        return this.setINADEQUATE(carbonShifts1, carbonShifts2, tol);
+    }
+
+    /**
+     * Sets links between carbons from INADEQUATE xml peak file in the atom
+     * container.
+     * To match the shift values, the carbon shifts must be set beforehand.
+     * This could be done by
+     * {@link ParseRawData#parse1DNMRviaPeakTable(String, String)} or
+     * {@link ParseRawData#parse1DNMRviaXML(String, String) }.
+     * Returns true if all signals are bidirectional, so that atom A has a
+     * signal according to atom B and vice versa.
+     *
+     * @param pathToXML path to INADEQUATE peak XML file (Bruker's TopSpin XML
+     * file format)
+     * @param tol tolerance value [ppm] for hydrogen shift matching
+     * @return
+     * @throws IOException
+     * @throws javax.xml.parsers.ParserConfigurationException
+     * @throws org.xml.sax.SAXException
+     */
+    public final boolean parseINADEQUATEviaXML(final String pathToXML, final double tol) throws IOException, ParserConfigurationException, SAXException {
+
+        final ArrayList<Double> carbonShifts1 = NMR.Utils.parseXML(pathToXML, 2, 1);
+        final ArrayList<Double> carbonShifts2 = NMR.Utils.parseXML(pathToXML, 2, 2);
+
+        return this.setINADEQUATE(carbonShifts1, carbonShifts2, tol);
+    }
+
+    private boolean setINADEQUATE(final ArrayList<Double> carbonShifts1, final ArrayList<Double> carbonShifts2, final double tol) {
+
+        final ArrayList<Integer> carbonShiftMatches1 = NMR.Utils.findShiftMatches(this.mol, carbonShifts1, tol, "C");
+        final ArrayList<Integer> carbonShiftMatches2 = NMR.Utils.findShiftMatches(this.mol, carbonShifts2, tol, "C");
+        // are all signals bidirectional?
+        if (!NMR.Utils.isBidirectional(carbonShiftMatches1, carbonShiftMatches2)) {
+            return false;
+        }
+        NMR.Utils.setBidirectionalLinks(this.mol, carbonShiftMatches1, carbonShiftMatches2, ParseRawData.CONST_STRING_INADEQUATE);
+
+        return true;
+    }
+
+    
+    /**
+     * Wrapper function for automatically choosing which file format to take.
+     * For more details see
+     * {@link NMR.ParseRawData#parseHMBCviaPeakTable(String, String, double, double)}
+     * and
+     * {@link NMR.ParseRawData#parseHMBCviaXML(String, String, double, double)}
+     *
+     * @param pathToPeakList
+     * @param atomType
+     * @param tolHydrogen
+     * @param tolHeavy
+     * @return
+     * @throws IOException
+     * @throws ParserConfigurationException
+     * @throws SAXException
+     */
+    public final boolean parseHMBC(final String pathToPeakList, final String atomType, final double tolHydrogen, final double tolHeavy) throws IOException, ParserConfigurationException, SAXException {
+
+        switch (NMR.Utils.getFileFormat(pathToPeakList)) {
+            case "csv":
+                parseHMBCviaPeakTable(pathToPeakList, atomType, tolHydrogen, tolHeavy);
+                break;
+            case "xml":
+                parseHMBCviaXML(pathToPeakList, atomType, tolHydrogen, tolHeavy);
+                break;
+            default:
+                return false;
+        }
+
+        return true;
+    }
+    
+    
+    /**
+     * Sets links between implicit hydrogens and heavy atoms from HMBC peak
+     * tablein the atom container. The implicit hydrogen number for a heavy
+     * atom, which is the corresponding heavy atom for an H shift value, must be
+     * set beforehand. In case of carbon, this could be done by parsing the
+     * DEPT information:
+     * {@link ParseRawData#parseDEPT(String, String, double) } or
+     * {@link ParseRawData#parseDEPTviaPeakTable(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaXML(String, String, double)}.
+     *
+     * @param pathToPeakList path to HMBC peak table (Bruker's TopSpin csv
+     * file format)
+     * @param atomType Element name (e.g. "C") which also occurrs in
+     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * @param tolHydrogen tolerance value [ppm] for hydrogen shift matching
+     * @param tolHeavy tolerance value [ppm] for heavy atom shift matching
+     * @throws IOException
+     */
+    public final void parseHMBCviaPeakTable(final String pathToPeakList, final String atomType, final double tolHydrogen, final double tolHeavy) throws IOException {
+
+        final ArrayList<Double> hydrogenShifts = NMR.Utils.parsePeakTable(pathToPeakList, 5);
+        final ArrayList<Integer> hydrogenShiftMatches = this.correctHydrogenShiftMatches(hydrogenShifts, this.findImplicitHydrogenShiftMatches(hydrogenShifts, tolHydrogen), tolHydrogen);
+        final ArrayList<Integer> heavyAtomShiftMatches = NMR.Utils.matchShiftsFromPeakTable(this.mol, pathToPeakList, atomType, tolHeavy, 6);
+
+        this.setHMBC(hydrogenShiftMatches, heavyAtomShiftMatches);
+    }
+
+    /**
+     * Sets links between implicit hydrogens and heavy atoms from HMBC peak
+     * XML file in the atom container. The implicit hydrogen number for a heavy
+     * atom, which is the corresponding heavy atom for an H shift value, must be
+     * set beforehand. In case of carbon, this could be done by parsing the DEPT
+     * information:
+     * {@link ParseRawData#parseDEPT(String, String, double) } or
+     * {@link ParseRawData#parseDEPTviaPeakTable(String, String, double)} or
+     * {@link ParseRawData#parseDEPTviaXML(String, String, double)}.
+     *
+     * @param pathToXML path to HMBC peak XML file (Bruker's TopSpin XML file
+     * format)
+     * @param atomType Element name (e.g. "C") which also occurrs in
+     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * @param tolHydrogen tolerance value [ppm] for hydrogen shift matching
+     * @param tolHeavy tolerance value [ppm] for heavy atom shift matching
+     * @throws IOException
+     * @throws javax.xml.parsers.ParserConfigurationException
+     * @throws org.xml.sax.SAXException
+     */
+    public final void parseHMBCviaXML(final String pathToXML, final String atomType, final double tolHydrogen, final double tolHeavy) throws IOException, ParserConfigurationException, SAXException {
+
+        final ArrayList<Double> hydrogenShifts = NMR.Utils.parseXML(pathToXML, 2, 2);
+        final ArrayList<Integer> hydrogenShiftMatches = this.correctHydrogenShiftMatches(hydrogenShifts, this.findImplicitHydrogenShiftMatches(hydrogenShifts, tolHydrogen), tolHydrogen);
+        final ArrayList<Integer> heavyAtomShiftMatches = NMR.Utils.matchShiftsFromXML(this.mol, pathToXML, atomType, tolHeavy, 2, 1);
+
+        this.setHMBC(hydrogenShiftMatches, heavyAtomShiftMatches);
+    }
+
+    private void setHMBC(final ArrayList<Integer> hydrogenShiftMatches, final ArrayList<Integer> heavyAtomShiftMatches) {
+
+        ArrayList<Integer> HMBCList;
+        for (int i = 0; i < hydrogenShiftMatches.size(); i++) {
+            if (hydrogenShiftMatches.get(i) >= 0 && heavyAtomShiftMatches.get(i) >= 0) {
+                if (this.mol.getAtom(hydrogenShiftMatches.get(i)).getProperty(ParseRawData.CONST_STRING_HMBC) == null) {
+                    this.mol.getAtom(hydrogenShiftMatches.get(i)).setProperty(ParseRawData.CONST_STRING_HMBC, new ArrayList<>());
+                }
+                HMBCList = this.mol.getAtom(hydrogenShiftMatches.get(i)).getProperty(ParseRawData.CONST_STRING_HMBC);
+                if (!HMBCList.contains(heavyAtomShiftMatches.get(i))) {
+                    HMBCList.add(heavyAtomShiftMatches.get(i));
+                }
+            }
+        }
+    }
+}

@@ -9,12 +9,11 @@ package casekit;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -53,7 +52,7 @@ import org.openscience.cdk.tools.HOSECodeGenerator;
  */
 public class HOSECodePredictor {
 
-	Hashtable<String,ArrayList<Double>> hoseLookup;
+	HashMap<String,ArrayList<Double>> hoseLookup;
 	public boolean verbose = false;
 	int maxSpheres = 6; //How many maximum spheres to use for the prediction	
 	boolean generatePictures = false;
@@ -139,7 +138,7 @@ public class HOSECodePredictor {
 		if (verbose) System.out.println("Start reading HOSE codes from " + hoseTSVfile);
 
 		BufferedReader br = new BufferedReader(new FileReader(hoseTSVfile));
-		hoseLookup = new Hashtable<String,ArrayList<Double>>();
+		hoseLookup = new HashMap<String,ArrayList<Double>>();
 		while((line = br.readLine()) != null)
 		{
 			strtok = new StringTokenizer(line, "\t");
@@ -165,6 +164,11 @@ public class HOSECodePredictor {
 		if (verbose) System.out.println("Finished reading " + linecounter + " lines of HOSE codes.");
 		
 	}
+        
+        public HashMap<String, ArrayList<Double>> getHOSELookup(){
+            
+            return this.hoseLookup;
+        }
 	
 	/**
 	 * Predicts NMR chemical shifts based on a given HOSE code table read by the 
@@ -356,7 +360,7 @@ public class HOSECodePredictor {
 		options.addOption(maxspheres);
 		return options;
 	}
-	
+        
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		HOSECodePredictor hcp = null;

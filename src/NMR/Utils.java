@@ -39,7 +39,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.w3c.dom.Document;
@@ -76,12 +75,7 @@ import org.xml.sax.SAXException;
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
 public class Utils {
-    
-       
-    public Utils() throws Exception {
-
-    }
-    
+        
     /**
      * Splits an SDF into single molecular files and converts each of them into the LSD substructure format. 
      * Therefore, the mol2ab executable provided by LSD is required.
@@ -310,7 +304,7 @@ public class Utils {
         return indices;
     }
     
-
+    
     /**
      * Reads a specific column of a NMR peak table and stores it into an
      * ArrayList object.
@@ -338,6 +332,57 @@ public class Utils {
         return shifts;
     }
     
+
+    /**
+     * Reads specific columns of NMR peak tables to obtain a Spectrum class
+     * object.
+     *
+     * @param pathsToPeakLists paths to NMR peak tables
+     * @param columns columns to select in each peak table
+     * @param atomTypes atom types (element) for each dimension
+     * @return Spectrum class object containing the peak lists
+     * @throws IOException
+     */
+    public static Spectrum parsePeakTables(final String[] pathsToPeakLists, final int[] columns, final String[] atomTypes) throws IOException {
+        
+        final ArrayList<Double>[] shiftsList = new ArrayList[pathsToPeakLists.length];
+        final String[] nuclei = new String[pathsToPeakLists.length];
+        for (int i = 0; i < pathsToPeakLists.length; i++) {
+            shiftsList[i] = Utils.parsePeakTable(pathsToPeakLists[i], columns[i]);
+            nuclei[i] = Utils.getNMRIsotopeIdentifier(atomTypes[i]);
+        }
+ 
+        return new Spectrum(nuclei, shiftsList);
+     }
+    
+    
+    /**
+     * Reads specific columns of NMR XML files to obtain a Spectrum class
+     * object.
+     *
+     * @param pathsToXMLs paths to NMR XML files
+     * @param dims array of dimensions of given data 1 (1D) or 2 (2D)
+     * @param attributes which attribute indices in XML peak nodes should be used: 
+     * 1 (shift of 1st dimension), 2 (shift of 2nd dimension if 2D data, 
+     * intensity if 1D data) or 3 (intensity if 2D data)
+     * @param atomTypes atom types (element) for each dimension
+     * @return Spectrum class object containing the peak lists
+     * @throws IOException
+     * @throws javax.xml.parsers.ParserConfigurationException
+     * @throws org.xml.sax.SAXException
+     */
+    public static Spectrum parseXMLs(final String[] pathsToXMLs, final int[] dims, final int[] attributes, final String[] atomTypes) throws IOException, ParserConfigurationException, SAXException {
+        
+        final ArrayList<Double>[] shiftsList = new ArrayList[pathsToXMLs.length];
+        final String[] nuclei = new String[pathsToXMLs.length];
+        for (int i = 0; i < pathsToXMLs.length; i++) {
+            shiftsList[i] = Utils.parseXML(pathsToXMLs[i], dims[i], attributes[i]);
+            nuclei[i] = Utils.getNMRIsotopeIdentifier(atomTypes[i]);
+        }
+ 
+        return new Spectrum(nuclei, shiftsList);
+     }
+    
     
     /**
      * Reads a NMR peak XML file and stores it into an
@@ -345,7 +390,7 @@ public class Utils {
      * The XML file must be in Bruker's TopSpin format.
      *
      * @param pathToXML Path to XML file
-     * @param ndim number of dimensions of given data 1 (1D) or 2 (2D)
+     * @param dim number of dimensions of given data 1 (1D) or 2 (2D)
      * @param attribute which attribute index in XML peak nodes should be used: 
      * 1 (shift of 1st dimension), 2 (shift of 2nd dimension if 2D data, 
      * intensity if 1D data) or 3 (intensity if 2D data)
@@ -355,7 +400,7 @@ public class Utils {
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
      */
-    public static ArrayList<Double> parseXML(final String pathToXML, final int ndim, final int attribute) throws IOException, ParserConfigurationException, SAXException {
+    public static ArrayList<Double> parseXML(final String pathToXML, final int dim, final int attribute) throws IOException, ParserConfigurationException, SAXException {
 
         final ArrayList<Double> shifts = new ArrayList<>();
         final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -364,7 +409,7 @@ public class Utils {
 
         // normalize text representation
         doc.getDocumentElement().normalize();
-        final NodeList peakLists = doc.getElementsByTagName("Peak" + ndim + "D");
+        final NodeList peakLists = doc.getElementsByTagName("Peak" + dim + "D");
         for (int i = 0; i < peakLists.getLength(); i++) {
             shifts.add(Double.parseDouble(peakLists.item(i).getAttributes().item(attribute - 1).getNodeValue()));
         }
@@ -387,7 +432,7 @@ public class Utils {
      * @param matches Match list to correct
      * @param tol Tolerance value
      * @param atomType Element name (e.g. "C") which also occurrs in 
-     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * {@link Utils#getNMRShiftConstant(java.lang.String)}
      * @return
      */
     public static ArrayList<Integer> correctShiftMatches(final IAtomContainer ac, final ArrayList<Double> shifts, final ArrayList<Integer> matches, final double tol, final String atomType) {
@@ -428,7 +473,7 @@ public class Utils {
      * @param shiftList shift value list to match
      * @param tol Tolerance value [ppm]
      * @param atomType Element name (e.g. "C") which also occurrs in 
-     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * {@link Utils#getNMRShiftConstant(java.lang.String)}
      * @return List of match indices for every query shift within the IAtomContainer
      */
     public static ArrayList<Integer> findShiftMatches(final IAtomContainer ac, final ArrayList<Double> shiftList, final double tol, final String atomType) {
@@ -450,7 +495,7 @@ public class Utils {
      * @param shift Shift value to match [ppm]
      * @param tol Tolerance value [ppm]
      * @param atomType Element name (e.g. "C") which also occurrs in 
-     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * {@link Utils#getNMRShiftConstant(java.lang.String)}
      * @return Match index of a query shift within the IAtomContainer
      */
     public static int findSingleShiftMatch(final IAtomContainer ac, final double shift, final double tol, final String atomType) {
@@ -483,7 +528,7 @@ public class Utils {
      * @param ac IAtomContainer to search for matches
      * @param pathToPeakList Path to peak table
      * @param atomType Element name (e.g. "C") which also occurrs in 
-     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * {@link Utils#getNMRShiftConstant(java.lang.String)}
      * @param tol Tolerance value [ppm]
      * @param column Column number of shift values in peak table
      * @return Indices of matches for each shift within the IAtomContainer 
@@ -508,7 +553,7 @@ public class Utils {
      * @param ac IAtomContainer to search for matches
      * @param pathToXML
      * @param atomType Element name (e.g. "C") which also occurrs in 
-     * {@link testkit.Utils#getNMRShiftConstant(java.lang.String)}
+     * {@link Utils#getNMRShiftConstant(java.lang.String)}
      * @param tol Tolerance value [ppm]
      * @param ndim number of dimensions of given data 1 (1D) or 2 (2D)
      * @param attribute which attribute index in XML peak nodes should be used: 
@@ -795,6 +840,30 @@ public class Utils {
         }
     }
     
+    /**
+     * Returns the element identifier for a given isotope, e.g. 13C -> C.
+     * Elements defined so far: C, H, N, P, F, D, O, S, Si, B, Pt.
+     *
+     * @param isotope isotope's symbol (e.g. "13C")
+     * @return
+     */
+    public static String getElementIdentifier(final String isotope) {
+        switch (isotope) {
+            case "13C": return "C";
+            case "1H":  return "H";
+            case "15N": return "N";
+            case "31P": return "P";
+            case "19F": return "F";
+            case "17O": return "O";
+            case "33S": return "S";
+            case "29Si": return "Si";
+            case "11B": return "B";
+            case "195Pt": return "Pt";
+            default:
+                return null;
+        }
+    }
+    
 //    /**
 //     * Returns the hybridization level of each heavy atom in given molecule which has
 //     * its own shift value.
@@ -828,7 +897,7 @@ public class Utils {
 ////                ac.getAtom(i).setHybridization(IAtomType.Hybridization.SP3);
 ////                continue;
 ////            }
-//            NMRSHIFT_ATOMTYPE = testkit.Utils.getNMRShiftConstant(ac.getAtom(i).getSymbol());
+//            NMRSHIFT_ATOMTYPE = Utils.getNMRShiftConstant(ac.getAtom(i).getSymbol());
 //            // is the NMR shift constant defined and does the nmr shift property entry in an atom exist?
 //            if ((NMRSHIFT_ATOMTYPE == null) || (ac.getAtom(i).getProperty(NMRSHIFT_ATOMTYPE) == null)) {
 //                continue;
@@ -870,7 +939,7 @@ public class Utils {
 //            // the DB entry should at least contain one carbon spectrum 
 //            toContinue = false;
 //            for (String prop : props) {
-//                if (prop.contains("Spectrum " + testkit.Utils.getNMRIsotopeIdentifier("C"))) {
+//                if (prop.contains("Spectrum " + Utils.getNMRIsotopeIdentifier("C"))) {
 //                    toContinue = true;
 //                    break;
 //                }
@@ -884,7 +953,7 @@ public class Utils {
 //                // check wether the DB entry contains a spectrum for the current query atom type
 //                shiftsDB = null;
 //                for (String prop : props) {
-//                    if (prop.contains("Spectrum " + testkit.Utils.getNMRIsotopeIdentifier(qAtom.getSymbol()))) {
+//                    if (prop.contains("Spectrum " + Utils.getNMRIsotopeIdentifier(qAtom.getSymbol()))) {
 //                        shiftsDB = acDB.getProperty(prop);
 //                        break;
 //                    }
@@ -896,18 +965,18 @@ public class Utils {
 ////                    if (qAtom.getSymbol().equals("C") && qAtom.getImplicitHydrogenCount() >= 3) {
 ////                        continue;
 ////                    }
-//                shiftQ = qAtom.getProperty(testkit.Utils.getNMRShiftConstant(ac.getAtom(i).getSymbol()));
+//                shiftQ = qAtom.getProperty(Utils.getNMRShiftConstant(ac.getAtom(i).getSymbol()));
 //                
 //                // check wether the DB entry contains a proton spectrum
 //                String shiftsDBHydrogen = null;
 //                for (String prop : props) {
-//                    if (prop.contains("Spectrum " + testkit.Utils.getNMRIsotopeIdentifier("H"))) {
+//                    if (prop.contains("Spectrum " + Utils.getNMRIsotopeIdentifier("H"))) {
 //                        shiftsDBHydrogen = acDB.getProperty(prop);
 //                        break;
 //                    }
 //                }
 //                
-//                String[][] shiftsDBvalues = testkit.Utils.parseShiftsNMRShiftDB(shiftsDB);
+//                String[][] shiftsDBvalues = Utils.parseShiftsNMRShiftDB(shiftsDB);
 //                for (String[] shiftsDBvalue : shiftsDBvalues) {
 //                    shiftDB = Double.parseDouble(shiftsDBvalue[0]);
 //                    atomIndexDB = Integer.parseInt(shiftsDBvalue[2]);
@@ -952,7 +1021,7 @@ public class Utils {
 //                            // check whether the shifts of attached hydrogens are equal to hydrogen shifts of query atom -> higher priority at hybridization assignment step later
 //                            boolean added = false;
 //                            if(shiftsDBHydrogen != null){
-//                                String[][] shiftsDBvaluesHydrogen = testkit.Utils.parseShiftsNMRShiftDB(shiftsDBHydrogen);
+//                                String[][] shiftsDBvaluesHydrogen = Utils.parseShiftsNMRShiftDB(shiftsDBHydrogen);
 //                                if(qAtom.getProperty("HydrogenShifts") != null){
 //                                    ArrayList<Double> shiftsQAtomvaluesHydrogen = qAtom.getProperty("HydrogenShifts");
 //                                    for (int j = 0; j < shiftsQAtomvaluesHydrogen.size(); j++) {

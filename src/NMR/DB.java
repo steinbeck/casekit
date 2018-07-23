@@ -213,17 +213,17 @@ public class DB {
         return spectraIDs;
     }
     
-    
-    public static HashMap<Integer, ArrayList<Integer>> matchSpectrumAgainstDB(final Connection DBConnection, final ArrayList<NMR.Signal> spectrum, final double shiftDev, final Double intensDev, final int stepSize) throws SQLException{
+    // currently only for 1D spectra
+    public static HashMap<Integer, ArrayList<Integer>> matchSpectrumAgainstDB(final Connection DBConnection, final Spectrum spectrum, final double shiftDev, final Double intensDev, final int stepSize, final int dim) throws SQLException{
        
         final HashMap<Integer, ArrayList<Integer>> hits = new HashMap<>(); double shift;
         for (int i = 0; i < spectrum.size(); i++) {
             hits.put(i, new ArrayList<>());
-            shift = Math.floor(spectrum.get(i).getShift() * stepSize) / (double) stepSize;
+            shift = Math.floor(spectrum.get(i).getShift(dim) * stepSize) / (double) stepSize;
             if(spectrum.get(i).getIntensity() != null){
-                hits.get(i).addAll(NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity() - intensDev, spectrum.get(i).getIntensity() + intensDev, spectrum.get(i).getElement()));
+                hits.get(i).addAll(NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity() - intensDev, spectrum.get(i).getIntensity() + intensDev, spectrum.get(i).getNuclei()[dim]));
             } else {
-                hits.get(i).addAll(NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity(), spectrum.get(i).getIntensity(), spectrum.get(i).getElement()));
+                hits.get(i).addAll(NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity(), spectrum.get(i).getIntensity(), spectrum.get(i).getNuclei()[dim]));
             }
         }
         

@@ -449,10 +449,12 @@ public class Process extends ParseRawData {
                 bondTable[i][j] = 0;
             }
         }
-        
         writer.println("; " + projectName);
-        writer.println("; " + MolecularFormulaManipulator.getString(this.molFormula) + "\n\n");
-             
+        if(this.molFormula != null){
+            writer.println("; " + MolecularFormulaManipulator.getString(this.molFormula) + "\n\n");
+        } else {
+            writer.println("; unknown molecular formula");
+        }
         for (int i = 0; i < this.mol.getAtomCount(); i++) {
             // set MULT section in LSD input file
             // set hybridization level

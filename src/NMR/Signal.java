@@ -1,4 +1,8 @@
 /*
+* This class was copied and modified from NMRSignal class in casekit.model package (by Christoph Steinbeck)
+*/
+
+/*
  * The MIT License
  *
  * Copyright 2018 Michael Wenk [https://github.com/michaelwenk].

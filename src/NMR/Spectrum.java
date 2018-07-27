@@ -1,4 +1,9 @@
 /*
+* This class was copied and modified from NMRSpectrum class in casekit.model package (by Christoph Steinbeck)
+*/
+
+
+/*
  * The MIT License
  *
  * Copyright 2018 Michael Wenk [https://github.com/michaelwenk].
@@ -24,6 +29,7 @@
 package NMR;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  *
@@ -31,10 +37,23 @@ import java.util.ArrayList;
  */
 public class Spectrum extends ArrayList<NMR.Signal>{
 
+    static public final String SPECTYPE_1D = "1D";
+    static public final String SPECTYPE_DEPT90 = "DEPT90";
+    static public final String SPECTYPE_DEPT135 = "DEPT135";
+    static public final String SPECTYPE_HSQC = "HSQC";
+    static public final String SPECTYPE_HHCOSY = "HHCOSY";
+    static public final String SPECTYPE_INADEQUATE = "INADEQUATE";
+    static public final String SPECTYPE_HMBC = "HMBC";
+    static private final String[] SPECTYPES = new String[]{ SPECTYPE_1D, SPECTYPE_DEPT90, 
+                                                            SPECTYPE_DEPT135, SPECTYPE_HSQC, 
+                                                            SPECTYPE_HHCOSY, SPECTYPE_INADEQUATE, 
+                                                            SPECTYPE_HMBC};
+    
+                                                       
    /**
-    * An arbitrary name that can be assigned to this spectrum for identification purposes.
+    * An arbitrary name or description that can be assigned to this spectrum for identification purposes.
     */
-   private String name;
+   private String description;
    /**
     * An arbitrary name to identify the type of this spectrum, like COSY, NOESY, HSQC, etc. I
     * decided not to provide static Strings with given experiment type since the there are
@@ -60,12 +79,18 @@ public class Spectrum extends ArrayList<NMR.Signal>{
    private Float spectrometerFrequency;
    private String solvent;
    private String standard;
-//   protected transient EventListenerList changeListeners = new EventListenerList();
+   
+   /**
+    * This holds sorted list of Chemical Shifts of all axes. The first dimension addresses the
+    * axes, the second the shift values in this axis, starting from the highest value.
+    */
+   private final ArrayList<ArrayList<Double>> shiftList = new ArrayList<>();
+   
 
-   public Spectrum(final String[] nuclei, final ArrayList<Double>[] shiftLists) {
+   public Spectrum(final String[] nuclei, final ArrayList<Double>[] shiftLists, final ArrayList<Double> intensities) {
        this.nuclei = nuclei;
        this.ndim = this.nuclei.length;
-       this.setSignals(shiftLists);
+       this.addSignals(shiftLists, intensities);
    }
    
    public Spectrum(final String[] nuclei) {
@@ -73,21 +98,66 @@ public class Spectrum extends ArrayList<NMR.Signal>{
        this.ndim = this.nuclei.length;
    }
    
+   public String[] getNuclei(){
+       return this.nuclei;
+   }
    
-   public void setSignals(final ArrayList<Double>[] shiftLists){
+   public int getDimCount(){
+       return this.ndim;
+   }
+   
+   public void setSpecType(final String specType){
+       for (final String stype : SPECTYPES) {
+           if(specType.equals(stype)){
+               this.specType = specType;
+               break;
+           }
+       }
+   }
+   
+   public String getSpecType(){
+        return this.specType;
+   }
+   
+   public void setSpecDescription(final String description){
+       this.description = description;
+   }
+   
+   public String getSpecDescription(){
+        return this.description;
+   }
+   
+   public final void addSignals(final ArrayList<Double>[] shiftLists, final ArrayList<Double> intensities){
+       // assumes the same number of shift lists as set dimension number
        if(shiftLists.length != this.ndim){
-           System.err.println("Unequal number of nuclei and shift lists!!!");      
+           System.err.println("Unequal number of nuclei (dimension) and shift lists!!!");      
            return;
        }
-       Double[] shifts;
        // assumes that the shift lists have the same number of entries
+       int prevShiftListSize = shiftLists[0].size();
+       for (int i = 0; i < shiftLists.length; i++) {
+           if(shiftLists[i].size() != prevShiftListSize){
+                System.err.println("Unequal number of shifts in " + (i+1) + " shift list!!!");      
+                return;
+           }
+           if(intensities != null && shiftLists[i].size() != intensities.size()){
+                System.err.println("Unequal number of shifts in shift list " + (i+1) + " and intensities number!!!");
+                return;
+           }
+       }
+       Double[] shifts;
        for (int row = 0; row < shiftLists[0].size(); row++) {
            shifts = new Double[this.ndim];
            for (int col = 0; col < this.ndim; col++) {
                shifts[col] = shiftLists[col].get(row);
            }
-           this.add(new NMR.Signal(this.nuclei, shifts, null, null, null));
+           if(intensities != null){
+               this.add(new NMR.Signal(this.nuclei, shifts, intensities.get(row), null, null));
+           } else {
+               this.add(new NMR.Signal(this.nuclei, shifts, null, null, null));
+           }
        }
+       this.updateShiftLists();
    }
    
 
@@ -96,28 +166,29 @@ public class Spectrum extends ArrayList<NMR.Signal>{
     * equal or smaller than the number of respective atoms
      * @return 
     */
-   public int getSignalNumber() {
+   public int getSignalCount() {
        return this.size();
    }
 
    /**
-    * Adds an NMRSignal to the NMRSpectrum.
+    * Adds a Signal ({@link NMR.Signal}) to this Spectrum class object.
      * @param signal
     */
-   public void addSignal(Signal signal) {
+   public void addSignal(final Signal signal) {
        this.add(signal);
-//       this.updateShiftLists();s
+       this.updateShiftLists();
    }
 
-//   /**
-//    * Creates an empty signal with correct dimension
-//    */
-//   public void newSignal() {
-//       System.out.println("nucleus: " + nucleus.length + nucleus[0]);
-//       add(new NMRSignal(nucleus));
-//       updateShiftLists();
-//   }
-
+   public void removeSignal(final Signal signal){
+       this.remove(this.getSignalIndex(signal));
+       this.updateShiftLists();
+   }
+   
+   public void removeSignal(final int signalIndex){
+       this.remove(signalIndex);
+       this.updateShiftLists();
+   }
+   
    /**
     * Returns an NMRSignal at position number in the List
      * @param signalIndex
@@ -127,13 +198,22 @@ public class Spectrum extends ArrayList<NMR.Signal>{
        return this.get(signalIndex);
    }
    
-   public ArrayList<Double> getShiftsByDim(final int dim){
-       final ArrayList<Double> signals = new ArrayList<>();
-       for (final Signal sig : this) {
-           signals.add(sig.getShift(dim));
+   public ArrayList<Double> getIntensities(){
+       final ArrayList<Double> intensities = new ArrayList<>();
+       for (Signal sig : this) {
+           intensities.add(sig.getIntensity());
        }
        
-       return signals;
+       return intensities;
+   }
+   
+   public ArrayList<Double> getShiftsByDim(final int dim){
+       final ArrayList<Double> shifts = new ArrayList<>();
+       for (final Signal sig : this) {
+           shifts.add(sig.getShift(dim));
+       }
+       
+       return shifts;
    }
 
    /**
@@ -223,22 +303,26 @@ public class Spectrum extends ArrayList<NMR.Signal>{
        return pickedSignals;
    }
 
-//   /**
-//    * Extracts a list of unique shifts from the list of cross signals and sorts them. This is to
-//    * define the column and row headers for tables.
-//    */
-//   protected void updateShiftLists() {
-//       Double shift; NMR.Signal nmrSignal;
-//       for (int i = 0; i < this.size(); i++) {
-//           nmrSignal = this.get(i);
-//           for (int d = 0; d < nmrSignal.getDim(); d++) {
-//               shift = nmrSignal.getShift(d);
-//               if (!this.get(d).contains(shift)) {
-//                   shiftList.get(d).add(shift);
-//               }
-//           }
-//       }
-//   }
+   /**
+    * Extracts a list of unique shifts from the list of cross signals. This is to
+    * define the column and row headers for tables.
+    */
+   private void updateShiftLists() {
+       this.shiftList.clear();
+       for (int dim = 0; dim < this.getDimCount(); dim++) {
+            this.shiftList.add(dim, new ArrayList<>());
+       }
+       Double shift; NMR.Signal nmrSignal;
+       for (int i = 0; i < this.size(); i++) {
+            nmrSignal = this.get(i);
+            for (int d = 0; d < this.getDimCount(); d++) {
+                shift = nmrSignal.getShift(d);
+                if (!this.shiftList.get(d).contains(shift)) {
+                    this.shiftList.get(d).add(shift);
+                }
+            }
+       }
+   }
 
    /**
     * Creates a 2D matrix of booleans, that models the set of crosspeaks in the 2D NMR spectrum.
@@ -253,23 +337,22 @@ public class Spectrum extends ArrayList<NMR.Signal>{
     * isInShiftList(hetAtomShiftList, het, hetAtomShiftList.length); if (hetPos >= 0){ protPos =
     * isInShiftList(protonShiftList, prot, protonShiftList.length); if ( protPos >= 0){ found =
     * true; hetCorMatrix[hetPos][protPos] = true; } } } }
+     * @return 
     */
-   public void report() {
+   public String report() {
        String s = "";
-       System.out.println("Report for nmr spectrum " + name + " of type "
-               + specType + ": ");
-       for (int i = 0; i < this.size(); i++) {
-           System.out.println("ShiftList for dimension " + (i + 1) + ":");
-           for (int d = 0; d < this.get(i).getDim(); d++) {
-               s += this.get(i).getShift(d) + "; ";
+//       s+= "Report for nmr spectrum " + name + " of type "
+//               + specType + ":\n\n";
+       for (int i = 0; i < this.shiftList.size(); i++) {
+           s += "\nShiftList for dimension " + (i + 1) + ":\n";
+           for (int d = 0; d < this.shiftList.get(i).size(); d++) {
+               s += this.shiftList.get(i).get(d) + "; ";
            }
-           System.out.println(s + "\n");
-           s = "";
        }
-
-   }
-   
-   public String[] getNuclei(){
-       return this.nuclei;
+       s += "\nBelonging intensities:\n";
+       for (Signal sig : this) {
+            s += sig.getIntensity() + "; ";
+       }
+       return s;
    }
 }

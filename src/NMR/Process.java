@@ -239,7 +239,7 @@ public class Process extends ParseRawData {
                             if ((i == bondPartnerIndex)) {// || (this.mol.getBond(this.mol.getAtom(i), this.mol.getAtom(bondPartnerIndex)) != null)) {
                                 continue;
                             }
-                            if(experiments[e].equals("HMBC")){
+                            if(experiments[e].equals(Spectrum.SPECTYPE_HMBC)){
                                 System.out.println("HMBC bond setting: still to come!!!");
                             } else {
                                 this.setBond(i, bondPartnerIndex);
@@ -331,15 +331,15 @@ public class Process extends ParseRawData {
         if ((atomIndex1 < 0) || (atomIndex2 < 0) || (atomIndex1 == atomIndex2)) {
             return false;
         }
-        if(this.mol.getAtom(atomIndex1).getProperty("COSY") == null){
-            this.mol.getAtom(atomIndex1).setProperty("COSY", new ArrayList<>());
+        if(this.mol.getAtom(atomIndex1).getProperty(Spectrum.SPECTYPE_HHCOSY) == null){
+            this.mol.getAtom(atomIndex1).setProperty(Spectrum.SPECTYPE_HHCOSY, new ArrayList<>());
         }
-        if(this.mol.getAtom(atomIndex2).getProperty("COSY") == null){
-            this.mol.getAtom(atomIndex2).setProperty("COSY", new ArrayList<>());
+        if(this.mol.getAtom(atomIndex2).getProperty(Spectrum.SPECTYPE_HHCOSY) == null){
+            this.mol.getAtom(atomIndex2).setProperty(Spectrum.SPECTYPE_HHCOSY, new ArrayList<>());
         }
         
-        final ArrayList<Integer> COSYList = this.mol.getAtom(atomIndex1).getProperty("COSY");
-        final ArrayList<Integer> COSYListX = this.mol.getAtom(atomIndex2).getProperty("COSY");
+        final ArrayList<Integer> COSYList = this.mol.getAtom(atomIndex1).getProperty(Spectrum.SPECTYPE_HHCOSY);
+        final ArrayList<Integer> COSYListX = this.mol.getAtom(atomIndex2).getProperty(Spectrum.SPECTYPE_HHCOSY);
         COSYList.add(atomIndex2);
         COSYListX.add(atomIndex1);
         
@@ -383,7 +383,7 @@ public class Process extends ParseRawData {
         } else {
             // set HSQC for the first atom of given atom type without a already set shift value and without attached proton shifts
             for (Integer i : this.atomTypeIndices.get(atomType)) {
-                if ((this.mol.getAtom(i).getProperty(NMRSHIFT_ATOMTYPE) == null) && (this.mol.getAtom(i).getProperty("HydrogenShifts") == null)) {
+                if ((this.mol.getAtom(i).getProperty(NMRSHIFT_ATOMTYPE) == null) && (this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HSQC) == null)) {
                     atomIndex = i;
                     break;
                 }
@@ -395,10 +395,10 @@ public class Process extends ParseRawData {
         }
         // add the proton shift value if it is higher than 0
         if(shiftH != null){
-            if (this.mol.getAtom(atomIndex).getProperty("HydrogenShifts") == null) {
-                this.mol.getAtom(atomIndex).setProperty("HydrogenShifts", new ArrayList<>());
+            if (this.mol.getAtom(atomIndex).getProperty(Spectrum.SPECTYPE_HSQC) == null) {
+                this.mol.getAtom(atomIndex).setProperty(Spectrum.SPECTYPE_HSQC, new ArrayList<>());
             }
-            final ArrayList<Double> protonShifts = this.mol.getAtom(atomIndex).getProperty("HydrogenShifts");
+            final ArrayList<Double> protonShifts = this.mol.getAtom(atomIndex).getProperty(Spectrum.SPECTYPE_HSQC);
             protonShifts.add(shiftH);
         }
         // increase the implicit proton number
@@ -438,7 +438,7 @@ public class Process extends ParseRawData {
      * @throws FileNotFoundException
      * @throws UnsupportedEncodingException
      */
-    public void createLSDfile(final String projectName, final String pathToOutputFile, final String[] pathsToFilters) throws FileNotFoundException, UnsupportedEncodingException{
+    public void createLSDFile(final String projectName, final String pathToOutputFile, final String[] pathsToFilters) throws FileNotFoundException, UnsupportedEncodingException{
 
         PrintWriter writer = new PrintWriter(pathToOutputFile, "UTF-8");
         ArrayList<Integer> idxs;
@@ -489,8 +489,8 @@ public class Process extends ParseRawData {
                 HSQC += "HSQC " + (i+1) + " " + (i+1) + ";\t" + this.mol.getAtom(i).getSymbol() + "H" + this.mol.getAtom(i).getImplicitHydrogenCount() + "\n";
             }
             // set BOND section in LSD input file from INADEQUATE
-            if (this.mol.getAtom(i).getProperty("INADEQUATE") != null) {
-                idxs = this.mol.getAtom(i).getProperty("INADEQUATE");
+            if (this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_INADEQUATE) != null) {
+                idxs = this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_INADEQUATE);
                 for (Integer idx : idxs) {
                     if (bondTable[i][idx] == 0 && bondTable[idx][i] == 0) {
                         bondTable[i][idx] = 1;
@@ -499,8 +499,8 @@ public class Process extends ParseRawData {
                 }
             }
             // set BOND section in LSD input file from COSY
-            if(this.mol.getAtom(i).getProperty("COSY") != null){
-                idxs = this.mol.getAtom(i).getProperty("COSY");
+            if(this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HHCOSY) != null){
+                idxs = this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HHCOSY);
                 for (Integer idx : idxs) {
                     if(bondTable[i][idx] == 0 && bondTable[idx][i] == 0){
                         bondTable[i][idx] = 1;
@@ -513,8 +513,8 @@ public class Process extends ParseRawData {
             // set HMBC section in LSD input file
             // sets only HMBC signals which are not represented by a bond
             boolean test3JviaNextNeighborBond;
-            if (this.mol.getAtom(i).getProperty("HMBC") != null) {
-                idxs = this.mol.getAtom(i).getProperty("HMBC");
+            if (this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HMBC) != null) {
+                idxs = this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HMBC);
                 for (Integer idx : idxs) {
                     if (bondTable[i][idx] == 0 && bondTable[idx][i] == 0) {
                         test3JviaNextNeighborBond = false;

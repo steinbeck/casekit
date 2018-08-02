@@ -7,6 +7,8 @@
  */
 package casekit;
 
+import casekit.NMR.model.Signal;
+import casekit.NMR.model.Spectrum;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -85,23 +87,23 @@ public class SimilarityRanker {
 		Integer mult = null;
 		Signal signal; 
 		String tempString;
-		ArrayList<Signal> spectrum = new ArrayList<Signal>();
+                Spectrum spectrum = new Spectrum(null);
 		BufferedReader br = new BufferedReader(new FileReader(spectrumFile));
 		if (verbose) System.out.println("Start reading spectrum from  " + spectrumFile);
-		while((line = br.readLine()) != null)
-		{
-			if (!line.startsWith("#") && line.trim().length() > 0)
-			{
-				strtok = new StringTokenizer(line, ";");
-				if (verbose) System.out.println(line);
-				linecounter++;
-				
-				shift = Double.parseDouble(strtok.nextToken().trim());
-				mult = Integer.parseInt(strtok.nextToken().trim());
-				signal = new Signal(shift, mult);
-				spectrum.add(signal);
-			}
-		}	
+//		while((line = br.readLine()) != null)
+//		{
+//			if (!line.startsWith("#") && line.trim().length() > 0)
+//			{
+//				strtok = new StringTokenizer(line, ";");
+//				if (verbose) System.out.println(line);
+//				linecounter++;
+//				
+//				shift = Double.parseDouble(strtok.nextToken().trim());
+//				mult = Integer.parseInt(strtok.nextToken().trim());
+//				signal = new Signal();
+//				spectrum.addSignal(signal);
+//			}
+//		}	
 		br.close();
 		if (verbose) System.out.println("Read " + linecounter + " signals from spectrum in file " +  spectrumFile);
 		
@@ -177,8 +179,8 @@ public class SimilarityRanker {
 			matchFound = false;
 			for (int g = 0; g < spectrum.size(); g++)
 			{
-				if (shifts[f] > spectrum.get(g).getShift().doubleValue()) diff = shifts[f] - spectrum.get(g).getShift().doubleValue();
-				else diff = spectrum.get(g).getShift().doubleValue() - shifts[f];
+//				if (shifts[f] > spectrum.get(g).getShift().doubleValue()) diff = shifts[f] - spectrum.get(g).getShift().doubleValue();
+//				else diff = spectrum.get(g).getShift().doubleValue() - shifts[f];
 				df.format(diff);
 				if (diff < lastDiff) 
 				{

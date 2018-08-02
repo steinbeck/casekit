@@ -1,0 +1,21 @@
+MIT license
+
+- JUnit
+- PMD: CDK GitHub PMD example
+- JCoCo
+- yourkit (license received)
+
+
+MolSpec:
+- [SEMI] determine hybridization via CDK (#H >= 3) and DB lookup (max. freq, TEMPORARILY)? 
+- setHybridizations function: parallization?
+
+Utils:
+- write a parse function to read nmrML files
+- in getHybridizations function: 
+1. parallization?
+2. comparing of all attached/used hydrogens with molecular formula -> helps for bond type decisions
+- in getBondTypeFromHybridizations:
+1. can sulfur only have 1x double bond or 2x single bond in metabolomic systems?
+2. as 1. but for nitrogen and phosphorus
+3. is S hybridization always single bond?

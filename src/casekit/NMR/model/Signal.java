@@ -25,7 +25,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package NMR;
+package casekit.NMR.model;
+
+import java.util.ArrayList;
 
 /**
  *
@@ -38,38 +40,45 @@ public class Signal {
     /**
      * Am array of doubles to store the chemical shift of
      */
-    private final Double shift[];
+    private final Double shifts[];
     private final String[] nuclei;
+    private int[] assignedAtomIndices;
 
     /* Signal intensity in arbitrary values */
     private Double intensity;
     private String multiplicity;
 
     private Integer phase;
-    public final static int DIM_ONE = 1, DIM_TWO = 2, DIM_THREE = 3, DIM_FOUR = 4;
-    public final static int SHIFT_PROTON = 0, SHIFT_HETERO = 1;
     public final static int PHASE_NONE = 0, PHASE_POSITIVE = 1, PHASE_NEGATIVE = 2;
     public final static String[] PHASENAMES = {"NONE", "POSITIVE", "NEGATIVE"};
 
-    public Signal(final String[] nuclei, final Double[] shift, final Double intensity, final Integer phase, final String multiplicity) {
+    public Signal(final String[] nuclei, final Double[] shifts) {
         this.nuclei = nuclei;
         this.ndim = this.nuclei.length;
-        this.shift = shift;
+        this.shifts = shifts;
+    }
+    
+    public Signal(final String[] nuclei, final Double[] shifts, final Double intensity) {
+        this.nuclei = nuclei;
+        this.ndim = this.nuclei.length;
+        this.shifts = shifts;
         this.intensity = intensity;
-        this.phase = phase;
-        this.multiplicity = multiplicity;
     }
     
     public int getDim(){
         return this.ndim;
     }
     
+    public String[] getNuclei(){
+        return this.nuclei;
+    }
+    
     public void setShift(final Double shift, final int dim) {
-        this.shift[dim] = shift;
+        this.shifts[dim] = shift;
     }
 
     public Double getShift(final int dim) {
-        return this.shift[dim];
+        return this.shifts[dim];
     }
     
     public void setIntensity(final Double intensity) {
@@ -86,6 +95,38 @@ public class Signal {
 
     public String getMultiplicity() {
         return this.multiplicity;
+    }
+    
+    public boolean setAssignedAtomIndices(final int[] indices){
+        if(indices.length != this.ndim){
+            return false;
+        }
+        this.assignedAtomIndices = indices;
+        
+        return true;
+    }
+    
+    public int[] getAssignedIndices(){
+        return this.assignedAtomIndices;
+    }
+    
+    public boolean setAssignedAtomIndex(final int index, final int dim){
+        if(dim < 0 || dim >= this.ndim){
+            return false;
+        }
+        if(this.assignedAtomIndices == null){
+            this.assignedAtomIndices = new int[this.ndim];
+            for (int i = 0; i < this.ndim; i++) {
+                this.assignedAtomIndices[i] = -1;
+            }
+        }
+        this.assignedAtomIndices[dim] = index;
+        
+        return true;
+    }
+    
+    public int getAssignedAtomIndices(final int dim){
+        return this.assignedAtomIndices[dim];
     }
 
     public void setPhase(final int phase) {
@@ -104,14 +145,20 @@ public class Signal {
             s += this.nuclei[f] + "; ";
         }
         s += "\nShiftlist: ";
-        for (int f = 0; f < this.shift.length; f++) {
-            s += this.shift[f] + "; ";
+        for (int f = 0; f < this.shifts.length; f++) {
+            s += this.shifts[f] + "; ";
         }
         s += "\n\n";
         return s;
     }
     
-    public String[] getNuclei(){
-        return this.nuclei;
+    public Signal getClone(){
+        final Signal signalClone = new Signal(this.nuclei, this.shifts);
+        signalClone.setIntensity(this.intensity);
+        signalClone.setMultiplicity(this.multiplicity);
+        signalClone.setPhase(this.phase);
+        signalClone.setAssignedAtomIndices(this.assignedAtomIndices);
+        
+        return signalClone;
     }
 }

@@ -21,8 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package NMR;
+package casekit.NMR;
 
+import casekit.NMR.model.Spectrum;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,6 +32,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import org.openscience.cdk.Atom;
+import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomContainerSet;
@@ -229,7 +231,7 @@ public class Process extends ParseRawData {
         ArrayList<Integer> signalList;
         for (int e = 0; e < experiments.length; e++) {
             for (int i = 0; i < this.mol.getAtomCount(); i++) {
-                NMRSHIFT_ATOMTYPE = NMR.Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol());
+                NMRSHIFT_ATOMTYPE = casekit.NMR.Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol());
                 // is the NMR shift constant defined and does the nmr shift property entry in an atom exist?
                 if (NMRSHIFT_ATOMTYPE != null && this.mol.getAtom(i).getProperty(NMRSHIFT_ATOMTYPE) != null) {
                     if (this.mol.getAtom(i).getProperties().containsKey(experiments[e])) {
@@ -239,7 +241,7 @@ public class Process extends ParseRawData {
                             if ((i == bondPartnerIndex)) {// || (this.mol.getBond(this.mol.getAtom(i), this.mol.getAtom(bondPartnerIndex)) != null)) {
                                 continue;
                             }
-                            if(experiments[e].equals(Spectrum.SPECTYPE_HMBC)){
+                            if(experiments[e].equals(CDKConstants.NMRSPECTYPE_2D_HMBC)){
                                 System.out.println("HMBC bond setting: still to come!!!");
                             } else {
                                 this.setBond(i, bondPartnerIndex);
@@ -257,7 +259,7 @@ public class Process extends ParseRawData {
         if(this.mol.getBond(this.mol.getAtom(index1), this.mol.getAtom(index2)) != null){
                 this.mol.removeBond(this.mol.getAtom(index1), this.mol.getAtom(index2));
         }
-        this.mol.addBond(index1, index2, NMR.Utils.getBondTypeFromHybridizations(this.mol.getAtom(index1), this.mol.getAtom(index2)));
+        this.mol.addBond(index1, index2, casekit.NMR.Utils.getBondTypeFromHybridizations(this.mol.getAtom(index1), this.mol.getAtom(index2)));
     }
     
     
@@ -281,13 +283,13 @@ public class Process extends ParseRawData {
      */
     public boolean addBond(final String atomType1, final double shift1, final double tol1, final String atomType2, final double shift2, final double tol2) {
 
-        final String NMRSHIFT_ATOMTYPE1 = NMR.Utils.getNMRShiftConstant(atomType1);
-        final String NMRSHIFT_ATOMTYPE2 = NMR.Utils.getNMRShiftConstant(atomType2);
+        final String NMRSHIFT_ATOMTYPE1 = casekit.NMR.Utils.getNMRShiftConstant(atomType1);
+        final String NMRSHIFT_ATOMTYPE2 = casekit.NMR.Utils.getNMRShiftConstant(atomType2);
         if ((NMRSHIFT_ATOMTYPE1 == null) || (NMRSHIFT_ATOMTYPE2 == null)) {
             return false;
         }
-        int atomIndex1 = NMR.Utils.findSingleShiftMatch(this.mol, shift1, tol1, atomType1);
-        int atomIndex2 = NMR.Utils.findSingleShiftMatch(this.mol, shift2, tol2, atomType2);
+        int atomIndex1 = casekit.NMR.Utils.findSingleShiftMatch(this.mol, shift1, tol1, atomType1);
+        int atomIndex2 = casekit.NMR.Utils.findSingleShiftMatch(this.mol, shift2, tol2, atomType2);
         if ((atomIndex1 < 0) || (atomIndex2 < 0) || (atomIndex1 == atomIndex2)) {
             return false;
         }
@@ -321,25 +323,25 @@ public class Process extends ParseRawData {
      */
     public boolean addCOSY(final String atomType1, final double shift1, final double tol1, final String atomType2, final Double shift2, final double tol2, final Double shiftH){
         
-        final String NMRSHIFT_ATOMTYPE1 = NMR.Utils.getNMRShiftConstant(atomType1);
-        final String NMRSHIFT_ATOMTYPE2 = NMR.Utils.getNMRShiftConstant(atomType2);
+        final String NMRSHIFT_ATOMTYPE1 = casekit.NMR.Utils.getNMRShiftConstant(atomType1);
+        final String NMRSHIFT_ATOMTYPE2 = casekit.NMR.Utils.getNMRShiftConstant(atomType2);
         if ((NMRSHIFT_ATOMTYPE1 == null) || (NMRSHIFT_ATOMTYPE2 == null)) {
             return false;
         }
-        int atomIndex1 = NMR.Utils.findSingleShiftMatch(this.mol, shift1, tol1, atomType1);
+        int atomIndex1 = casekit.NMR.Utils.findSingleShiftMatch(this.mol, shift1, tol1, atomType1);
         int atomIndex2 = this.addHSQC(atomType2, shift2, tol2, shiftH);
         if ((atomIndex1 < 0) || (atomIndex2 < 0) || (atomIndex1 == atomIndex2)) {
             return false;
         }
-        if(this.mol.getAtom(atomIndex1).getProperty(Spectrum.SPECTYPE_HHCOSY) == null){
-            this.mol.getAtom(atomIndex1).setProperty(Spectrum.SPECTYPE_HHCOSY, new ArrayList<>());
+        if(this.mol.getAtom(atomIndex1).getProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY) == null){
+            this.mol.getAtom(atomIndex1).setProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY, new ArrayList<>());
         }
-        if(this.mol.getAtom(atomIndex2).getProperty(Spectrum.SPECTYPE_HHCOSY) == null){
-            this.mol.getAtom(atomIndex2).setProperty(Spectrum.SPECTYPE_HHCOSY, new ArrayList<>());
+        if(this.mol.getAtom(atomIndex2).getProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY) == null){
+            this.mol.getAtom(atomIndex2).setProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY, new ArrayList<>());
         }
         
-        final ArrayList<Integer> COSYList = this.mol.getAtom(atomIndex1).getProperty(Spectrum.SPECTYPE_HHCOSY);
-        final ArrayList<Integer> COSYListX = this.mol.getAtom(atomIndex2).getProperty(Spectrum.SPECTYPE_HHCOSY);
+        final ArrayList<Integer> COSYList = this.mol.getAtom(atomIndex1).getProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY);
+        final ArrayList<Integer> COSYListX = this.mol.getAtom(atomIndex2).getProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY);
         COSYList.add(atomIndex2);
         COSYListX.add(atomIndex1);
         
@@ -373,17 +375,17 @@ public class Process extends ParseRawData {
     public int addHSQC(final String atomType, final Double shift, final double tol, final Double shiftH ){
         
         int atomIndex = -1;
-        final String NMRSHIFT_ATOMTYPE = NMR.Utils.getNMRShiftConstant(atomType);
+        final String NMRSHIFT_ATOMTYPE = casekit.NMR.Utils.getNMRShiftConstant(atomType);
         if ((NMRSHIFT_ATOMTYPE == null) || (this.atomTypeIndices.get(atomType) == null)) {
             return -1;
         }
         // set additional HSQC for an atom with already set shift value
         if(shift != null){
-            atomIndex = NMR.Utils.findSingleShiftMatch(this.mol, shift, tol, atomType);
+            atomIndex = casekit.NMR.Utils.findSingleShiftMatch(this.mol, shift, tol, atomType);
         } else {
             // set HSQC for the first atom of given atom type without a already set shift value and without attached proton shifts
             for (Integer i : this.atomTypeIndices.get(atomType)) {
-                if ((this.mol.getAtom(i).getProperty(NMRSHIFT_ATOMTYPE) == null) && (this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HSQC) == null)) {
+                if ((this.mol.getAtom(i).getProperty(NMRSHIFT_ATOMTYPE) == null) && (this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HSQC) == null)) {
                     atomIndex = i;
                     break;
                 }
@@ -395,10 +397,10 @@ public class Process extends ParseRawData {
         }
         // add the proton shift value if it is higher than 0
         if(shiftH != null){
-            if (this.mol.getAtom(atomIndex).getProperty(Spectrum.SPECTYPE_HSQC) == null) {
-                this.mol.getAtom(atomIndex).setProperty(Spectrum.SPECTYPE_HSQC, new ArrayList<>());
+            if (this.mol.getAtom(atomIndex).getProperty(CDKConstants.NMRSPECTYPE_2D_HSQC) == null) {
+                this.mol.getAtom(atomIndex).setProperty(CDKConstants.NMRSPECTYPE_2D_HSQC, new ArrayList<>());
             }
-            final ArrayList<Double> protonShifts = this.mol.getAtom(atomIndex).getProperty(Spectrum.SPECTYPE_HSQC);
+            final ArrayList<Double> protonShifts = this.mol.getAtom(atomIndex).getProperty(CDKConstants.NMRSPECTYPE_2D_HSQC);
             protonShifts.add(shiftH);
         }
         // increase the implicit proton number
@@ -424,7 +426,7 @@ public class Process extends ParseRawData {
        
         this.mol.addAtom(new Atom(atomType));
         if(shift != null){
-            this.mol.getAtom(this.mol.getAtomCount() - 1).setProperty(NMR.Utils.getNMRShiftConstant(atomType), shift);
+            this.mol.getAtom(this.mol.getAtomCount() - 1).setProperty(casekit.NMR.Utils.getNMRShiftConstant(atomType), shift);
         }
         this.setAtomTypeIndices();
     }
@@ -480,8 +482,8 @@ public class Process extends ParseRawData {
                 protons = String.valueOf(this.mol.getAtom(i).getImplicitHydrogenCount());
             }
             MULT += "MULT " + (i+1) + " " + this.mol.getAtom(i).getSymbol() + " " + hybrid + " " + protons;
-            if(this.mol.getAtom(i).getProperty(NMR.Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol())) != null){
-                MULT += ";\t" + this.mol.getAtom(i).getProperty(NMR.Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol()));
+            if(this.mol.getAtom(i).getProperty(casekit.NMR.Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol())) != null){
+                MULT += ";\t" + this.mol.getAtom(i).getProperty(casekit.NMR.Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol()));
             }
             MULT += "\n";
             // set HSQC section in LSD input file
@@ -489,8 +491,8 @@ public class Process extends ParseRawData {
                 HSQC += "HSQC " + (i+1) + " " + (i+1) + ";\t" + this.mol.getAtom(i).getSymbol() + "H" + this.mol.getAtom(i).getImplicitHydrogenCount() + "\n";
             }
             // set BOND section in LSD input file from INADEQUATE
-            if (this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_INADEQUATE) != null) {
-                idxs = this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_INADEQUATE);
+            if (this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_INADEQUATE) != null) {
+                idxs = this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_INADEQUATE);
                 for (Integer idx : idxs) {
                     if (bondTable[i][idx] == 0 && bondTable[idx][i] == 0) {
                         bondTable[i][idx] = 1;
@@ -499,8 +501,8 @@ public class Process extends ParseRawData {
                 }
             }
             // set BOND section in LSD input file from COSY
-            if(this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HHCOSY) != null){
-                idxs = this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HHCOSY);
+            if(this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY) != null){
+                idxs = this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY);
                 for (Integer idx : idxs) {
                     if(bondTable[i][idx] == 0 && bondTable[idx][i] == 0){
                         bondTable[i][idx] = 1;
@@ -513,8 +515,8 @@ public class Process extends ParseRawData {
             // set HMBC section in LSD input file
             // sets only HMBC signals which are not represented by a bond
             boolean test3JviaNextNeighborBond;
-            if (this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HMBC) != null) {
-                idxs = this.mol.getAtom(i).getProperty(Spectrum.SPECTYPE_HMBC);
+            if (this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HMBC) != null) {
+                idxs = this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HMBC);
                 for (Integer idx : idxs) {
                     if (bondTable[i][idx] == 0 && bondTable[idx][i] == 0) {
                         test3JviaNextNeighborBond = false;
@@ -598,11 +600,11 @@ public class Process extends ParseRawData {
         for (int k = 0; k < acSet.getAtomContainerCount(); k++) {
             acDB = acSet.getAtomContainer(k);
             // for all DB entries containing a spectrum for the current query atom type
-            for (final String shiftsDB : NMR.DB.getSpectraFromNMRShiftDBEntry(acDB, elem)) {
+            for (final String shiftsDB : casekit.NMR.DB.getSpectraFromNMRShiftDBEntry(acDB, elem)) {
                 if (shiftsDB == null) {
                     continue;
                 }
-                String[][] shiftsDBvalues = NMR.Utils.parseShiftsNMRShiftDB(shiftsDB);
+                String[][] shiftsDBvalues = casekit.NMR.Utils.parseShiftsNMRShiftDB(shiftsDB);
                 for (String[] shiftsDBvalue : shiftsDBvalues) {
                     atomIndexDB = Integer.parseInt(shiftsDBvalue[2]);
                     // sometimes the DB atom index is wrong and out of array range 
@@ -623,7 +625,7 @@ public class Process extends ParseRawData {
                     this.neighborhoodCountsMatrix[shiftDBInt - minShift][5] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 2)) ? 1 : 0; // CH2 count or equivalents, e.g. NH2
                     this.neighborhoodCountsMatrix[shiftDBInt - minShift][6] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 3)) ? 1 : 0; // CH3 count or equivalents, e.g. NH3
                     // add counts for a specific atom to matrix m
-                    int[] counts = NMR.Utils.getNeighborhoodBondsCount(acDB, atomIndexDB, bondsSet, neighborElems);
+                    int[] counts = casekit.NMR.Utils.getNeighborhoodBondsCount(acDB, atomIndexDB, bondsSet, neighborElems);
                     for (int i = 0; i < counts.length; i++) {
                         this.neighborhoodCountsMatrix[shiftDBInt - minShift][3 + 4 + i] += counts[i];
                     }

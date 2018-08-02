@@ -21,8 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package NMR;
+package casekit.NMR;
 
+import casekit.NMR.model.Spectrum;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -77,7 +78,7 @@ public class DB {
                 SilentChemObjectBuilder.getInstance()
         );
         while (iterator.hasNext()) {
-            acSet.addAtomContainer(NMR.Utils.setAromaticitiesInAtomContainer(iterator.next(), maxCycleSize));
+            acSet.addAtomContainer(casekit.NMR.Utils.setAromaticitiesInAtomContainer(iterator.next(), maxCycleSize));
         }
 
         return acSet;
@@ -111,7 +112,7 @@ public class DB {
                 + "		nmrsig.SPECTRUM_ID = spec.SPECTRUM_ID AND \n"
                 + "		spec.REVIEW_FLAG = \"true\" AND \n"
                 + "		spectype.SPECTRUM_TYPE_ID = spec.SPECTRUM_TYPE_ID AND \n"
-                + "		spectype.NAME = \"" + NMR.Utils.getNMRIsotopeIdentifier(elem) + "\" AND \n"
+                + "		spectype.NAME = \"" + casekit.NMR.Utils.getIsotopeIdentifier(elem) + "\" AND \n"
                 + "		nmrsig.MULTIPLICITY IS NOT NULL AND \n"
                 + "		nmrsig.MULTIPLICITY != \"\""
                 + "GROUP BY     shift, mult \n"
@@ -194,7 +195,7 @@ public class DB {
                 + "             nmrsig.SPECTRUM_ID = spec.SPECTRUM_ID AND \n"
                 + "             spec.REVIEW_FLAG = \"true\" AND \n" // checks whether review flag is set to true
                 + "		spectype.SPECTRUM_TYPE_ID = spec.SPECTRUM_TYPE_ID AND \n"
-                + "		spectype.NAME = \"" + NMR.Utils.getNMRIsotopeIdentifier(elem) + "\" \n";
+                + "		spectype.NAME = \"" + casekit.NMR.Utils.getIsotopeIdentifier(elem) + "\" \n";
         if(mult != null && !mult.trim().isEmpty()){
             query += "		AND nmrsig.MULTIPLICITY = \"" + mult + "\" \n";
         } else {
@@ -205,7 +206,7 @@ public class DB {
         }
         query += " ;";
         System.out.println("\n\ngetSpectraIDs:\nQUERY: " + query);
-        final ResultSet resultSet = NMR.DB.getResultSet(DBConnection, query);
+        final ResultSet resultSet = casekit.NMR.DB.getResultSet(DBConnection, query);
         while (resultSet.next()) {
             spectraIDs.add(resultSet.getInt("sigID"));
         }
@@ -221,9 +222,9 @@ public class DB {
             hits.put(i, new ArrayList<>());
             shift = Math.floor(spectrum.get(i).getShift(dim) * stepSize) / (double) stepSize;
             if(spectrum.get(i).getIntensity() != null){
-                hits.get(i).addAll(NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity() - intensDev, spectrum.get(i).getIntensity() + intensDev, spectrum.get(i).getNuclei()[dim]));
+                hits.get(i).addAll(casekit.NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity() - intensDev, spectrum.get(i).getIntensity() + intensDev, spectrum.get(i).getNuclei()[dim]));
             } else {
-                hits.get(i).addAll(NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity(), spectrum.get(i).getIntensity(), spectrum.get(i).getNuclei()[dim]));
+                hits.get(i).addAll(casekit.NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity(), spectrum.get(i).getIntensity(), spectrum.get(i).getNuclei()[dim]));
             }
         }
         
@@ -253,7 +254,7 @@ public class DB {
                 + "             nmrsig.SPECTRUM_ID = spec.SPECTRUM_ID AND \n"
                 + "             spec.REVIEW_FLAG = \"true\" AND \n" // checks whether review flag is set to true
                 + "		spectype.SPECTRUM_TYPE_ID = spec.SPECTRUM_TYPE_ID AND \n"
-                + "		spectype.NAME = \"" + NMR.Utils.getNMRIsotopeIdentifier(elem) + "\";";
+                + "		spectype.NAME = \"" + casekit.NMR.Utils.getIsotopeIdentifier(elem) + "\";";
         System.out.println("\n\ngetLookupTable:\nQUERY: " + query);
         final ResultSet resultSet = statement.executeQuery(query);
         while (resultSet.next()) {
@@ -292,7 +293,7 @@ public class DB {
                 + "             nmrsig.SPECTRUM_ID = spec.SPECTRUM_ID AND \n"
                 + "             spec.REVIEW_FLAG = \"true\" AND \n" // checks whether review flag is set to true
                 + "		spectype.SPECTRUM_TYPE_ID = spec.SPECTRUM_TYPE_ID AND \n"
-                + "		spectype.NAME = \"" + NMR.Utils.getNMRIsotopeIdentifier(elem) + "\" AND \n"
+                + "		spectype.NAME = \"" + casekit.NMR.Utils.getIsotopeIdentifier(elem) + "\" AND \n"
                 + "		nmrsig.MULTIPLICITY IS NOT NULL AND \n"
                 + "		nmrsig.MULTIPLICITY != \"\" \n"
                 + " GROUP BY hose;";
@@ -311,7 +312,7 @@ public class DB {
         ArrayList<String> props = (ArrayList<String>) (ArrayList<?>) (new ArrayList<>(ac.getProperties().keySet()));
         final ArrayList<String> spectra = new ArrayList<>();
         for (String prop : props) {
-            if (prop.contains("Spectrum " + NMR.Utils.getNMRIsotopeIdentifier(elem))) {
+            if (prop.contains("Spectrum " + casekit.NMR.Utils.getIsotopeIdentifier(elem))) {
                 spectra.add(ac.getProperty(prop));
             }
         }

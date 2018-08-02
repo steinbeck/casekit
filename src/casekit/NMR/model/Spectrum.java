@@ -26,7 +26,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package NMR;
+package casekit.NMR.model;
 
 import java.util.ArrayList;
 
@@ -34,21 +34,8 @@ import java.util.ArrayList;
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Spectrum extends ArrayList<NMR.Signal>{
-
-    static public final String SPECTYPE_1D = "1D";
-    static public final String SPECTYPE_DEPT90 = "DEPT90";
-    static public final String SPECTYPE_DEPT135 = "DEPT135";
-    static public final String SPECTYPE_HSQC = "HSQC";
-    static public final String SPECTYPE_HHCOSY = "HHCOSY";
-    static public final String SPECTYPE_INADEQUATE = "INADEQUATE";
-    static public final String SPECTYPE_HMBC = "HMBC";
-    static private final String[] SPECTYPES = new String[]{ SPECTYPE_1D, SPECTYPE_DEPT90, 
-                                                            SPECTYPE_DEPT135, SPECTYPE_HSQC, 
-                                                            SPECTYPE_HHCOSY, SPECTYPE_INADEQUATE, 
-                                                            SPECTYPE_HMBC};
-    
-                                                       
+public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
+                                                  
    /**
     * An arbitrary name or description that can be assigned to this spectrum for identification purposes.
     */
@@ -106,12 +93,8 @@ public class Spectrum extends ArrayList<NMR.Signal>{
    }
    
    public void setSpecType(final String specType){
-       for (final String stype : SPECTYPES) {
-           if(specType.equals(stype)){
-               this.specType = specType;
-               break;
-           }
-       }
+       
+        this.specType = specType;
    }
    
    public String getSpecType(){
@@ -151,9 +134,9 @@ public class Spectrum extends ArrayList<NMR.Signal>{
                shifts[col] = shiftLists[col].get(row);
            }
            if(intensities != null){
-               this.add(new NMR.Signal(this.nuclei, shifts, intensities.get(row), null, null));
+               this.add(new casekit.NMR.model.Signal(this.nuclei, shifts, intensities.get(row)));
            } else {
-               this.add(new NMR.Signal(this.nuclei, shifts, null, null, null));
+               this.add(new casekit.NMR.model.Signal(this.nuclei, shifts));
            }
        }
        this.updateShiftLists();
@@ -170,7 +153,7 @@ public class Spectrum extends ArrayList<NMR.Signal>{
    }
 
    /**
-    * Adds a Signal ({@link NMR.Signal}) to this Spectrum class object.
+    * Adds a Signal ({@link casekit.NMR.model.Signal}) to this Spectrum class object.
      * @param signal
     */
    public void addSignal(final Signal signal) {
@@ -290,7 +273,7 @@ public class Spectrum extends ArrayList<NMR.Signal>{
      * @return 
     */
    public ArrayList<Signal> pickSignals(final double shift, final int dim, final double pickPrecision) {
-       final ArrayList<NMR.Signal> pickedSignals = new ArrayList<>();
+       final ArrayList<casekit.NMR.model.Signal> pickedSignals = new ArrayList<>();
        /*
         * Now we search dimension dim for the chemical shift.
         */
@@ -311,7 +294,7 @@ public class Spectrum extends ArrayList<NMR.Signal>{
        for (int dim = 0; dim < this.getDimCount(); dim++) {
             this.shiftList.add(dim, new ArrayList<>());
        }
-       Double shift; NMR.Signal nmrSignal;
+       Double shift; casekit.NMR.model.Signal nmrSignal;
        for (int i = 0; i < this.size(); i++) {
             nmrSignal = this.get(i);
             for (int d = 0; d < this.getDimCount(); d++) {

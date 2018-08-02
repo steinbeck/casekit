@@ -21,9 +21,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package NMR;
+package casekit.NMR;
 
 
+import casekit.NMR.model.Spectrum;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -248,7 +249,7 @@ public class Utils {
         final String[] nuclei = new String[columns.length];
         for (int col = 0; col < columns.length; col++) {
             shiftsList[col] = Utils.parsePeakTable(pathToPeakList, columns[col]);
-            nuclei[col] = Utils.getNMRIsotopeIdentifier(atomTypes[col]);
+            nuclei[col] = Utils.getIsotopeIdentifier(atomTypes[col]);
         }
         final ArrayList<Double> intensities = parsePeakTable(pathToPeakList, intensityColumnIndex);
  
@@ -321,7 +322,7 @@ public class Utils {
         final ArrayList<Double>[] shiftLists = new ArrayList[ndim];
         final String[] nuclei = new String[ndim];
         for (int nucl = 0; nucl < ndim; nucl++) {
-            nuclei[nucl] = Utils.getNMRIsotopeIdentifier(atomTypes[nucl]);
+            nuclei[nucl] = Utils.getIsotopeIdentifier(atomTypes[nucl]);
             shiftLists[nucl] = Utils.parseXML(pathToXML, ndim, attributes[nucl]);
         }
 
@@ -356,19 +357,19 @@ public class Utils {
             if (Collections.frequency(matches, matchIndexAtomContainer) == 1) {
                 matchIndex = matches.indexOf(matchIndexAtomContainer);
                 if (matches.get(matchIndex) >= 0) {
-                    diffs.add(shifts.get(matchIndex) - Double.parseDouble(ac.getAtom(matches.get(matchIndex)).getProperty(NMR.Utils.getNMRShiftConstant(atomType)).toString()));
+                    diffs.add(shifts.get(matchIndex) - Double.parseDouble(ac.getAtom(matches.get(matchIndex)).getProperty(casekit.NMR.Utils.getNMRShiftConstant(atomType)).toString()));
                 }
             }
         }
         // calculate the median of found unique match differences
         if (diffs.size() > 0) {
-            final double median = NMR.Utils.getMedian(diffs);
+            final double median = casekit.NMR.Utils.getMedian(diffs);
             // add or subtract the median of the differences to all shift list values (input) and match again then
             for (int i = 0; i < shifts.size(); i++) {
                 shifts.set(i, shifts.get(i) - median);
             }
             // rematch
-            return NMR.Utils.findShiftMatches(ac, shifts, tol, atomType);
+            return casekit.NMR.Utils.findShiftMatches(ac, shifts, tol, atomType);
         } 
         
         return matches;
@@ -391,7 +392,7 @@ public class Utils {
 
         final ArrayList<Integer> matches = new ArrayList<>();
         for (int i = 0; i < shiftList.size(); i++) {
-            matches.add(NMR.Utils.findSingleShiftMatch(ac, shiftList.get(i), tol, atomType));
+            matches.add(casekit.NMR.Utils.findSingleShiftMatch(ac, shiftList.get(i), tol, atomType));
         }
 
         return matches;
@@ -415,11 +416,11 @@ public class Utils {
         double minDiff = tol, acShift;
         for (int k = 0; k < ac.getAtomCount(); k++) {
             // skip other atom types than given
-            if (ac.getAtom(k).getProperty(NMR.Utils.getNMRShiftConstant(atomType)) == null) {
+            if (ac.getAtom(k).getProperty(casekit.NMR.Utils.getNMRShiftConstant(atomType)) == null) {
                 continue;
             }
             // figure out the atom with lowest shift deviation 
-            acShift = Double.parseDouble(ac.getAtom(k).getProperty(NMR.Utils.getNMRShiftConstant(atomType)).toString());
+            acShift = Double.parseDouble(ac.getAtom(k).getProperty(casekit.NMR.Utils.getNMRShiftConstant(atomType)).toString());
             if ((shift - tol <= acShift) && (acShift <= shift + tol) && (Math.abs(shift - acShift) < minDiff)) {
                 minDiff = Math.abs(shift - acShift);
                 matchIndex = k;
@@ -447,9 +448,9 @@ public class Utils {
      */
     public static ArrayList<Integer> matchShiftsFromPeakTable(final IAtomContainer ac, final String pathToPeakList, final String atomType, final double tol, final int column) throws IOException {
 
-        final ArrayList<Double> shiftsAtomType = NMR.Utils.parsePeakTable(pathToPeakList, column);
-        ArrayList<Integer> matchesAtomType = NMR.Utils.findShiftMatches(ac, shiftsAtomType, tol, atomType);
-        matchesAtomType = NMR.Utils.correctShiftMatches(ac, shiftsAtomType, matchesAtomType, tol, atomType);
+        final ArrayList<Double> shiftsAtomType = casekit.NMR.Utils.parsePeakTable(pathToPeakList, column);
+        ArrayList<Integer> matchesAtomType = casekit.NMR.Utils.findShiftMatches(ac, shiftsAtomType, tol, atomType);
+        matchesAtomType = casekit.NMR.Utils.correctShiftMatches(ac, shiftsAtomType, matchesAtomType, tol, atomType);
 
         return matchesAtomType;
     }
@@ -477,9 +478,9 @@ public class Utils {
      */
     public static ArrayList<Integer> matchShiftsFromXML(final IAtomContainer ac, final String pathToXML, final String atomType, final double tol, final int ndim, final int attribute) throws IOException, ParserConfigurationException, SAXException {
 
-        final ArrayList<Double> shiftsAtomType = NMR.Utils.parseXML(pathToXML, ndim, attribute);
-        ArrayList<Integer> matchesAtomType = NMR.Utils.findShiftMatches(ac, shiftsAtomType, tol, atomType);
-        matchesAtomType = NMR.Utils.correctShiftMatches(ac, shiftsAtomType, matchesAtomType, tol, atomType);
+        final ArrayList<Double> shiftsAtomType = casekit.NMR.Utils.parseXML(pathToXML, ndim, attribute);
+        ArrayList<Integer> matchesAtomType = casekit.NMR.Utils.findShiftMatches(ac, shiftsAtomType, tol, atomType);
+        matchesAtomType = casekit.NMR.Utils.correctShiftMatches(ac, shiftsAtomType, matchesAtomType, tol, atomType);
 
         return matchesAtomType;
     }
@@ -529,12 +530,7 @@ public class Utils {
             case "N": return CDKConstants.NMRSHIFT_NITROGEN;
             case "P": return CDKConstants.NMRSHIFT_PHOSPORUS;
             case "F": return CDKConstants.NMRSHIFT_FLUORINE;
-            case "D": return CDKConstants.NMRSHIFT_DEUTERIUM;
-            case "O": return "oxygen nmr shift";
-            case "S": return "sulfur nmr shift";
-            case "Si": return "silicon nmr shift";
-            case "B": return "boron nmr shift";
-            case "Pt": return "platinum nmr shift";
+            case "S": return CDKConstants.NMRSHIFT_SULFUR;
             default:
                 return null;
         }
@@ -568,7 +564,7 @@ public class Utils {
      * @param element element's symbol (e.g. "C")
      * @return
      */
-    public static String getNMRIsotopeIdentifier(final String element) {
+    public static String getIsotopeIdentifier(final String element) {
         switch(element){
             case "C": return "13C";
             case "H": return "1H";
@@ -619,14 +615,14 @@ public class Utils {
             // for all next neighbors of a specific element
             for (IAtom neighborAtom : ac.getConnectedAtomsList(ac.getAtom(indexAC))) {
                 // skip if not the right neighborhood element or bond type is unknown/unset
-                if ((!neighborAtom.getSymbol().equals(neighborElems[n])) || (NMR.Utils.getStringFromBondOrder(ac.getBond(ac.getAtom(indexAC), neighborAtom).getOrder()) == null)) {
+                if ((!neighborAtom.getSymbol().equals(neighborElems[n])) || (casekit.NMR.Utils.getStringFromBondOrder(ac.getBond(ac.getAtom(indexAC), neighborAtom).getOrder()) == null)) {
                     continue;
                 }
-                foundBonds += NMR.Utils.getStringFromBondOrder(ac.getBond(ac.getAtom(indexAC), neighborAtom).getOrder());
+                foundBonds += casekit.NMR.Utils.getStringFromBondOrder(ac.getBond(ac.getAtom(indexAC), neighborAtom).getOrder());
             }
             for (int k = 0; k < bondsSet.length; k++) {
                 counts[n * bondsSet.length + k] = 0;
-                if (NMR.Utils.sortString(foundBonds).equals(NMR.Utils.sortString(bondsSet[k]))) {
+                if (casekit.NMR.Utils.sortString(foundBonds).equals(casekit.NMR.Utils.sortString(bondsSet[k]))) {
                     counts[n * bondsSet.length + k] = 1;
                     break;
                 }
@@ -917,7 +913,7 @@ public class Utils {
         
         final HashMap<String, Double> rms = new HashMap<>();
         for (final String key : lookup.keySet()) {
-            rms.put(key, NMR.Utils.getRMS(lookup.get(key)));
+            rms.put(key, casekit.NMR.Utils.getRMS(lookup.get(key)));
 //            System.out.println("count: " + lookup.get(key).size() + ", mean: " + NMR.Utils.getMean(lookup.get(key)) + ", rms: " +  rms.get(key) + ", median: " + NMR.Utils.getMedian(lookup.get(key)));
         }
       
@@ -980,12 +976,12 @@ public class Utils {
      */
     public static IAtomContainer createAtomContainer(final String molFormula) {
 
-        HashMap<String, Integer> hash = NMR.Utils.getAtomCountsInMolecularFormula(molFormula);
+        HashMap<String, Integer> hash = casekit.NMR.Utils.getAtomCountsInMolecularFormula(molFormula);
         IAtomContainer ac = SilentChemObjectBuilder.getInstance().newAtomContainer();
 
         for (String elem : hash.keySet()) {
             // add atoms of current element
-            ac = NMR.Utils.addAtoms(ac, elem, hash.get(elem));
+            ac = casekit.NMR.Utils.addAtoms(ac, elem, hash.get(elem));
         }
 
         return ac;
@@ -1235,7 +1231,7 @@ public class Utils {
 //            // the DB entry should at least contain one carbon spectrum 
 //            toContinue = false;
 //            for (String prop : props) {
-//                if (prop.contains("Spectrum " + Utils.getNMRIsotopeIdentifier("C"))) {
+//                if (prop.contains("Spectrum " + Utils.getIsotopeIdentifier("C"))) {
 //                    toContinue = true;
 //                    break;
 //                }
@@ -1249,7 +1245,7 @@ public class Utils {
 //                // check wether the DB entry contains a spectrum for the current query atom type
 //                shiftsDB = null;
 //                for (String prop : props) {
-//                    if (prop.contains("Spectrum " + Utils.getNMRIsotopeIdentifier(qAtom.getSymbol()))) {
+//                    if (prop.contains("Spectrum " + Utils.getIsotopeIdentifier(qAtom.getSymbol()))) {
 //                        shiftsDB = acDB.getProperty(prop);
 //                        break;
 //                    }
@@ -1266,7 +1262,7 @@ public class Utils {
 //                // check wether the DB entry contains a proton spectrum
 //                String shiftsDBHydrogen = null;
 //                for (String prop : props) {
-//                    if (prop.contains("Spectrum " + Utils.getNMRIsotopeIdentifier("H"))) {
+//                    if (prop.contains("Spectrum " + Utils.getIsotopeIdentifier("H"))) {
 //                        shiftsDBHydrogen = acDB.getProperty(prop);
 //                        break;
 //                    }
@@ -1425,12 +1421,12 @@ public class Utils {
         }
         for (IAtom neighbor : ac.getConnectedAtomsList(atom)) {
             bondOrderList.remove(ac.getBond(atom, neighbor).getOrder());
-            electronsLeft -= NMR.Utils.getElectronNumberByBondOrder(ac.getBond(atom, neighbor).getOrder());
+            electronsLeft -= casekit.NMR.Utils.getElectronNumberByBondOrder(ac.getBond(atom, neighbor).getOrder());
         }
 
         int theoCounter = 0;
         for (IBond.Order order : bondOrderList) {
-            theoCounter += NMR.Utils.getElectronNumberByBondOrder(order);
+            theoCounter += casekit.NMR.Utils.getElectronNumberByBondOrder(order);
         }
 
         switch (Math.abs(theoCounter - electronsLeft)) {

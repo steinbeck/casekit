@@ -34,7 +34,7 @@ import java.util.ArrayList;
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
+public class Spectrum {
                                                   
    /**
     * An arbitrary name or description that can be assigned to this spectrum for identification purposes.
@@ -47,10 +47,6 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
     */
    private String specType;
    
-//   /**
-//    * Not yet clear if this is needed.
-//    */
-//   private float[] pickPrecision;
    /**
     * Declares how many axes are in involved in this spectrum.
     */
@@ -66,11 +62,7 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
    private String solvent;
    private String standard;
    
-   /**
-    * This holds sorted list of Chemical Shifts of all axes. The first dimension addresses the
-    * axes, the second the shift values in this axis, starting from the highest value.
-    */
-   private final ArrayList<ArrayList<Double>> shiftList = new ArrayList<>();
+   private final ArrayList<Signal> signals = new ArrayList<>();
    
 
    public Spectrum(final String[] nuclei, final ArrayList<Double>[] shiftLists, final ArrayList<Double> intensities) {
@@ -134,12 +126,11 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
                shifts[col] = shiftLists[col].get(row);
            }
            if(intensities != null){
-               this.add(new casekit.NMR.model.Signal(this.nuclei, shifts, intensities.get(row)));
+               this.addSignal(new casekit.NMR.model.Signal(this.nuclei, shifts, intensities.get(row)));
            } else {
-               this.add(new casekit.NMR.model.Signal(this.nuclei, shifts));
+               this.addSignal(new casekit.NMR.model.Signal(this.nuclei, shifts));
            }
        }
-       this.updateShiftLists();
    }
    
 
@@ -149,7 +140,7 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
      * @return 
     */
    public int getSignalCount() {
-       return this.size();
+       return this.signals.size();
    }
 
    /**
@@ -157,18 +148,15 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
      * @param signal
     */
    public void addSignal(final Signal signal) {
-       this.add(signal);
-       this.updateShiftLists();
+       this.signals.add(signal);
    }
 
    public void removeSignal(final Signal signal){
-       this.remove(this.getSignalIndex(signal));
-       this.updateShiftLists();
+       this.signals.remove(this.getSignalIndex(signal));
    }
    
    public void removeSignal(final int signalIndex){
-       this.remove(signalIndex);
-       this.updateShiftLists();
+       this.signals.remove(signalIndex);
    }
    
    /**
@@ -177,12 +165,12 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
      * @return 
     */
    public Signal getSignal(final int signalIndex) {
-       return this.get(signalIndex);
+       return this.signals.get(signalIndex);
    }
    
    public ArrayList<Double> getIntensities(){
        final ArrayList<Double> intensities = new ArrayList<>();
-       for (Signal sig : this) {
+       for (Signal sig : this.signals) {
            intensities.add(sig.getIntensity());
        }
        
@@ -191,11 +179,24 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
    
    public ArrayList<Double> getShiftsByDim(final int dim){
        final ArrayList<Double> shifts = new ArrayList<>();
-       for (final Signal sig : this) {
+       for (final Signal sig : this.signals) {
            shifts.add(sig.getShift(dim));
        }
        
        return shifts;
+   }
+   
+   public int getAssignmentAtomIndexByDim(final int signalIndex, final int dim){
+       return this.getSignal(signalIndex).getAssignedAtomIndex(dim);
+   }
+   
+   public ArrayList<Integer> getAssignmentAtomIndicesByDim(final int dim){
+       final ArrayList<Integer> indices = new ArrayList<>();
+       for (final Signal sig : this.signals) {
+           indices.add(sig.getAssignedAtomIndex(dim));
+       }
+       
+       return indices;
    }
 
    /**
@@ -204,8 +205,8 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
      * @return 
     */
    public int getSignalIndex(final Signal signal) {
-       for (int f = 0; f < this.size(); f++) {
-           if (this.get(f) == signal) {
+       for (int f = 0; f < this.signals.size(); f++) {
+           if (this.signals.get(f) == signal) {
                return f;
            }
        }
@@ -235,6 +236,15 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
    public String getStandard() {
        return standard;
    }
+   
+   public void setAssignedAtomIndicesByDim(final ArrayList<Integer> indices, final int dim){
+       if(indices.size() != this.getShiftsByDim(0).size()){
+           return;
+       }
+       for (int i = 0; i < indices.size(); i++) {
+           this.getSignal(i).setAssignedAtomIndex(indices.get(i), dim);
+       }
+   }
 
    /**
     * Returns the signal closest to the shift sought. If no Signal is found within the interval
@@ -251,14 +261,14 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
        /*
        * Now we search dimension dim for the chemical shift.
        */
-       for (int f = 0; f < this.size(); f++) {
-           if (Math.abs((this.get(f)).getShift(dim) - shift) < diff) {
-               diff = Math.abs((this.get(f)).getShift(dim) - shift);
+       for (int f = 0; f < this.signals.size(); f++) {
+           if (Math.abs((this.signals.get(f)).getShift(dim) - shift) < diff) {
+               diff = Math.abs((this.signals.get(f)).getShift(dim) - shift);
                thisPosition = f;
            }
        }
        if(thisPosition >= 0){
-           this.get(thisPosition);
+           this.signals.get(thisPosition);
        }
        
        return null;
@@ -266,7 +276,7 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
 
    /**
     * Returns a List with signals within the interval defined by pickPrecision. If none is found
-    * an empty List is returned.
+    * an empty ArrayList is returned.
      * @param shift
      * @param dim
      * @param pickPrecision
@@ -277,64 +287,22 @@ public class Spectrum extends ArrayList<casekit.NMR.model.Signal>{
        /*
         * Now we search dimension dim for the chemical shift.
         */
-       for (final Signal sig : this) {
+       for (final Signal sig : this.signals) {
            if (Math.abs(sig.getShift(dim) - shift) < pickPrecision) {
                pickedSignals.add(sig);
            }
        }
        return pickedSignals;
    }
-
-   /**
-    * Extracts a list of unique shifts from the list of cross signals. This is to
-    * define the column and row headers for tables.
-    */
-   private void updateShiftLists() {
-       this.shiftList.clear();
-       for (int dim = 0; dim < this.getDimCount(); dim++) {
-            this.shiftList.add(dim, new ArrayList<>());
+   
+   public ArrayList<Double>[] getShifts(){
+       final ArrayList<Double>[] shiftsList = new ArrayList[this.ndim];
+       for (int d = 0; d < this.ndim; d++) {
+           shiftsList[d] = this.getShiftsByDim(d);
        }
-       Double shift; casekit.NMR.model.Signal nmrSignal;
-       for (int i = 0; i < this.size(); i++) {
-            nmrSignal = this.get(i);
-            for (int d = 0; d < this.getDimCount(); d++) {
-                shift = nmrSignal.getShift(d);
-                if (!this.shiftList.get(d).contains(shift)) {
-                    this.shiftList.get(d).add(shift);
-                }
-            }
-       }
+       
+       return shiftsList;
    }
-
-   /**
-    * Creates a 2D matrix of booleans, that models the set of crosspeaks in the 2D NMR spectrum.
-    * The dimensions are taken from hetAtomShiftList and protonShiftList, which again are
-    * produced by updateShiftLists based a collection of 2D nmrSignals
-    * <p/>
-    * private void createMatrix(){ boolean found; float het, prot; int hetPos, protPos;
-    * hetCorMatrix = new boolean[hetAtomShiftList.length][protonShiftList.length]; for (int f =
-    * 0; f < size(); f++){ HetCorNMRSignal hetCorSignal = (HetCorNMRSignal)elementAt(f); prot =
-    * hetCorSignal.shift[NMRSignal.SHIFT_PROTON]; het =
-    * hetCorSignal.shift[NMRSignal.SHIFT_HETERO]; found = false; hetPos =
-    * isInShiftList(hetAtomShiftList, het, hetAtomShiftList.length); if (hetPos >= 0){ protPos =
-    * isInShiftList(protonShiftList, prot, protonShiftList.length); if ( protPos >= 0){ found =
-    * true; hetCorMatrix[hetPos][protPos] = true; } } } }
-     * @return 
-    */
-   public String report() {
-       String s = "";
-//       s+= "Report for nmr spectrum " + name + " of type "
-//               + specType + ":\n\n";
-       for (int i = 0; i < this.shiftList.size(); i++) {
-           s += "\nShiftList for dimension " + (i + 1) + ":\n";
-           for (int d = 0; d < this.shiftList.get(i).size(); d++) {
-               s += this.shiftList.get(i).get(d) + "; ";
-           }
-       }
-       s += "\nBelonging intensities:\n";
-       for (Signal sig : this) {
-            s += sig.getIntensity() + "; ";
-       }
-       return s;
-   }
+   
+   
 }

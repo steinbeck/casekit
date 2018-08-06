@@ -27,8 +27,6 @@
  */
 package casekit.NMR.model;
 
-import java.util.ArrayList;
-
 /**
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
@@ -40,9 +38,9 @@ public class Signal {
     /**
      * Am array of doubles to store the chemical shift of
      */
-    private final Double shifts[];
+    private final Double[] shifts;
     private final String[] nuclei;
-    private int[] assignedAtomIndices;
+    private final int[] assignedAtomIndices;
 
     /* Signal intensity in arbitrary values */
     private Double intensity;
@@ -56,13 +54,33 @@ public class Signal {
         this.nuclei = nuclei;
         this.ndim = this.nuclei.length;
         this.shifts = shifts;
+        this.assignedAtomIndices = this.initAssignedAtomIndices(this.ndim);
     }
     
     public Signal(final String[] nuclei, final Double[] shifts, final Double intensity) {
         this.nuclei = nuclei;
         this.ndim = this.nuclei.length;
-        this.shifts = shifts;
+        this.shifts = this.initShifts(shifts, this.ndim);
+        this.assignedAtomIndices = this.initAssignedAtomIndices(this.ndim);
         this.intensity = intensity;
+    }
+    
+    private Double[] initShifts(final Double[] shifts, final int ndim){
+        final Double[] tempShifts = new Double[ndim];
+        for (int d = 0; d < ndim; d++) {
+            tempShifts[d] = shifts[d];
+        }
+        
+        return tempShifts;
+    }
+    
+    private int[] initAssignedAtomIndices(final int ndim){
+        final int[] tempAssignedAtomIndices = new int[ndim];
+        for (int d = 0; d < this.ndim; d++) {
+            tempAssignedAtomIndices[d] = -1;
+        }
+        
+        return tempAssignedAtomIndices;
     }
     
     public int getDim(){
@@ -101,7 +119,9 @@ public class Signal {
         if(indices.length != this.ndim){
             return false;
         }
-        this.assignedAtomIndices = indices;
+        for (int d = 0; d < this.ndim; d++) {
+            this.assignedAtomIndices[d] = indices[d];
+        }
         
         return true;
     }
@@ -114,18 +134,12 @@ public class Signal {
         if(dim < 0 || dim >= this.ndim){
             return false;
         }
-        if(this.assignedAtomIndices == null){
-            this.assignedAtomIndices = new int[this.ndim];
-            for (int i = 0; i < this.ndim; i++) {
-                this.assignedAtomIndices[i] = -1;
-            }
-        }
         this.assignedAtomIndices[dim] = index;
         
         return true;
     }
     
-    public int getAssignedAtomIndices(final int dim){
+    public int getAssignedAtomIndex(final int dim){
         return this.assignedAtomIndices[dim];
     }
 
@@ -152,6 +166,11 @@ public class Signal {
         return s;
     }
     
+    /**
+     *
+     * @return
+     * @deprecated 
+     */
     public Signal getClone(){
         final Signal signalClone = new Signal(this.nuclei, this.shifts);
         signalClone.setIntensity(this.intensity);
@@ -161,4 +180,5 @@ public class Signal {
         
         return signalClone;
     }
+    
 }

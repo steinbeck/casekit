@@ -61,8 +61,6 @@ import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomType;
 import org.openscience.cdk.interfaces.IBond;
-import org.openscience.cdk.interfaces.IElement;
-import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.io.SDFWriter;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
 import org.openscience.cdk.isomorphism.matchers.QueryAtomContainer;
@@ -70,7 +68,6 @@ import org.openscience.cdk.qsar.descriptors.atomic.AtomValenceDescriptor;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.smiles.smarts.parser.SMARTSParser;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
-import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -207,7 +204,7 @@ public class Utils {
      * @return ArrayList of Double shift values
      * @throws IOException
      */
-    public static ArrayList<Double> parsePeakTable(final String pathToPeakList, final int column) throws IOException {
+    public static ArrayList<Double> parseCSV(final String pathToPeakList, final int column) throws IOException {
 
         final ArrayList<Double> shifts = new ArrayList<>();
         String line;
@@ -239,7 +236,7 @@ public class Utils {
      * @return Spectrum class object containing the peak lists
      * @throws IOException
      */
-    public static Spectrum parsePeakTable(final String pathToPeakList, final int[] columns, final String[] atomTypes, final int intensityColumnIndex) throws IOException {
+    public static Spectrum CSVtoSpectrum(final String pathToPeakList, final int[] columns, final String[] atomTypes, final int intensityColumnIndex) throws IOException {
         
         // assumes the same number of selected columns and atom types
         if(columns.length != atomTypes.length){
@@ -248,10 +245,10 @@ public class Utils {
         final ArrayList<Double>[] shiftsList = new ArrayList[columns.length];
         final String[] nuclei = new String[columns.length];
         for (int col = 0; col < columns.length; col++) {
-            shiftsList[col] = Utils.parsePeakTable(pathToPeakList, columns[col]);
+            shiftsList[col] = Utils.parseCSV(pathToPeakList, columns[col]);
             nuclei[col] = Utils.getIsotopeIdentifier(atomTypes[col]);
         }
-        final ArrayList<Double> intensities = parsePeakTable(pathToPeakList, intensityColumnIndex);
+        final ArrayList<Double> intensities = parseCSV(pathToPeakList, intensityColumnIndex);
  
         return new Spectrum(nuclei, shiftsList, intensities);
      }
@@ -301,18 +298,17 @@ public class Utils {
      * object.
      * The XML file must be in Bruker's TopSpin format.
      *
-     * @param pathToXML path to NMR XML file in Bruker's XML file format
+     * @param pathToXML path to NMR XML file in Bruker's TopSpin XML file format
      * @param ndim number of dimensions: 1 (1D) or 2 (2D)
      * @param attributes which attribute indices in XML peak nodes should be used: 
-     * 1 (shift of 1st dimension), 2 (shift of 2nd dimension if 2D data, 
-     * intensity if 1D data) or 3 (intensity if 2D data)
+     * 1 (shift of 1st dimension), 2 (shift of 2nd dimension if 2D data)
      * @param atomTypes atom types (element) for each dimension
      * @return Spectrum class object containing the selected peak lists
      * @throws IOException
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
      */
-    public static Spectrum parseXML(final String pathToXML, final int ndim, final int[] attributes, final String[] atomTypes) throws IOException, ParserConfigurationException, SAXException {
+    public static Spectrum XMLtoSpectrum(final String pathToXML, final int ndim, final int[] attributes, final String[] atomTypes) throws IOException, ParserConfigurationException, SAXException {
         
         // assumes the same number of dims, attributes and atom types and a maximum number of dims of 2
         if((ndim != attributes.length) || (ndim != atomTypes.length) || (attributes.length != atomTypes.length)
@@ -448,7 +444,7 @@ public class Utils {
      */
     public static ArrayList<Integer> matchShiftsFromPeakTable(final IAtomContainer ac, final String pathToPeakList, final String atomType, final double tol, final int column) throws IOException {
 
-        final ArrayList<Double> shiftsAtomType = casekit.NMR.Utils.parsePeakTable(pathToPeakList, column);
+        final ArrayList<Double> shiftsAtomType = casekit.NMR.Utils.parseCSV(pathToPeakList, column);
         ArrayList<Integer> matchesAtomType = casekit.NMR.Utils.findShiftMatches(ac, shiftsAtomType, tol, atomType);
         matchesAtomType = casekit.NMR.Utils.correctShiftMatches(ac, shiftsAtomType, matchesAtomType, tol, atomType);
 
@@ -957,181 +953,10 @@ public class Utils {
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    // deprecated functions
-    
-        /**
-     * Creates an IAtomContainer object containing atoms without any bond
-     * information, given by a molecular formula.
-     *
-     * @param molFormula Molecular Formula
-     * @return
-     * @deprecated
-     */
-    public static IAtomContainer createAtomContainer(final String molFormula) {
-
-        HashMap<String, Integer> hash = casekit.NMR.Utils.getAtomCountsInMolecularFormula(molFormula);
-        IAtomContainer ac = SilentChemObjectBuilder.getInstance().newAtomContainer();
-
-        for (String elem : hash.keySet()) {
-            // add atoms of current element
-            ac = casekit.NMR.Utils.addAtoms(ac, elem, hash.get(elem));
-        }
-
-        return ac;
-    }
-
-    /**
-     * Creates a HashMap with the number of atoms for each occurring atom type.
-     *
-     * @deprecated
-     * @param molFormula
-     * @return
-     */
-    public static HashMap<String, Integer> getAtomCountsInMolecularFormula(final String molFormula) {
-
-        HashMap<String, Integer> hash = new HashMap<>();
-        String[] molFormSplit = molFormula.split("[A-Z]");
-        Matcher m = Pattern.compile("[A-Z]").matcher(molFormula);
-        String elem;
-        int noAtoms;
-        int k = 1;
-
-        while (m.find()) {
-            // name of current element
-            elem = molFormula.substring(m.start(), m.end());
-            if (k >= molFormSplit.length || molFormSplit[k].isEmpty()) {
-                // if no atom number is given then assume only one atom
-                noAtoms = 1;
-            } else if (Character.isLowerCase(molFormSplit[k].charAt(0))) {
-                // if element's name contains two letters then extend it
-                elem += molFormSplit[k].charAt(0);
-                // if more than one atoms of that element with two letters exist
-                if (molFormSplit[k].length() > 1) {
-                    // check given atom number
-                    noAtoms = Integer.parseInt(molFormSplit[k].substring(1));
-                } else {
-                    noAtoms = 1;
-                }
-            } else {
-                // if atom number is given
-                noAtoms = Integer.parseInt(molFormSplit[k].substring(0));
-            }
-            try {
-                // add atom type and frequency to class hashmap
-                hash.put(elem, noAtoms);
-            } catch (Exception e) {
-                System.err.println("Illegal element \"" + elem + "\" will be ignored!!!");
-            }
-
-            k++;
-        }
-
-        return hash;
-    }
-
-    /**
-     *
-     * @param ac
-     * @param atomType
-     * @return
-     * @deprecated
-     */
-    public static int getAtomTypeCount(final IAtomContainer ac, final String atomType) {
-
-        int noAtoms = 0;
-        for (int i = 0; i < ac.getAtomCount(); i++) {
-            if (ac.getAtom(i).getSymbol().equals(atomType)) {
-                noAtoms++;
-            }
-        }
-
-        return noAtoms;
-    }
-
-    /**
-     * Creates atoms of the same atom type and store it into an atom container.
-     *
-     * @param ac Atom container
-     * @param noAtoms Number of atoms to create
-     * @param atomType Atom type (element's name, e.g. C or Br)
-     * @return
-     * @deprecated 
-     */
-    public static IAtomContainer addAtoms(final IAtomContainer ac, final String atomType, final int noAtoms) throws IllegalArgumentException {
-
-        for (int i = 0; i < noAtoms; i++) {
-            ac.addAtom(new Atom(atomType));
-        }
-
-        return ac;
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    // ########################################################################################################
     // test functions -> not ready to use
     
     
-    public static double getTanimotoCoefficient(final IAtomContainer a, final IAtomContainer b) throws CDKException, IOException, CloneNotSupportedException{
-        
-        // pubchem fingerprinter expects 
-        // 1. explicit hydrogens
-//        AtomContainerManipulator.convertImplicitToExplicitHydrogens(a);
-        // 2. set atom type names -> done during setting of aromaticities
-        // 3. set aromaticity -> done during DB scanning
-        
-        SubstructureFingerprinter substructfp  = new SubstructureFingerprinter();
-        IBitFingerprint fingerprint = substructfp.getBitFingerprint(a);
-        System.out.println("\n\ndefault substructure bitstring: " + fingerprint.asBitSet());
-        for (int setbit : fingerprint.getSetbits()) {
-            System.out.println("default substructure of index " + setbit + ": " + substructfp.getSubstructure(setbit));// + " -> " + SMARTSParser.parse(substructfp.getSubstructure(setbit), SilentChemObjectBuilder.getInstance()));
-        }
-        
-//        DepictionGenerator dg = new DepictionGenerator().withSize(800, 800).withAtomColors().withAtomValues().withMolTitle().withFillToFit();
-        IAtomContainer ac = SilentChemObjectBuilder.getInstance().newAtomContainer();
-        QueryAtomContainer qac = SMARTSParser.parse(substructfp.getSubstructure(fingerprint.getSetbits()[1]), SilentChemObjectBuilder.getInstance());
-        
-        System.out.println("qac: " + qac.getAtomCount() + ", " + qac.getBondCount() + " -> " + qac.getProperties());
-        for (IAtom atom : qac.atoms()) {
-            ac.addAtom(atom);
-            System.out.println("qac atom: ");
-        }
-        for (IBond bond : qac.bonds()) {
-            ac.addBond(bond);
-            System.out.println("qac bond: " + bond);
-        }
-        System.out.println("ac: " + ac.getAtomCount() + ", " + ac.getBondCount() + " -> " + ac.getProperties());
-                
-        
-//        dg.depict(ac).writeTo("/Users/mwenk/Downloads/test.png");
-        
-        System.out.println("\n\n");
-        SubstructureFingerprinter klekotasubstructfp = new KlekotaRothFingerprinter();
-        fingerprint = klekotasubstructfp.getBitFingerprint(a);
-        System.out.println("Klekota substructure bitstring: " + fingerprint.asBitSet());
-        for (int setbit : fingerprint.getSetbits()) {
-            System.out.println("Klekota substructure of index " + setbit + ": " + klekotasubstructfp.getSubstructure(setbit));
-        }
-        
-        
-        return 0.0;//Tanimoto.calculate(pubchemfp.getBitFingerprint(a), pubchemfp.getBitFingerprint(b));
-    }
     
     
      /**
@@ -1155,196 +980,6 @@ public class Utils {
         return freqs;
     }
     
-    
-    //    /**
-//     * Returns the hybridization level of each heavy atom in given molecule which has
-//     * its own shift value.
-//     * First it compares the number of attached (implicit) hydrogens and sets 
-//     * the hybridization level from it directly. This is only possible for 
-//     * carbons with three or four attached hydrogens (sp3). [CURRENTLY DISABLED]
-//     * 
-//     * If less than three hydrogens are attached or in case of other heavy 
-//     * atoms then a NMRShiftDB file will be used to obtain the
-//     * frequencies of the different hybridization levels from the database. 
-//     * This happens for directly bonded neighbors too.
-//     * 
-//     *
-//     * @param ac
-//     * @param pathToNMRShiftDB
-//     * @param tol
-//     * @param molFormula
-//     * @return
-//     * @throws FileNotFoundException
-//     */
-//    public static HashMap<String, HashMap<Integer, HashMap<String, ArrayList<Integer>>>> getHybridizationsFromNMRShiftDB(final IAtomContainer ac, final String pathToNMRShiftDB, final double tol, final IMolecularFormula molFormula) throws FileNotFoundException{
-//        
-//        final HashMap<Integer, HashMap<String, ArrayList<Integer>>> elementsHybridCounter = new HashMap<>();
-//        final HashMap<Integer, HashMap<String, ArrayList<Integer>>> elementsBondTypeCounter = new HashMap<>();
-//        final HashMap<Integer, HashMap<String, Integer>> expactedNeighbors = new HashMap<>();
-//        String NMRSHIFT_ATOMTYPE;
-//        // initializations only
-//        for (int i = 0; i < ac.getAtomCount(); i++) {
-//            // sure case for carbon: 3 or 4 hydrogens -> sp3
-////            if (ac.getAtom(i).getSymbol().equals("C") && ac.getAtom(i).getImplicitHydrogenCount() >= 3) {
-////                ac.getAtom(i).setHybridization(IAtomType.Hybridization.SP3);
-////                continue;
-////            }
-//            NMRSHIFT_ATOMTYPE = Utils.getNMRShiftConstant(ac.getAtom(i).getSymbol());
-//            // is the NMR shift constant defined and does the nmr shift property entry in an atom exist?
-//            if ((NMRSHIFT_ATOMTYPE == null) || (ac.getAtom(i).getProperty(NMRSHIFT_ATOMTYPE) == null)) {
-//                continue;
-//            }
-//            elementsHybridCounter.put(i, new HashMap<>());
-//            elementsBondTypeCounter.put(i, new HashMap<>());
-//            elementsHybridCounter.get(i).put("query", new ArrayList<>());
-//            elementsHybridCounter.get(i).put("queryH", new ArrayList<>());
-//            // create an array list for each atom type in given molecular formula
-//            for (IElement elem : MolecularFormulaManipulator.getHeavyElements(molFormula)) {
-//                elementsHybridCounter.get(i).put(elem.getSymbol(), new ArrayList<>());
-//                elementsBondTypeCounter.get(i).put(elem.getSymbol(), new ArrayList<>());
-//            }
-//
-//            expactedNeighbors.put(i, new HashMap<>());
-//            for (IAtom expNeighbor : ac.getConnectedAtomsList(ac.getAtom(i))) {
-//                if (!expactedNeighbors.get(i).keySet().contains(expNeighbor.getSymbol())) {
-//                    expactedNeighbors.get(i).put(expNeighbor.getSymbol(), 0);
-//                }
-//                expactedNeighbors.get(i).put(expNeighbor.getSymbol(), expactedNeighbors.get(i).get(expNeighbor.getSymbol()) + 1);
-//            }
-//        }
-//        // beginning of DB search
-//        String shiftsDB;
-//        double shiftDB, shiftQ;
-//        int atomIndexDB;
-//        boolean add, toContinue;
-//        final AtomHybridizationDescriptor hybridDesc = new AtomHybridizationDescriptor();
-//        IAtom qAtom;
-//        IAtomContainer acDB;
-//        final IteratingSDFReader iterator = new IteratingSDFReader(
-//                new FileReader(pathToNMRShiftDB),
-//                SilentChemObjectBuilder.getInstance()
-//        );
-//        while (iterator.hasNext()) {
-//            acDB = iterator.next();
-//            ArrayList<String> props = (ArrayList<String>) (ArrayList<?>) (new ArrayList<>(acDB.getProperties().keySet()));
-//            Collections.sort(props);
-//            // the DB entry should at least contain one carbon spectrum 
-//            toContinue = false;
-//            for (String prop : props) {
-//                if (prop.contains("Spectrum " + Utils.getIsotopeIdentifier("C"))) {
-//                    toContinue = true;
-//                    break;
-//                }
-//            }
-//            if (!toContinue) {
-//                continue;
-//            }
-//
-//            for (int i : elementsHybridCounter.keySet()) {
-//                qAtom = ac.getAtom(i);
-//                // check wether the DB entry contains a spectrum for the current query atom type
-//                shiftsDB = null;
-//                for (String prop : props) {
-//                    if (prop.contains("Spectrum " + Utils.getIsotopeIdentifier(qAtom.getSymbol()))) {
-//                        shiftsDB = acDB.getProperty(prop);
-//                        break;
-//                    }
-//                }
-//                if(shiftsDB == null){
-//                    continue;
-//                }
-//                // ignore the already set sp3 hybridizations at carbon atoms with at least 3 implicit hydrogens
-////                    if (qAtom.getSymbol().equals("C") && qAtom.getImplicitHydrogenCount() >= 3) {
-////                        continue;
-////                    }
-//                shiftQ = qAtom.getProperty(Utils.getNMRShiftConstant(ac.getAtom(i).getSymbol()));
-//                
-//                // check wether the DB entry contains a proton spectrum
-//                String shiftsDBHydrogen = null;
-//                for (String prop : props) {
-//                    if (prop.contains("Spectrum " + Utils.getIsotopeIdentifier("H"))) {
-//                        shiftsDBHydrogen = acDB.getProperty(prop);
-//                        break;
-//                    }
-//                }
-//                
-//                String[][] shiftsDBvalues = Utils.parseShiftsNMRShiftDB(shiftsDB);
-//                for (String[] shiftsDBvalue : shiftsDBvalues) {
-//                    shiftDB = Double.parseDouble(shiftsDBvalue[0]);
-//                    atomIndexDB = Integer.parseInt(shiftsDBvalue[2]);
-//                    add = true;
-//                    // shift match within a shift tolerance range
-//                    if ((shiftQ - tol <= shiftDB) && (shiftDB <= shiftQ + tol)) {
-//                        // matched atom should have the same number of attached (implicit) hydrogens
-//                        if (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount().intValue() == qAtom.getImplicitHydrogenCount().intValue()) {
-//                            // count next neighbors
-//                            HashMap<String, Integer> foundNeighbors = new HashMap<>();
-//                            for (IAtom neighborAtomDB : acDB.getConnectedAtomsList(acDB.getAtom(atomIndexDB))) {
-//                                if (!foundNeighbors.keySet().contains(neighborAtomDB.getSymbol())) {
-//                                    foundNeighbors.put(neighborAtomDB.getSymbol(), 0);
-//                                }
-//                                foundNeighbors.put(neighborAtomDB.getSymbol(), foundNeighbors.get(neighborAtomDB.getSymbol()) + 1);
-//                            }
-//                            // check whether the number of expacted next neighbors is higher than the number of found next neighbor, if yes then skip this DB atom match
-//                            for (String elemExpNeighbor : expactedNeighbors.get(i).keySet()) {
-//                                if (foundNeighbors.get(elemExpNeighbor) == null || (expactedNeighbors.get(i).get(elemExpNeighbor) > foundNeighbors.get(elemExpNeighbor))) {
-//                                    add = false;
-//                                }
-//                            }
-//                            if(!add){
-//                                continue;
-//                            }
-//                            // only elements which occur in molecular formula of the unknown are allowed, otherwise skip this matched DB atom
-//                            for (IAtom neighborAtomDB : acDB.getConnectedAtomsList(acDB.getAtom(atomIndexDB))) {
-//                                if (MolecularFormulaManipulator.getElementCount(molFormula, neighborAtomDB.getSymbol()) == 0) {
-//                                    add = false;
-//                                    break;
-//                                }
-//                                // ignore explicit protons; ignore query atoms here, add them as below -> otherwise multiple counting 
-//                                if (!neighborAtomDB.getSymbol().equals("H")){// && !neighborAtomDB.getSymbol().equals(qAtom.getSymbol())) {
-//                                    elementsHybridCounter.get(i).get(neighborAtomDB.getSymbol()).add(Integer.parseInt(hybridDesc.calculate(neighborAtomDB, acDB).getValue().toString()));
-//                                    elementsBondTypeCounter.get(i).get(neighborAtomDB.getSymbol()).add(acDB.getBond(acDB.getAtom(atomIndexDB), neighborAtomDB).getOrder().numeric());
-//                                }
-//                            }
-//                            if(!add){
-//                                continue;
-//                            }
-//                            // likely allowed to add hybridization for query atom
-//                            // check whether the shifts of attached hydrogens are equal to hydrogen shifts of query atom -> higher priority at hybridization assignment step later
-//                            boolean added = false;
-//                            if(shiftsDBHydrogen != null){
-//                                String[][] shiftsDBvaluesHydrogen = Utils.parseShiftsNMRShiftDB(shiftsDBHydrogen);
-//                                if(qAtom.getProperty("HydrogenShifts") != null){
-//                                    ArrayList<Double> shiftsQAtomvaluesHydrogen = qAtom.getProperty("HydrogenShifts");
-//                                    for (int j = 0; j < shiftsQAtomvaluesHydrogen.size(); j++) {
-//                                        for (String[] shiftsDBvalueHydrogen : shiftsDBvaluesHydrogen) {
-//                                            shiftDB = Double.parseDouble(shiftsDBvalueHydrogen[0]);
-//                                            if((shiftsQAtomvaluesHydrogen.get(j) - 0.1 <= shiftDB) && (shiftDB <= shiftsQAtomvaluesHydrogen.get(j) + 0.1)){
-//                                                elementsHybridCounter.get(i).get("queryH").add(Integer.parseInt(hybridDesc.calculate(acDB.getAtom(atomIndexDB), acDB).getValue().toString()));
-//                                                added = true;
-//                                                break;
-//                                            }
-//                                        }
-//                                        if(added){
-//                                            break;
-//                                        }
-//                                    }
-//                                }
-//
-//                            } else {
-//                                elementsHybridCounter.get(i).get("query").add(Integer.parseInt(hybridDesc.calculate(acDB.getAtom(atomIndexDB), acDB).getValue().toString()));
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        final HashMap<String, HashMap<Integer, HashMap<String, ArrayList<Integer>>>> toReturn = new HashMap<>();
-//        toReturn.put("hybridCounter", elementsHybridCounter);
-//        toReturn.put("bondTypeCounter", elementsBondTypeCounter);
-//        
-//        return toReturn;
-//    }
 
         /**
      * Returns a list of open bonds of an atom.

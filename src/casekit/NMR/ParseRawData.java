@@ -155,7 +155,7 @@ public class ParseRawData {
      * @return Spectrum class object from given input file
      * @throws java.io.IOException
      */
-    public final Spectrum parse1DNMRviaCSV(final String pathToCSV, final String atomType) throws IOException {
+    public static final Spectrum parse1DNMRviaCSV(final String pathToCSV, final String atomType) throws IOException {
         
           final Spectrum spectrum = Utils.CSVtoSpectrum(pathToCSV, new int[]{4}, new String[]{atomType}, 6);
           
@@ -175,7 +175,7 @@ public class ParseRawData {
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
      */
-    public final Spectrum parse1DNMRviaXML(final String pathToXML, final String atomType) throws IOException, ParserConfigurationException, SAXException {
+    public static final Spectrum parse1DNMRviaXML(final String pathToXML, final String atomType) throws IOException, ParserConfigurationException, SAXException {
 
         final Spectrum spectrum = Utils.XMLtoSpectrum(pathToXML, 1, new int[]{1}, new String[]{atomType});
 
@@ -299,7 +299,7 @@ public class ParseRawData {
      * @return 
      * @throws java.io.IOException
      */
-    public final Spectrum parseDEPTviaCSV(final String pathToDEPT) throws IOException {
+    public static final Spectrum parseDEPTviaCSV(final String pathToDEPT) throws IOException {
         
         final Spectrum spectrum = Utils.CSVtoSpectrum(pathToDEPT, new int[]{4}, new String[]{"C"}, 6);
 
@@ -318,7 +318,7 @@ public class ParseRawData {
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
      */
-    public final Spectrum parseDEPTviaXML(final String pathToDEPT) throws IOException, ParserConfigurationException, SAXException {
+    public static final Spectrum parseDEPTviaXML(final String pathToDEPT) throws IOException, ParserConfigurationException, SAXException {
 
         final Spectrum spectrum = Utils.XMLtoSpectrum(pathToDEPT, 1, new int[]{1}, new String[]{"C"});
 
@@ -415,7 +415,7 @@ public class ParseRawData {
      * @return 
      * @throws IOException
      */
-    public final Spectrum parseHSQCviaCSV(final String pathToCSV, final String heavyAtomType) throws IOException {
+    public static final Spectrum parseHSQCviaCSV(final String pathToCSV, final String heavyAtomType) throws IOException {
 
         final Spectrum spectrum = new Spectrum( new String[]{Utils.getIsotopeIdentifier("H"),
                                                             Utils.getIsotopeIdentifier(heavyAtomType)},
@@ -437,7 +437,7 @@ public class ParseRawData {
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
      */
-    public final Spectrum parseHSQCviaXML(final String pathToXML, final String heavyAtomType) throws IOException, ParserConfigurationException, SAXException {
+    public static final Spectrum parseHSQCviaXML(final String pathToXML, final String heavyAtomType) throws IOException, ParserConfigurationException, SAXException {
 
         final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("H"),
                                                                 Utils.getIsotopeIdentifier(heavyAtomType)},
@@ -613,7 +613,7 @@ public class ParseRawData {
      * @return
      * @throws IOException
      */
-    public final Spectrum parseHHCOSYviaCSV(final String pathToCSV) throws IOException {
+    public static final Spectrum parseHHCOSYviaCSV(final String pathToCSV) throws IOException {
 
         final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("H"), 
                                                                 Utils.getIsotopeIdentifier("H")}, 
@@ -634,7 +634,7 @@ public class ParseRawData {
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
      */
-    public final Spectrum parseHHCOSYviaXML(final String pathToXML) throws IOException, ParserConfigurationException, SAXException {
+    public static final Spectrum parseHHCOSYviaXML(final String pathToXML) throws IOException, ParserConfigurationException, SAXException {
 
         final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("H"), 
                                                                 Utils.getIsotopeIdentifier("H")}, 
@@ -680,7 +680,7 @@ public class ParseRawData {
      * @return
      * @throws IOException
      */
-    public final Spectrum parseINADEQUATEviaCSV(final String pathToCSV) throws IOException {
+    public static final Spectrum parseINADEQUATEviaCSV(final String pathToCSV) throws IOException {
 
         final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("C"), 
                                                                 Utils.getIsotopeIdentifier("C")}, 
@@ -701,7 +701,7 @@ public class ParseRawData {
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
      */
-    public final Spectrum parseINADEQUATEviaXML(final String pathToXML) throws IOException, ParserConfigurationException, SAXException {
+    public static final Spectrum parseINADEQUATEviaXML(final String pathToXML) throws IOException, ParserConfigurationException, SAXException {
 
         final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("C"), 
                                                                 Utils.getIsotopeIdentifier("C")}, 
@@ -751,7 +751,7 @@ public class ParseRawData {
      * @return 
      * @throws IOException
      */
-    public final Spectrum parseHMBCviaCSV(final String pathToCSV, final String heavyAtomType) throws IOException {
+    public static final Spectrum parseHMBCviaCSV(final String pathToCSV, final String heavyAtomType) throws IOException {
         
         final Spectrum spectrum = new Spectrum( new String[]{Utils.getIsotopeIdentifier("H"),
                                                             Utils.getIsotopeIdentifier(heavyAtomType)},
@@ -775,7 +775,7 @@ public class ParseRawData {
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
      */
-    public final Spectrum parseHMBCviaXML(final String pathToXML, final String heavyAtomType) throws IOException, ParserConfigurationException, SAXException {
+    public static final Spectrum parseHMBCviaXML(final String pathToXML, final String heavyAtomType) throws IOException, ParserConfigurationException, SAXException {
 
         final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("H"), 
                                                                 Utils.getIsotopeIdentifier(heavyAtomType)}, 

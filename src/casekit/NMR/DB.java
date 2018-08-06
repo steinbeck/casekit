@@ -34,21 +34,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import org.openscience.cdk.exception.CDKException;
-import org.openscience.cdk.fingerprint.Fingerprinter;
-import org.openscience.cdk.fingerprint.IBitFingerprint;
-import org.openscience.cdk.fingerprint.IFingerprinter;
-import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomContainerSet;
-import org.openscience.cdk.interfaces.IAtomType;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
-import org.openscience.cdk.qsar.descriptors.atomic.AtomHybridizationDescriptor;
 import org.openscience.cdk.silent.AtomContainerSet;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
-import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
 /**
  *
@@ -218,13 +209,13 @@ public class DB {
     public static HashMap<Integer, ArrayList<Integer>> matchSpectrumAgainstDB(final Connection DBConnection, final Spectrum spectrum, final double shiftDev, final Double intensDev, final int stepSize, final int dim) throws SQLException{
        
         final HashMap<Integer, ArrayList<Integer>> hits = new HashMap<>(); double shift;
-        for (int i = 0; i < spectrum.size(); i++) {
+        for (int i = 0; i < spectrum.getSignalCount(); i++) {
             hits.put(i, new ArrayList<>());
-            shift = Math.floor(spectrum.get(i).getShift(dim) * stepSize) / (double) stepSize;
-            if(spectrum.get(i).getIntensity() != null){
-                hits.get(i).addAll(casekit.NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity() - intensDev, spectrum.get(i).getIntensity() + intensDev, spectrum.get(i).getNuclei()[dim]));
+            shift = Math.floor(spectrum.getSignal(i).getShift(dim) * stepSize) / (double) stepSize;
+            if(spectrum.getSignal(i).getIntensity() != null){
+                hits.get(i).addAll(casekit.NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.getSignal(i).getMultiplicity(), spectrum.getSignal(i).getIntensity() - intensDev, spectrum.getSignal(i).getIntensity() + intensDev, spectrum.getSignal(i).getNuclei()[dim]));
             } else {
-                hits.get(i).addAll(casekit.NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.get(i).getMultiplicity(), spectrum.get(i).getIntensity(), spectrum.get(i).getIntensity(), spectrum.get(i).getNuclei()[dim]));
+                hits.get(i).addAll(casekit.NMR.DB.getSignalIDsFromNMRShiftDB(DBConnection, shift - shiftDev, shift + shiftDev, spectrum.getSignal(i).getMultiplicity(), spectrum.getSignal(i).getIntensity(), spectrum.getSignal(i).getIntensity(), spectrum.getSignal(i).getNuclei()[dim]));
             }
         }
         
@@ -318,85 +309,5 @@ public class DB {
         }
 
         return spectra;
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    // TRIALS
-    
-    
-    public static void findSubstructuresInNMRShiftDB(final IAtomContainer acQ, final String pathToNMRShiftDB) throws CDKException, FileNotFoundException, CloneNotSupportedException {
-
-        final IAtomContainer acQcopy = acQ.clone();
-        AtomContainerManipulator.convertImplicitToExplicitHydrogens(acQcopy);
-
-        final IFingerprinter fingerprinter = new Fingerprinter();
-        final IBitFingerprint fingerprintQ = fingerprinter.getBitFingerprint(acQcopy);
-//        System.out.println("Q: cardinality: " + fingerprintQ.cardinality() + ", bit set: " + Arrays.toString(fingerprintQ.getSetbits()));
-        IBitFingerprint fingerprintDB;
-        IAtomContainer acDB;
-        final IteratingSDFReader iterator = new IteratingSDFReader(
-                new FileReader(pathToNMRShiftDB),
-                SilentChemObjectBuilder.getInstance()
-        );
-        final AtomHybridizationDescriptor hybridDesc = new AtomHybridizationDescriptor();
-        int molCounter = 1;
-        while (iterator.hasNext()) {
-            acDB = iterator.next();
-//            // skip structures which do not at least contain one carbon spectrum
-//            if (!acDB.getProperties().containsKey("Spectrum 13C 0")) {
-//                continue;
-//            }
-//            IAtomContainer acDBcopy = acDB.clone();
-//            AtomContainerManipulator.convertImplicitToExplicitHydrogens(acDBcopy);
-//            fingerprintDB = fingerprinter.getBitFingerprint(acDBcopy);
-////            System.out.println("DB: cardinality: " + fingerprintDB.cardinality() + ", bit set: " + Arrays.toString(fingerprintDB.getSetbits()));
-//            
-////            fingerprintDB.and(fingerprintQ);
-////            System.out.println("and: " + Arrays.toString(fingerprintDB.getSetbits()));
-//            
-//            if(Tanimoto.calculate(fingerprintQ, fingerprintDB) >= 0.25)
-//                System.out.println("similarity: " + Tanimoto.calculate(fingerprintQ, fingerprintDB) + " at " + acDB.getProperties());
-
-            int counter = 0;
-            for (int i = 0; i < acDB.getAtomCount(); i++) {
-                if (acDB.getAtom(i).getSymbol().equals("N")) {
-                    for (IAtom neighbor : acDB.getConnectedAtomsList(acDB.getAtom(i))) {
-                        if (neighbor.getSymbol().equals("C") && IAtomType.Hybridization.values()[Integer.parseInt(hybridDesc.calculate(neighbor, acDB).getValue().toString())].equals(IAtomType.Hybridization.SP2)) {
-                            for (IAtom neighbor2 : acDB.getConnectedAtomsList(neighbor)) {
-                                if (neighbor2.getSymbol().equals("C") && neighbor2.getImplicitHydrogenCount() == 3) {
-                                    counter++;
-                                }
-                            }
-                        }
-                    }
-                    if (counter >= 2) {
-                        System.out.println(molCounter);
-                    }
-                    break;
-                }
-            }
-            molCounter++;
-        }
-
     }
 }

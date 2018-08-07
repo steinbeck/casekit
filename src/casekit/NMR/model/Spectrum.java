@@ -63,12 +63,18 @@ public class Spectrum {
    private String standard;
    
    private final ArrayList<Signal> signals = new ArrayList<>();
-   
+  
 
    public Spectrum(final String[] nuclei, final ArrayList<Double>[] shiftLists, final ArrayList<Double> intensities) {
        this.nuclei = nuclei;
        this.ndim = this.nuclei.length;
        this.addSignals(shiftLists, intensities);
+   }
+   
+   public Spectrum(final String[] nuclei, final ArrayList<Double>[] shiftLists) {
+       this.nuclei = nuclei;
+       this.ndim = this.nuclei.length;
+       this.addSignals(shiftLists, null);
    }
    
    public Spectrum(final String[] nuclei) {
@@ -133,12 +139,6 @@ public class Spectrum {
        }
    }
    
-
-   /**
-    * Return the number of individual frequencies in the heteroatom shift list, which should be
-    * equal or smaller than the number of respective atoms
-     * @return 
-    */
    public int getSignalCount() {
        return this.signals.size();
    }

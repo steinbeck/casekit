@@ -50,7 +50,7 @@ public class Spectrum {
    /**
     * Declares how many axes are in involved in this spectrum.
     */
-   private final int ndim;
+   private final int nDim;
    /**
     * The nuclei of the different axes.
     */
@@ -63,36 +63,25 @@ public class Spectrum {
    private String standard;
    
    private final ArrayList<Signal> signals = new ArrayList<>();
+   private final ArrayList<Integer> equivalences = new ArrayList<>();
   
 
-   public Spectrum(final String[] nuclei, final ArrayList<Double>[] shiftLists, final ArrayList<Double> intensities) {
-       this.nuclei = nuclei;
-       this.ndim = this.nuclei.length;
-       this.addSignals(shiftLists, intensities);
-   }
-   
-   public Spectrum(final String[] nuclei, final ArrayList<Double>[] shiftLists) {
-       this.nuclei = nuclei;
-       this.ndim = this.nuclei.length;
-       this.addSignals(shiftLists, null);
-   }
-   
    public Spectrum(final String[] nuclei) {
        this.nuclei = nuclei;
-       this.ndim = this.nuclei.length;
+       this.nDim = this.nuclei.length;
    }
+   
    
    public String[] getNuclei(){
        return this.nuclei;
    }
    
    public int getDimCount(){
-       return this.ndim;
+       return this.nDim;
    }
    
    public void setSpecType(final String specType){
-       
-        this.specType = specType;
+       this.specType = specType;
    }
    
    public String getSpecType(){
@@ -107,36 +96,24 @@ public class Spectrum {
         return this.description;
    }
    
-   public final void addSignals(final ArrayList<Double>[] shiftLists, final ArrayList<Double> intensities){
-       // assumes the same number of shift lists as set dimension number
-       if(shiftLists.length != this.ndim){
-           System.err.println("Unequal number of nuclei (dimension) and shift lists!!!");      
-           return;
-       }
-       // assumes that the shift lists have the same number of entries
-       int prevShiftListSize = shiftLists[0].size();
-       for (int i = 0; i < shiftLists.length; i++) {
-           if(shiftLists[i].size() != prevShiftListSize){
-                System.err.println("Unequal number of shifts in " + (i+1) + " shift list!!!");      
-                return;
-           }
-           if(intensities != null && shiftLists[i].size() != intensities.size()){
-                System.err.println("Unequal number of shifts in shift list " + (i+1) + " and intensities number!!!");
-                return;
-           }
-       }
-       Double[] shifts;
-       for (int row = 0; row < shiftLists[0].size(); row++) {
-           shifts = new Double[this.ndim];
-           for (int col = 0; col < this.ndim; col++) {
-               shifts[col] = shiftLists[col].get(row);
-           }
-           if(intensities != null){
-               this.addSignal(new casekit.NMR.model.Signal(this.nuclei, shifts, intensities.get(row)));
-           } else {
-               this.addSignal(new casekit.NMR.model.Signal(this.nuclei, shifts));
-           }
-       }
+   public final boolean setShifts(final ArrayList<Double> shiftList, final int dim){
+        if(!this.checkDimension(dim) || (!this.checkInputListSize(shiftList.size()))){
+            return false;
+        }
+        for (int i = 0; i < shiftList.size(); i++) {
+            this.setShift(shiftList.get(i), dim, i);
+        }
+        
+        return true;
+   }
+   
+   public final boolean setShift(final double shift, final int dim, final int signalIndex){
+        if(!this.checkDimension(dim) || !this.checkSignalIndex(signalIndex)){
+            return false;
+        }    
+        this.getSignal(signalIndex).setShift(shift, dim);
+        
+        return true;
    }
    
    public int getSignalCount() {
@@ -144,19 +121,77 @@ public class Spectrum {
    }
 
    /**
-    * Adds a Signal ({@link casekit.NMR.model.Signal}) to this Spectrum class object.
+    * Adds a Signal ({@link casekit.NMR.model.Signal}) to this Spectrum class object at the end.
      * @param signal
+     * @return 
     */
-   public void addSignal(final Signal signal) {
-       this.signals.add(signal);
-   }
-
-   public void removeSignal(final Signal signal){
-       this.signals.remove(this.getSignalIndex(signal));
+   public boolean addSignal(final Signal signal) {
+       if(!this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())){
+           return false;
+       }
+       this.addSignal(signal, null);
+       
+       return true;
    }
    
-   public void removeSignal(final int signalIndex){
+   /**
+    * Adds a Signal ({@link casekit.NMR.model.Signal}) to this Spectrum class object at given index.
+     * @param signal
+     * @param index index where to insert the signal, if null the signal will be added at the end of signal list
+     * @return 
+    */
+   public boolean addSignal(final Signal signal, final Integer index) {
+       if(!this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())){
+           return false;
+       }
+       // is index valid? if yes then insert it there
+       if(this.checkSignalIndex(index)){
+           this.signals.add(index, signal);
+           this.equivalences.add(index, -1);
+       // if not then check for null value and add signal at the end    
+       } else if(index == null){
+           this.signals.add(signal);
+           this.equivalences.add(-1);
+       // no valid index value, nothing to insert or add in spectrum    
+       } else {
+           return false;
+       }
+       
+       return true;
+   }
+
+   public boolean removeSignal(final Signal signal){
+       return this.removeSignal(this.getSignalIndex(signal));
+   }
+   
+   public boolean removeSignal(final int signalIndex){
+       if(!this.checkSignalIndex(signalIndex)){
+           return false;
+       }
        this.signals.remove(signalIndex);
+       this.equivalences.remove(signalIndex);
+       
+       return true;
+   }
+   
+   private boolean checkSignalIndex(final Integer signalIndex){
+       return (signalIndex != null) && (signalIndex >= 0) && (signalIndex < this.getSignalCount());
+   }
+   
+   public boolean checkDimension(final int dim){
+       return (dim >= 0) && (dim < this.nDim);
+   }
+   
+   private boolean checkInputListSize(final int size){
+       return (size == this.getSignalCount());
+   }
+   
+   private boolean checkDimCount(final int ndim){
+       return ndim == this.getDimCount();
+   }
+   
+   private boolean checkNuclei(final String[] nuclei){
+       return nuclei == this.getNuclei();
    }
    
    /**
@@ -165,6 +200,10 @@ public class Spectrum {
      * @return 
     */
    public Signal getSignal(final int signalIndex) {
+       if(!this.checkSignalIndex(signalIndex)){
+           return null;
+       }
+       
        return this.signals.get(signalIndex);
    }
    
@@ -177,8 +216,39 @@ public class Spectrum {
        return intensities;
    }
    
-   public ArrayList<Double> getShiftsByDim(final int dim){
+   public Double getIntensity(final int signalIndex){
+       if(!this.checkSignalIndex(signalIndex)){
+           return null;
+       }
+       
+       return this.getSignal(signalIndex).getIntensity();
+   }
+   
+   public boolean setIntensities(final ArrayList<Double> intensities){
+       if(!this.checkInputListSize(intensities.size())){
+           return false;
+       }
+       for (int s = 0; s < this.getSignalCount(); s++) {
+           this.setIntensity(intensities.get(s), s);
+       }
+       
+       return true;
+   }
+   
+   public boolean setIntensity(final double intensity, final int signalIndex){
+       if(!this.checkSignalIndex(signalIndex)){
+           return false;
+       }
+       this.getSignal(signalIndex).setIntensity(intensity);
+       
+       return true;
+   }
+   
+   public ArrayList<Double> getShifts(final int dim){
        final ArrayList<Double> shifts = new ArrayList<>();
+       if(!this.checkDimension(dim)){
+           return shifts;
+       }
        for (final Signal sig : this.signals) {
            shifts.add(sig.getShift(dim));
        }
@@ -186,17 +256,57 @@ public class Spectrum {
        return shifts;
    }
    
-   public int getAssignmentAtomIndexByDim(final int signalIndex, final int dim){
-       return this.getSignal(signalIndex).getAssignedAtomIndex(dim);
-   }
-   
-   public ArrayList<Integer> getAssignmentAtomIndicesByDim(final int dim){
-       final ArrayList<Integer> indices = new ArrayList<>();
-       for (final Signal sig : this.signals) {
-           indices.add(sig.getAssignedAtomIndex(dim));
+   public Double getShift(final int SignalIndex, final int dim){
+       if(!this.checkSignalIndex(SignalIndex)){
+           return null;
        }
        
-       return indices;
+       return this.getSignal(SignalIndex).getShift(dim);
+   }
+   
+   public boolean setMultiplicities(final ArrayList<String> multiplicities){
+       if(!this.checkInputListSize(multiplicities.size())){
+           return false;
+       }
+       for (int s = 0; s < this.getSignalCount(); s++) {
+           this.setMultiplicity(multiplicities.get(s), s);
+       }
+       
+       return true;
+   }
+   
+   public boolean setMultiplicity(final String multiplicity, final int signalIndex){
+       if(!this.checkSignalIndex(signalIndex)){
+           return false;
+       }
+       this.getSignal(signalIndex).setMultiplicity(multiplicity);
+       
+       return true;
+   }
+   
+   public ArrayList<Signal> getSignals(){
+       return this.signals;
+   }
+   
+   public ArrayList<Integer> getEquivalences(){
+       return this.equivalences;
+   }
+   
+   public Integer getEquivalence(final int signalIndex){
+       if(!this.checkSignalIndex(signalIndex)){
+           return null;
+       }
+       
+       return this.equivalences.get(signalIndex);
+   }
+   
+   public boolean setEquivalence(final int signalIndex, final int equivalentSignalIndex){
+       if(!this.checkSignalIndex(signalIndex) || !this.checkSignalIndex(equivalentSignalIndex)){
+           return false;
+       }
+       this.equivalences.set(signalIndex, equivalentSignalIndex);
+       
+       return true;
    }
 
    /**
@@ -237,14 +347,6 @@ public class Spectrum {
        return standard;
    }
    
-   public void setAssignedAtomIndicesByDim(final ArrayList<Integer> indices, final int dim){
-       if(indices.size() != this.getShiftsByDim(0).size()){
-           return;
-       }
-       for (int i = 0; i < indices.size(); i++) {
-           this.getSignal(i).setAssignedAtomIndex(indices.get(i), dim);
-       }
-   }
 
    /**
     * Returns the signal closest to the shift sought. If no Signal is found within the interval
@@ -254,55 +356,44 @@ public class Spectrum {
      * @param pickPrecision
      * @return 
     */
-   public Signal pickClosestSignal(final Double shift, final int dim, final double pickPrecision) {
-       
-       int thisPosition = -1;
+   public int pickClosestSignal(final double shift, final int dim, final double pickPrecision) {       
+       int matchIndex = -1;
+       if(!this.checkDimension(dim)){
+           return matchIndex;
+       }
        double diff = pickPrecision;
-       /*
-       * Now we search dimension dim for the chemical shift.
-       */
-       for (int f = 0; f < this.signals.size(); f++) {
-           if (Math.abs((this.signals.get(f)).getShift(dim) - shift) < diff) {
-               diff = Math.abs((this.signals.get(f)).getShift(dim) - shift);
-               thisPosition = f;
+       for (int s = 0; s < this.getSignalCount(); s++) {
+           if (Math.abs(this.getShift(s, dim) - shift) < diff) {
+               diff = Math.abs(this.getShift(s, dim) - shift);
+               matchIndex = s;
            }
-       }
-       if(thisPosition >= 0){
-           this.signals.get(thisPosition);
-       }
+       }       
        
-       return null;
+       return matchIndex;
    }
 
    /**
-    * Returns a List with signals within the interval defined by pickPrecision. If none is found
+    * Returns a List with signal indices within the interval defined by pickPrecision. If none is found
     * an empty ArrayList is returned.
      * @param shift
      * @param dim
      * @param pickPrecision
      * @return 
     */
-   public ArrayList<Signal> pickSignals(final double shift, final int dim, final double pickPrecision) {
-       final ArrayList<casekit.NMR.model.Signal> pickedSignals = new ArrayList<>();
-       /*
-        * Now we search dimension dim for the chemical shift.
-        */
-       for (final Signal sig : this.signals) {
-           if (Math.abs(sig.getShift(dim) - shift) < pickPrecision) {
-               pickedSignals.add(sig);
+   public ArrayList<Integer> pickSignals(final double shift, final int dim, final double pickPrecision) {
+       final ArrayList<Integer> pickedSignals = new ArrayList<>();
+       if(!this.checkDimension(dim)){
+           return pickedSignals;
+       }
+       for (int s = 0; s < this.getSignalCount(); s++) {
+           if (Math.abs(this.getShift(s, dim) - shift) < pickPrecision) {
+               pickedSignals.add(s);
            }
        }
+       
        return pickedSignals;
    }
    
-   public ArrayList<Double>[] getShifts(){
-       final ArrayList<Double>[] shiftsList = new ArrayList[this.ndim];
-       for (int d = 0; d < this.ndim; d++) {
-           shiftsList[d] = this.getShiftsByDim(d);
-       }
-       
-       return shiftsList;
-   }
    
    
 }

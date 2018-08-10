@@ -45,7 +45,7 @@ public class Process extends ParseRawData {
     
     final private IAtomContainer mol;
     final private IMolecularFormula molFormula;
-    private HashMap<String, ArrayList<Integer>> atomTypeIndices = new HashMap<>();    
+    private final HashMap<String, ArrayList<Integer>> atomTypeIndices = new HashMap<>();    
     private int[][] neighborhoodCountsMatrix;
     final private HashMap<Integer, ArrayList<Integer[]>> shiftIndicesInACSet = new HashMap<>(); // holding of all indices of each ac set (DB) entry [first value] and it's atom indices [second value] too
     
@@ -58,21 +58,20 @@ public class Process extends ParseRawData {
     
     public Process(final IMolecularFormula molFormula){
         super(molFormula);
-        this.molFormula = molFormula;
-        this.mol = Utils.removeAtoms(MolecularFormulaManipulator.getAtomContainer(this.molFormula), "H");
+        this.molFormula = super.getMolecularFormula();
+        this.mol = super.getAtomContainer();
         this.setAtomTypeIndices();
     }
 
     
-    /**
-     * Sets bonds from already set experiment information (H,H-COSY, INADEQUATE and HMBC).
-     * Additionally, this function is build for bond type recognition, 
-     * for details see {@link testkit.Utils#getBondTypeFromHybridizations(java.lang.String, org.openscience.cdk.interfaces.IAtomType.Hybridization, java.lang.String, org.openscience.cdk.interfaces.IAtomType.Hybridization)}.
+     /**
+     * Sets bonds from already set experiment information (H,H-COSY, INADEQUATE
+     * and HMBC).
      * 
      * @param experiments
      */
-    public void setBonds(final String[] experiments){
-        
+    public void setBonds(final String[] experiments) {
+
         String NMRSHIFT_ATOMTYPE;
         ArrayList<Integer> signalList;
         for (int e = 0; e < experiments.length; e++) {
@@ -87,7 +86,7 @@ public class Process extends ParseRawData {
                             if ((i == bondPartnerIndex)) {// || (this.mol.getBond(this.mol.getAtom(i), this.mol.getAtom(bondPartnerIndex)) != null)) {
                                 continue;
                             }
-                            if(experiments[e].equals(CDKConstants.NMRSPECTYPE_2D_HMBC)){
+                            if (experiments[e].equals(CDKConstants.NMRSPECTYPE_2D_HMBC)) {
                                 System.out.println("HMBC bond setting: still to come!!!");
                             } else {
                                 this.setBond(i, bondPartnerIndex);
@@ -98,12 +97,11 @@ public class Process extends ParseRawData {
             }
         }
     }
-    
-    
-    private void setBond(final int index1, final int index2){
-        
-        if(this.mol.getBond(this.mol.getAtom(index1), this.mol.getAtom(index2)) != null){
-                this.mol.removeBond(this.mol.getAtom(index1), this.mol.getAtom(index2));
+
+    private void setBond(final int index1, final int index2) {
+
+        if (this.mol.getBond(this.mol.getAtom(index1), this.mol.getAtom(index2)) != null) {
+            this.mol.removeBond(this.mol.getAtom(index1), this.mol.getAtom(index2));
         }
         this.mol.addBond(index1, index2, casekit.NMR.Utils.getBondTypeFromHybridizations(this.mol.getAtom(index1), this.mol.getAtom(index2)));
     }

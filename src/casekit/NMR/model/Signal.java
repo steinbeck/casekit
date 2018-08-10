@@ -33,14 +33,13 @@ package casekit.NMR.model;
  */
 public class Signal {
     
-    private final int ndim;
+    private final int nDim;
 
     /**
      * Am array of doubles to store the chemical shift of
      */
-    private final Double[] shifts;
+    private Double[] shifts;
     private final String[] nuclei;
-    private final int[] assignedAtomIndices;
 
     /* Signal intensity in arbitrary values */
     private Double intensity;
@@ -50,52 +49,58 @@ public class Signal {
     public final static int PHASE_NONE = 0, PHASE_POSITIVE = 1, PHASE_NEGATIVE = 2;
     public final static String[] PHASENAMES = {"NONE", "POSITIVE", "NEGATIVE"};
 
+    
+    public Signal(final String[] nuclei) {
+        this.nuclei = nuclei;
+        this.nDim = this.nuclei.length;
+        this.shifts = this.initShifts(null, this.nDim);
+    }
+    
     public Signal(final String[] nuclei, final Double[] shifts) {
         this.nuclei = nuclei;
-        this.ndim = this.nuclei.length;
-        this.shifts = shifts;
-        this.assignedAtomIndices = this.initAssignedAtomIndices(this.ndim);
+        this.nDim = this.nuclei.length;
+        this.shifts = this.initShifts(shifts, this.nDim);
     }
     
     public Signal(final String[] nuclei, final Double[] shifts, final Double intensity) {
-        this.nuclei = nuclei;
-        this.ndim = this.nuclei.length;
-        this.shifts = this.initShifts(shifts, this.ndim);
-        this.assignedAtomIndices = this.initAssignedAtomIndices(this.ndim);
+        this(nuclei, shifts);
         this.intensity = intensity;
     }
     
-    private Double[] initShifts(final Double[] shifts, final int ndim){
-        final Double[] tempShifts = new Double[ndim];
-        for (int d = 0; d < ndim; d++) {
-            tempShifts[d] = shifts[d];
+    private Double[] initShifts(final Double[] shifts, final int nDim){
+        final Double[] tempShifts = new Double[nDim];
+        for (int d = 0; d < nDim; d++) {
+            if((shifts != null) && (shifts.length == nDim)){
+                tempShifts[d] = shifts[d];
+            } else {
+                tempShifts[d] = null;
+            }
         }
         
         return tempShifts;
     }
     
-    private int[] initAssignedAtomIndices(final int ndim){
-        final int[] tempAssignedAtomIndices = new int[ndim];
-        for (int d = 0; d < this.ndim; d++) {
-            tempAssignedAtomIndices[d] = -1;
-        }
-        
-        return tempAssignedAtomIndices;
-    }
-    
-    public int getDim(){
-        return this.ndim;
+    public int getDimCount(){
+        return this.nDim;
     }
     
     public String[] getNuclei(){
         return this.nuclei;
     }
     
-    public void setShift(final Double shift, final int dim) {
+    public boolean setShift(final Double shift, final int dim) {
+        if(!this.checkDimension(dim)){
+            return false;
+        }
         this.shifts[dim] = shift;
+        
+        return true;
     }
 
     public Double getShift(final int dim) {
+        if(!this.checkDimension(dim)){
+            return null;
+        }
         return this.shifts[dim];
     }
     
@@ -114,36 +119,8 @@ public class Signal {
     public String getMultiplicity() {
         return this.multiplicity;
     }
-    
-    public boolean setAssignedAtomIndices(final int[] indices){
-        if(indices.length != this.ndim){
-            return false;
-        }
-        for (int d = 0; d < this.ndim; d++) {
-            this.assignedAtomIndices[d] = indices[d];
-        }
-        
-        return true;
-    }
-    
-    public int[] getAssignedIndices(){
-        return this.assignedAtomIndices;
-    }
-    
-    public boolean setAssignedAtomIndex(final int index, final int dim){
-        if(dim < 0 || dim >= this.ndim){
-            return false;
-        }
-        this.assignedAtomIndices[dim] = index;
-        
-        return true;
-    }
-    
-    public int getAssignedAtomIndex(final int dim){
-        return this.assignedAtomIndices[dim];
-    }
 
-    public void setPhase(final int phase) {
+    public void setPhase(final Integer phase) {
         this.phase = phase;
     }
     
@@ -151,32 +128,19 @@ public class Signal {
         return this.phase;
     }
 
-    @Override
-    public String toString() {
-        String s = "";
-        s += ndim + " -dimensional NMRSignal for nuclei ";
-        for (int f = 0; f < this.nuclei.length; f++) {
-            s += this.nuclei[f] + "; ";
-        }
-        s += "\nShiftlist: ";
-        for (int f = 0; f < this.shifts.length; f++) {
-            s += this.shifts[f] + "; ";
-        }
-        s += "\n\n";
-        return s;
-    }
+    public boolean checkDimension(final int dim){
+       return (dim >= 0) && (dim < this.nDim);
+   }
     
     /**
      *
      * @return
-     * @deprecated 
      */
     public Signal getClone(){
         final Signal signalClone = new Signal(this.nuclei, this.shifts);
         signalClone.setIntensity(this.intensity);
         signalClone.setMultiplicity(this.multiplicity);
         signalClone.setPhase(this.phase);
-        signalClone.setAssignedAtomIndices(this.assignedAtomIndices);
         
         return signalClone;
     }

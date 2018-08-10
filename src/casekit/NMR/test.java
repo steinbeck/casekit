@@ -6,6 +6,7 @@
 
 package casekit.NMR;
 
+import casekit.NMR.model.Assignment;
 import casekit.NMR.model.Spectrum;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.ParserConfigurationException;
@@ -82,52 +84,62 @@ public class test {
             // HJ555
             projectName = "HJ555";
             process = new Process(molFormula_HJ555);
-            spec = process.parse1DNMRviaXML(Peaks13C_HJ555, "C");
-//            spec.setSpecType(CDKConstants.NMRSPECTYPE_1D_ARBITRARY);
-            process.set1DNMR(spec);
-            System.out.println("assignments spectrum 13C: " + spec.getAssignmentAtomIndicesByDim(0));
-//            process.parse1DNMR(Peaks13C_HJ555, "C");
-
-            spec = process.parseDEPTviaXML(PeaksDEPT90_HJ555);
+            spec = Process.parse1DNMRviaXML(Peaks13C_HJ555, "C");
+            spec.setSpecType(CDKConstants.NMRSPECTYPE_1D_ARBITRARY);
+            final ArrayList<Integer> indicesInAtomContainer1D_13C = process.set1DNMR(spec);
+            final Assignment assignments1D_13C = new Assignment(spec);
+            assignments1D_13C.setAssignments(0, indicesInAtomContainer1D_13C);
+            System.out.println("assignments spectrum 13C: " + Arrays.toString(assignments1D_13C.getAssignments(0)));
+            System.out.println("equivalences: " + spec.getEquivalences());
+            
+            spec = Process.parseDEPTviaXML(PeaksDEPT90_HJ555);
             spec.setSpecType(CDKConstants.NMRSPECTYPE_1D_DEPT90);
-            Spectrum spec135 = process.parseDEPTviaXML(PeaksDEPT135_HJ555);
+            Spectrum spec135 = Process.parseDEPTviaXML(PeaksDEPT135_HJ555);
             spec135.setSpecType(CDKConstants.NMRSPECTYPE_1D_DEPT135);
-            int assignedHAtoms = process.setDEPT(spec, spec135, tolC);
-//            int assignedHAtoms = process.parseDEPT(PeaksDEPT90_HJ555, PeaksDEPT135_HJ555, tolC);          
-            System.out.println("assigned protons: " + assignedHAtoms);
-            System.out.println("assignments spectrum DEPT90: " + spec.getAssignmentAtomIndicesByDim(0));
-            System.out.println("assignments spectrum DEPT135: " + spec135.getAssignmentAtomIndicesByDim(0));
+            final HashMap<String, ArrayList<Integer>> matches1D_DEPT = process.setDEPT(spec, spec135, tolC);
+            final Assignment assignments1D_DEPT90 = new Assignment(spec);
+            final Assignment assignments1D_DEPT135 = new Assignment(spec135);
+            assignments1D_DEPT90.setAssignments(0, matches1D_DEPT.get("DEPT90"));
+            assignments1D_DEPT135.setAssignments(0, matches1D_DEPT.get("DEPT135"));
+            System.out.println("assignments spectrum DEPT90: " + Arrays.toString(assignments1D_DEPT90.getAssignments(0)));
+            System.out.println("assignments spectrum DEPT135: " + Arrays.toString(assignments1D_DEPT135.getAssignments(0)));
 
-            spec = process.parseHSQCviaXML(PeaksHSQC_HJ555, "C");
+            spec = Process.parseHSQCviaXML(PeaksHSQC_HJ555, "C");
             spec.setSpecType(CDKConstants.NMRSPECTYPE_2D_HSQC);
-            process.setHSQC(spec, tolC);
-//            process.parseHSQC(PeaksHSQC_HJ555, "C", tolH);  
-            System.out.println("assignments spectrum HSQC 1: " + spec.getAssignmentAtomIndicesByDim(0));
-            System.out.println("assignments spectrum HSQC 2: " + spec.getAssignmentAtomIndicesByDim(1));
-
-            spec = process.parseHHCOSYviaXML(PeaksCOSY_HJ555);
+            final HashMap<String, ArrayList<Integer>> matches2D_HSQC = process.setHSQC(spec, tolC);
+            final Assignment assignments2D_HSQC = new Assignment(spec);
+            assignments2D_HSQC.setAssignments(0, matches2D_HSQC.get(Utils.getAtomTypeFromSpectrum(spec, 0)));
+            assignments2D_HSQC.setAssignments(1, matches2D_HSQC.get(Utils.getAtomTypeFromSpectrum(spec, 1)));
+            System.out.println("assignments spectrum HSQC dim1: " + Arrays.toString(assignments2D_HSQC.getAssignments(0)));
+            System.out.println("assignments spectrum HSQC dim2: " + Arrays.toString(assignments2D_HSQC.getAssignments(1)));
+            
+            spec = Process.parseHHCOSYviaXML(PeaksCOSY_HJ555);
             spec.setSpecType(CDKConstants.NMRSPECTYPE_2D_HHCOSY);
-            process.setHHCOSY(spec, tolH);
-//            process.parseHHCOSY(PeaksCOSY_HJ555, tolH);
-            System.out.println("assignments spectrum H,H-COSY 1: " + spec.getAssignmentAtomIndicesByDim(0));
-            System.out.println("assignments spectrum H,H-COSY 2: " + spec.getAssignmentAtomIndicesByDim(1));
+            final HashMap<String, ArrayList<Integer>> matches2D_HHCOSY = process.setHHCOSY(spec, tolH);
+            final Assignment assignments2D_HHCOSY = new Assignment(spec);
+            assignments2D_HHCOSY.setAssignments(0, matches2D_HHCOSY.get(Utils.getAtomTypeFromSpectrum(spec, 0)));
+            assignments2D_HHCOSY.setAssignments(1, matches2D_HHCOSY.get(Utils.getAtomTypeFromSpectrum(spec, 1)));
+            System.out.println("assignments spectrum HHCOSY dim1: " + Arrays.toString(assignments2D_HHCOSY.getAssignments(0)));
+            System.out.println("assignments spectrum HHCOSY dim2: " + Arrays.toString(assignments2D_HHCOSY.getAssignments(1)));
 
-            spec = process.parseINADEQUATEviaXML(PeaksINADEQUATE_HJ555);
-            spec.setSpecType(CDKConstants.NMRSPECTYPE_2D_INADEQUATE);
-            process.setINADEQUATE(spec, tolC);
-//            process.parseINADEQUATE(PeaksINADEQUATE_HJ555, tolC);
-            System.out.println("assignments spectrum INADEQUATE 1: " + spec.getAssignmentAtomIndicesByDim(0));
-            System.out.println("assignments spectrum INADEQUATE 2: " + spec.getAssignmentAtomIndicesByDim(1));
+            spec = Process.parseINADEQUATEviaXML(PeaksINADEQUATE_HJ555);
+            spec.setSpecType(CDKConstants.NMRSPECTYPE_2D_INADEQUATE);            
+            final HashMap<String, ArrayList<Integer>> matches2D_INADEQUATE = process.setINADEQUATE(spec, tolC);
+            final Assignment assignments2D_INADEQUATE = new Assignment(spec);
+            assignments2D_INADEQUATE.setAssignments(0, matches2D_INADEQUATE.get(Utils.getAtomTypeFromSpectrum(spec, 0)));
+            assignments2D_INADEQUATE.setAssignments(1, matches2D_INADEQUATE.get(Utils.getAtomTypeFromSpectrum(spec, 1)));
+            System.out.println("assignments spectrum INADEQUATE dim1: " + Arrays.toString(assignments2D_INADEQUATE.getAssignments(0)));
+            System.out.println("assignments spectrum INADEQUATE dim2: " + Arrays.toString(assignments2D_INADEQUATE.getAssignments(1)));
 
-            spec = process.parseHMBCviaXML(PeaksHMBC_HJ555, "C");
+            spec = Process.parseHMBCviaXML(PeaksHMBC_HJ555, "C");
             spec.setSpecType(CDKConstants.NMRSPECTYPE_2D_HMBC);
-            process.setHMBC(spec, tolH, tolC);
-//            process.parseHMBC(PeaksHMBC_HJ555, "C", tolH, tolC);
-            System.out.println("assignments spectrum HMBC 1: " + spec.getAssignmentAtomIndicesByDim(0));
-            System.out.println("assignments spectrum HMBC 2: " + spec.getAssignmentAtomIndicesByDim(1));
+            final HashMap<String, ArrayList<Integer>> matches2D_HMBC = process.setHMBC(spec, tolH, tolC);
+            final Assignment assignments2D_HMBC = new Assignment(spec);
+            assignments2D_HMBC.setAssignments(0, matches2D_HMBC.get(Utils.getAtomTypeFromSpectrum(spec, 0)));
+            assignments2D_HMBC.setAssignments(1, matches2D_HMBC.get(Utils.getAtomTypeFromSpectrum(spec, 1)));
+            System.out.println("assignments spectrum HMBC dim1: " + Arrays.toString(assignments2D_HMBC.getAssignments(0)));
+            System.out.println("assignments spectrum HMBC dim2: " + Arrays.toString(assignments2D_HMBC.getAssignments(1)));
             
-            
-            process.setEquivalentProperties();
             process.setBonds(new String[]{CDKConstants.NMRSPECTYPE_2D_HHCOSY, CDKConstants.NMRSPECTYPE_2D_INADEQUATE, CDKConstants.NMRSPECTYPE_2D_HMBC}); // without hybridizations
             process.createLSDFile(projectName, "/Users/mwenk/Downloads/testLSD", new String[]{"/Users/mwenk/work/software/LSD-3.4.9/Filters/", "/Users/mwenk/work/software/LSD-3.4.9/Filters/MOLGEN/badlist1/"});
                         
@@ -175,7 +187,7 @@ public class test {
         for (int i = 0; i< ac.getAtomCount(); i++) {
                 System.out.println("i: " + i + " -> atom: " + ac.getAtom(i).getSymbol() + ", shift: " + ac.getAtom(i).getProperty(casekit.NMR.Utils.getNMRShiftConstant("C")) + ", #H: " + ac.getAtom(i).getImplicitHydrogenCount() + 
                         ", H shifts: " + ac.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HSQC) + ", Hybrid.: " + ac.getAtom(i).getHybridization() + ", HHCOSY: " + ac.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY) + 
-                        ", INADEQUATE: " + ac.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_INADEQUATE) + ", HMBC: " + ac.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HMBC) + ", EQUAL: " + ac.getAtom(i).getProperty(casekit.NMR.ParseRawData.PROP_EQUIVALENCE));
+                        ", INADEQUATE: " + ac.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_INADEQUATE) + ", HMBC: " + ac.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HMBC));
         }
         System.out.println("\nbond count: " + ac.getBondCount() + ":");
         for (IBond bond : ac.bonds()) {

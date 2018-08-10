@@ -10,7 +10,6 @@ import casekit.NMR.model.Assignment;
 import casekit.NMR.model.Spectrum;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,14 +17,11 @@ import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.xml.parsers.ParserConfigurationException;
-import org.openscience.cdk.Atom;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.DefaultChemObjectBuilder;
-import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.interfaces.IMolecularFormula;
-import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 import org.xml.sax.SAXException;
 
@@ -38,13 +34,6 @@ public class test {
     public static void main(String[] args) throws ParserConfigurationException, SAXException, CloneNotSupportedException, FileNotFoundException, SQLException, ClassNotFoundException {
         
         final int maxSpheres = 1;
-//        final String[] args2 = new String[]{"-i", "/Users/mwenk/Downloads/nmrshiftdb2withsignals.sd", "-o", "/Users/mwenk/Downloads/hose" + maxSpheres + ".tsv", "-m", String.valueOf(maxSpheres), "-v"};
-//        try {
-//            final NMRShiftDBSDFParser parser = new NMRShiftDBSDFParser(args2);
-//        } catch (Exception ex) {
-//            Logger.getLogger(test.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-
                 
         final String Peaks13C_HJ555 = "/Users/mwenk/work/research/Beemelmanns-HKI-HJ555/13C/50/pdata/1/peaklist.xml";
         final String Peaks13C_HJ777 = "/Users/mwenk/work/research/Beemelmanns-HKI-HJ777/HJ777_13C_NMR.csv";

@@ -24,14 +24,11 @@
 package casekit.NMR;
 
 import casekit.NMR.model.Spectrum;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import org.openscience.cdk.Atom;
 import org.openscience.cdk.CDKConstants;
@@ -51,9 +48,7 @@ public class ParseRawData {
     final private IAtomContainer mol;
     final private IMolecularFormula molFormula;
     private HashMap<String, ArrayList<Integer>> atomTypeIndices;
-    
-    public final static String PROP_EQUIVALENCE = "equivalences";
-    
+        
 
     /**
      * Creates an instances of this class with an empty class atom container.
@@ -123,29 +118,6 @@ public class ParseRawData {
     
     
     /**
-     * Copies all up to here set properties from an atom in atom container to its 
-     * linked atoms with equivalent shift values.
-     *
-     */
-    public final void setEquivalentProperties() {
-        
-        Map<Object, Object> properties;
-        for (int i = 0; i < this.mol.getAtomCount(); i++) {
-            if (this.mol.getAtom(i).getProperty(ParseRawData.PROP_EQUIVALENCE) != null) {
-                properties = this.mol.getAtom(i).getProperties();
-                for (final Object prop: properties.keySet()) {
-                    if (this.mol.getAtom(i).getProperty(prop) != null && !prop.equals(ParseRawData.PROP_EQUIVALENCE)) {
-                        for (final int k : (ArrayList<Integer>) this.mol.getAtom(i).getProperty(ParseRawData.PROP_EQUIVALENCE)) {
-                            this.mol.getAtom(k).setProperty(prop, this.mol.getAtom(i).getProperty(prop));
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    
-    /**
      * Creates a Spectrum class object from 1D NMR peak list in CSV file format.
      * 
      * @param pathToCSV Path to peak list (Bruker's TopSpin csv file
@@ -156,10 +128,8 @@ public class ParseRawData {
      * @throws java.io.IOException
      */
     public static final Spectrum parse1DNMRviaCSV(final String pathToCSV, final String atomType) throws IOException {
-        
-          final Spectrum spectrum = Utils.CSVtoSpectrum(pathToCSV, new int[]{4}, new String[]{atomType}, 6);
-          
-          return spectrum;
+
+          return Utils.CSVtoSpectrum(pathToCSV, new int[]{4}, new String[]{atomType}, 6);
     }
 
     
@@ -177,9 +147,7 @@ public class ParseRawData {
      */
     public static final Spectrum parse1DNMRviaXML(final String pathToXML, final String atomType) throws IOException, ParserConfigurationException, SAXException {
 
-        final Spectrum spectrum = Utils.XMLtoSpectrum(pathToXML, 1, new int[]{1}, new String[]{atomType});
-
-        return spectrum;
+        return Utils.XMLtoSpectrum(pathToXML, 1, new int[]{1}, new String[]{atomType});
     }
 
     
@@ -196,94 +164,88 @@ public class ParseRawData {
      * as result of Utils#getNMRShiftConstant(java.lang.String)}, depending on 
      * the specified atom type (element).
      * After usage of this function, the input Spectrum class object might be extended during 
-     * equivalent signal selection by user and contains the signal assignment indices 
-     * in atom container.
+     * equivalent signal selection by user.
      * 
      * @param spectrum Spectrum class object containing the 1D shift information
      * @return 
      * @throws java.io.IOException
      */
-    public final boolean set1DNMR(final Spectrum spectrum) throws IOException{
-        final String atomType = Utils.getElementIdentifier(spectrum.getNuclei()[0]);
-        ArrayList<Double> shifts = spectrum.getShiftsByDim(0);
-        // check whether indices for that atom type exist or the number of input signals are greater than the atom number in atom container for that atom type
-        if (!this.atomTypeIndices.containsKey(atomType) || shifts.size() > this.atomTypeIndices.get(atomType).size()) {
-            // if molecular formula is known and too much picked peaks are to be assigned
-            if(this.atomTypeIndices.containsKey(atomType) || MolecularFormulaManipulator.getElementCount(this.molFormula, atomType) == 0){
-                System.err.println("Too many peaks in peak list for \"" + atomType + "\" and molecular formula \"" + MolecularFormulaManipulator.getString(this.molFormula) + "\"!!!");
-                return false;
-            } else { // 
-                // "fill up" the first peaks for that atom type from given peak list
-                IAtom atom;
-                for (final double shift : shifts) {
-                    atom = new Atom(atomType);
-                    atom.setProperty(casekit.NMR.Utils.getNMRShiftConstant(atomType), shift);
-                    atom.setImplicitHydrogenCount(null);
-                    this.mol.addAtom(atom);
-                }
-                this.setAtomTypeIndices();
-            }
-        }
-        // assign shift values to atoms sequentially
-        int assignedShiftCount = 0;
-        for (final int i : this.atomTypeIndices.get(atomType)) {
-            if(assignedShiftCount < shifts.size()){
-                // shift assignment in atom
-                this.mol.getAtom(i).setProperty(casekit.NMR.Utils.getNMRShiftConstant(atomType), shifts.get(assignedShiftCount));
-                spectrum.getSignal(assignedShiftCount).setAssignedAtomIndex(i, 0);
-            }
-            assignedShiftCount++;
-        }
-        // "fill up" the missing equivalent peaks
-        // check whether the number of input signals is smaller than the number of atoms in atom container from that atom type
-        if (shifts.size() < this.atomTypeIndices.get(atomType).size()) {
-            System.out.println("Not enough peaks in 1D peak list for \"" + atomType + "\"!!!");
-            this.askForEquivalentPeaks(spectrum, atomType);
-        }
+    public final ArrayList<Integer> set1DNMR(final Spectrum spectrum) throws IOException{
         
-        return true;
+        // checks whether number of signals is equal to molecular formula if given
+        // if not equal then edit signal list in spectrum
+        this.check1DSpectrum(spectrum);
+        // assign shift values to atoms sequentially
+        this.assignShiftValues(spectrum);
+        
+        return this.atomTypeIndices.get(Utils.getAtomTypeFromSpectrum(spectrum, 0));
+    }
+    
+    /**
+     * Checks the number of signals in a spectrum against the number of atoms
+     * in molecular formula of class, if given. In case of different numbers, 
+     * a user input will be requested. 
+     *
+     * @param spectrum
+     * @throws IOException
+     * @see Utils#editSignalsInSpectrum(casekit.NMR.model.Spectrum, org.openscience.cdk.interfaces.IMolecularFormula) 
+     */
+    public void check1DSpectrum(final Spectrum spectrum) throws IOException{
+        if(this.molFormula != null){
+            final int diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, this.molFormula);
+            if (diff != 0) {
+                // adjust Spectrum size by user
+                Utils.editSignalsInSpectrum(spectrum, this.molFormula);
+            }
+        }
     }
     
     
-    private void askForEquivalentPeaks(final Spectrum spectrum, final String atomType) throws IOException {
-
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in)); int n;
-        final ArrayList<Integer> validIndices = new ArrayList<>();
-        // walk through all atoms of given atom type
-        for (final int i : this.atomTypeIndices.get(atomType)) {
-            // ignore atoms with already set NMR shift value
-            if (this.mol.getAtom(i).getProperty(Utils.getNMRShiftConstant(atomType)) != null) {
-                continue;
+    private void assignShiftValues(final Spectrum spectrum){
+        final String atomType = Utils.getAtomTypeFromSpectrum(spectrum, 0);
+        final ArrayList<Double> shifts = spectrum.getShifts(0);
+        if(this.molFormula == null){
+            this.removeAtoms(atomType);
+            // fill up the peaks for that atom type from given peak list in spectrum
+            IAtom atom;
+            for (final double shift : shifts) {
+                atom = new Atom(atomType);
+                atom.setProperty(casekit.NMR.Utils.getNMRShiftConstant(atomType), shift);
+                atom.setImplicitHydrogenCount(null);
+                this.mol.addAtom(atom);
             }
-            // display all selectable atom indices in atom container
-            System.out.println("\nThe " + i + "th shift value is missing!\nWhich shift value is not unique?");
-            for (final int k : this.atomTypeIndices.get(atomType)) {
-                if(this.mol.getAtom(k).getProperty(Utils.getNMRShiftConstant(atomType)) != null){
-                    System.out.println(k + "\t: " + this.mol.getAtom(k).getProperty(Utils.getNMRShiftConstant(atomType)));
-                    validIndices.add(k);
-                }
-            }
-            // get selected index by user input
-            n = -1;
-            while(!validIndices.contains(n)){
-                System.out.println("Enter the index: ");
-                n = Integer.parseInt(br.readLine());
-            }
-            
-            spectrum.addSignal(spectrum.getSignal(validIndices.indexOf(n)));
-            // copy NMR shift value from already set value in selected atom n to unset value in atom i
-            this.mol.getAtom(i).setProperty(Utils.getNMRShiftConstant(atomType), this.mol.getAtom(n).getProperty(Utils.getNMRShiftConstant(atomType)));
-            
-            
-            if(this.mol.getAtom(i).getProperty(ParseRawData.PROP_EQUIVALENCE) == null){
-                this.mol.getAtom(i).setProperty(ParseRawData.PROP_EQUIVALENCE, new ArrayList<>());
-            }
-            if(this.mol.getAtom(n).getProperty(ParseRawData.PROP_EQUIVALENCE) == null){
-                this.mol.getAtom(n).setProperty(ParseRawData.PROP_EQUIVALENCE, new ArrayList<>());
-            }
-            ((ArrayList<Integer>) this.mol.getAtom(i).getProperty(ParseRawData.PROP_EQUIVALENCE)).add(n);
-            ((ArrayList<Integer>) this.mol.getAtom(n).getProperty(ParseRawData.PROP_EQUIVALENCE)).add(i);
+            this.setAtomTypeIndices();
         }
+        int assignedShiftCount = 0;
+        for (final int i : this.atomTypeIndices.get(atomType)) {
+            if (assignedShiftCount < shifts.size()) {
+                // shift assignment in atom
+                this.mol.getAtom(i).setProperty(casekit.NMR.Utils.getNMRShiftConstant(atomType), shifts.get(assignedShiftCount));
+            }
+            assignedShiftCount++;
+        }
+    }
+    
+    
+    /**
+     * Removes atoms from a given atom type from the class' atom container.
+     *
+     * @param atomType Atom type (element's name, e.g. C or Br)
+     * @return IAtomContainer where the atoms were removed
+     */
+    private void removeAtoms(final String atomType) {
+        if(this.getAtomTypeIndices().get(atomType) == null){
+            return;
+        }
+        final ArrayList<IAtom> toRemoveList = new ArrayList<>();
+        for (final int i: this.getAtomTypeIndices().get(atomType)) {
+            toRemoveList.add(this.mol.getAtom(i));
+        }
+        for (IAtom iAtom : toRemoveList) {
+            this.mol.removeAtom(iAtom);
+        }
+        
+        this.setAtomTypeIndices();
     }
     
     
@@ -294,16 +256,14 @@ public class ParseRawData {
      * see
      * {@link Utils#correctShiftMatches(IAtomContainer, ArrayList, ArrayList, double,String)}.
      *
-     * @param pathToDEPT Path to one DEPT peak list (Bruker's TopSpin csv file
+     * @param pathToCSV Path to one DEPT peak list (Bruker's TopSpin csv file
      * format)
      * @return 
      * @throws java.io.IOException
      */
-    public static final Spectrum parseDEPTviaCSV(final String pathToDEPT) throws IOException {
+    public static final Spectrum parseDEPTviaCSV(final String pathToCSV) throws IOException {
         
-        final Spectrum spectrum = Utils.CSVtoSpectrum(pathToDEPT, new int[]{4}, new String[]{"C"}, 6);
-
-        return spectrum;
+        return Utils.CSVtoSpectrum(pathToCSV, new int[]{4}, new String[]{"C"}, 6);
     }
 
     /**
@@ -311,18 +271,16 @@ public class ParseRawData {
      * XML files to carbon atoms. The meanwhile found matches are corrected, see
      * {@link Utils#correctShiftMatches(IAtomContainer, ArrayList, ArrayList, double,String)}.
      *
-     * @param pathToDEPT Path to one DEPT peak list (Bruker's TopSpin XML file
+     * @param pathToXML Path to one DEPT peak list (Bruker's TopSpin XML file
      * format)
      * @return 
      * @throws java.io.IOException
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
      */
-    public static final Spectrum parseDEPTviaXML(final String pathToDEPT) throws IOException, ParserConfigurationException, SAXException {
+    public static final Spectrum parseDEPTviaXML(final String pathToXML) throws IOException, ParserConfigurationException, SAXException {
 
-        final Spectrum spectrum = Utils.XMLtoSpectrum(pathToDEPT, 1, new int[]{1}, new String[]{"C"});
-
-        return spectrum;
+        return Utils.XMLtoSpectrum(pathToXML, 1, new int[]{1}, new String[]{"C"});
     }
     
     /**
@@ -333,25 +291,27 @@ public class ParseRawData {
      * @param spectrumDEPT135 DEPT135 spectrum which has to contain intensity 
      * information
      * @param tol tolerance value [ppm] for carbon shift matching
-     * @return false if one of the spectra is not set or the intensities are missing
+     * @return false if one of the spectra is not set or the intensities in 
+     * DEPT135 are missing
      */
-    public final int setDEPT(final Spectrum spectrumDEPT90, final Spectrum spectrumDEPT135, final double tol){
-        
+    public final HashMap<String, ArrayList<Integer>> setDEPT(final Spectrum spectrumDEPT90, final Spectrum spectrumDEPT135, final double tol){
+        final HashMap<String, ArrayList<Integer>> matches = new HashMap<>();
         if(spectrumDEPT90 == null || spectrumDEPT135 == null || spectrumDEPT135.getIntensities() == null){
-            return 0;
+            return null;
         }
-        final ArrayList<Double> shiftsDEPT90 = spectrumDEPT90.getShiftsByDim(0);
-        final ArrayList<Double> shiftsDEPT135 = spectrumDEPT135.getShiftsByDim(0);
+        final ArrayList<Double> shiftsDEPT90 = spectrumDEPT90.getShifts(0);
+        final ArrayList<Double> shiftsDEPT135 = spectrumDEPT135.getShifts(0);
         final ArrayList<Double> intensitiesDEPT135 = spectrumDEPT135.getIntensities();
         ArrayList<Integer> matchesDEPT90 = casekit.NMR.Utils.findShiftMatches(this.mol, shiftsDEPT90, tol, "C");
         matchesDEPT90 = casekit.NMR.Utils.correctShiftMatches(this.mol, shiftsDEPT90, matchesDEPT90, tol, "C");
+        matches.put("DEPT90", matchesDEPT90);
         ArrayList<Integer> matchesDEPT135 = casekit.NMR.Utils.findShiftMatches(this.mol, shiftsDEPT135, tol, "C");
         matchesDEPT135 = casekit.NMR.Utils.correctShiftMatches(this.mol, shiftsDEPT135, matchesDEPT135, tol, "C");
+        matches.put("DEPT135", matchesDEPT135);
         
-        spectrumDEPT90.setAssignedAtomIndicesByDim(matchesDEPT90, 0);
-        spectrumDEPT135.setAssignedAtomIndicesByDim(matchesDEPT135, 0);
+        this.setImplicitHydrogenNumberFromDEPT(matchesDEPT90, matchesDEPT135, intensitiesDEPT135);
         
-        return this.setImplicitHydrogenNumberFromDEPT(matchesDEPT90, matchesDEPT135, intensitiesDEPT135);
+        return matches;
     } 
     
 
@@ -361,7 +321,7 @@ public class ParseRawData {
      * @param matchesDEPT135
      * @param intensitiesDEPT135
      */
-    private int setImplicitHydrogenNumberFromDEPT(final ArrayList<Integer> matchesDEPT90, final ArrayList<Integer> matchesDEPT135, final ArrayList<Double> intensitiesDEPT135) {
+    private void setImplicitHydrogenNumberFromDEPT(final ArrayList<Integer> matchesDEPT90, final ArrayList<Integer> matchesDEPT135, final ArrayList<Double> intensitiesDEPT135) {
 
         int matchDEPT90, matchDEPT135, hCount, hCountAll = 0;
         for (int i : this.atomTypeIndices.get("C")) {
@@ -387,12 +347,6 @@ public class ParseRawData {
                 }
                 this.mol.getAtom(i).setImplicitHydrogenCount(hCount);
                 hCountAll += hCount;
-                if (this.mol.getAtom(i).getProperty(ParseRawData.PROP_EQUIVALENCE) != null) {
-                    for (Integer k : (ArrayList<Integer>) this.mol.getAtom(i).getProperty(ParseRawData.PROP_EQUIVALENCE)) {
-                        this.mol.getAtom(k).setImplicitHydrogenCount(hCount);
-                        hCountAll += hCount;
-                    }
-                }
             }
         }
         if(this.molFormula != null){
@@ -401,7 +355,6 @@ public class ParseRawData {
             System.out.println("assigned protons to carbons: " + hCountAll+ "!!!");
         }
         
-        return hCountAll;
     }
     
     
@@ -417,13 +370,7 @@ public class ParseRawData {
      */
     public static final Spectrum parseHSQCviaCSV(final String pathToCSV, final String heavyAtomType) throws IOException {
 
-        final Spectrum spectrum = new Spectrum( new String[]{Utils.getIsotopeIdentifier("H"),
-                                                            Utils.getIsotopeIdentifier(heavyAtomType)},
-                                                new ArrayList[]{casekit.NMR.Utils.parseCSV(pathToCSV, 5),
-                                                                casekit.NMR.Utils.parseCSV(pathToCSV, 6)},
-                                                casekit.NMR.Utils.parseCSV(pathToCSV, 9));
-        
-        return spectrum;
+        return Utils.CSVtoSpectrum(pathToCSV, new int[]{5, 6}, new String[]{"H", heavyAtomType}, 9);
     }
 
     /**
@@ -438,14 +385,8 @@ public class ParseRawData {
      * @throws org.xml.sax.SAXException
      */
     public static final Spectrum parseHSQCviaXML(final String pathToXML, final String heavyAtomType) throws IOException, ParserConfigurationException, SAXException {
-
-        final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("H"),
-                                                                Utils.getIsotopeIdentifier(heavyAtomType)},
-                                                new ArrayList[]{casekit.NMR.Utils.parseXML(pathToXML, 2, 2),
-                                                                casekit.NMR.Utils.parseXML(pathToXML, 2, 1)},
-                                                casekit.NMR.Utils.parseXML(pathToXML, 2, 3));
         
-        return spectrum;
+        return Utils.XMLtoSpectrum(pathToXML, 2, new int[]{2, 1}, new String[]{"H", heavyAtomType});
     }
     
     
@@ -458,18 +399,20 @@ public class ParseRawData {
      * @param spectrum Spectrum class object consisting of Signal class objects 
      * where the proton values are given first and the heavy atom values as the second.
      * @param tolHeavyAtom tolerance value [ppm] for heavy atom shift matching
+     * @return 
      */
-    public final void setHSQC(final Spectrum spectrum, final double tolHeavyAtom) {
-        
-        final ArrayList<Double> shiftsHydrogen = spectrum.getShiftsByDim(0);
-        final ArrayList<Double> shiftsHeavyAtom = spectrum.getShiftsByDim(1);
-        ArrayList<Integer> matchesHeavyAtom = casekit.NMR.Utils.findShiftMatches(this.mol, shiftsHeavyAtom, tolHeavyAtom, Utils.getElementIdentifier(spectrum.getNuclei()[1]));
-        matchesHeavyAtom = casekit.NMR.Utils.correctShiftMatches(this.mol, shiftsHeavyAtom, matchesHeavyAtom, tolHeavyAtom, Utils.getElementIdentifier(spectrum.getNuclei()[1]));
-        
-        spectrum.setAssignedAtomIndicesByDim(matchesHeavyAtom, 1);
+    public final HashMap<String, ArrayList<Integer>> setHSQC(final Spectrum spectrum, final double tolHeavyAtom) {
+        final HashMap<String, ArrayList<Integer>> matches = new HashMap<>();
+        final ArrayList<Double> shiftsHydrogen = spectrum.getShifts(0);
+        final ArrayList<Double> shiftsHeavyAtom = spectrum.getShifts(1);
+        ArrayList<Integer> matchesHeavyAtom = Utils.findShiftMatches(this.mol, shiftsHeavyAtom, tolHeavyAtom, Utils.getElementIdentifier(spectrum.getNuclei()[1]));
+        matchesHeavyAtom = Utils.correctShiftMatches(this.mol, shiftsHeavyAtom, matchesHeavyAtom, tolHeavyAtom, Utils.getElementIdentifier(spectrum.getNuclei()[1]));
+        matches.put(Utils.getAtomTypeFromSpectrum(spectrum, 0), matchesHeavyAtom);
+        matches.put(Utils.getAtomTypeFromSpectrum(spectrum, 1), matchesHeavyAtom);
         
         this.setImplicitHydrogenShifts(shiftsHydrogen, matchesHeavyAtom);
          
+        return matches;
     }
     
 
@@ -615,13 +558,7 @@ public class ParseRawData {
      */
     public static final Spectrum parseHHCOSYviaCSV(final String pathToCSV) throws IOException {
 
-        final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("H"), 
-                                                                Utils.getIsotopeIdentifier("H")}, 
-                                                new ArrayList[]{casekit.NMR.Utils.parseCSV(pathToCSV, 5), 
-                                                                casekit.NMR.Utils.parseCSV(pathToCSV, 6)},
-                                                casekit.NMR.Utils.parseCSV(pathToCSV, 9));
-
-        return spectrum;
+        return Utils.CSVtoSpectrum(pathToCSV, new int[]{5, 6}, new String[]{"H", "H"}, 9);
     }
 
     /**
@@ -636,13 +573,7 @@ public class ParseRawData {
      */
     public static final Spectrum parseHHCOSYviaXML(final String pathToXML) throws IOException, ParserConfigurationException, SAXException {
 
-        final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("H"), 
-                                                                Utils.getIsotopeIdentifier("H")}, 
-                                                new ArrayList[]{casekit.NMR.Utils.parseXML(pathToXML, 2, 2), 
-                                                                casekit.NMR.Utils.parseXML(pathToXML, 2, 1)},
-                                                casekit.NMR.Utils.parseXML(pathToXML, 2, 3));
-
-        return spectrum;
+        return Utils.XMLtoSpectrum(pathToXML, 2, new int[]{2, 1}, new String[]{"H", "H"});
     }
 
     /**
@@ -655,20 +586,21 @@ public class ParseRawData {
      * of heavy atom 
      * @return true if the links could be set; otherwise false
      */
-    public final boolean setHHCOSY(final Spectrum spectrum, final double tol) {
-
-        final ArrayList<Integer> hydrogenShiftMatches1 = this.findImplicitHydrogenShiftMatches(spectrum.getShiftsByDim(0), tol);
-        final ArrayList<Integer> hydrogenShiftMatches2 = this.findImplicitHydrogenShiftMatches(spectrum.getShiftsByDim(1), tol);
+    public final HashMap<String, ArrayList<Integer>> setHHCOSY(final Spectrum spectrum, final double tol) {
+        
+        final ArrayList<Integer> hydrogenShiftMatches1 = this.findImplicitHydrogenShiftMatches(spectrum.getShifts(0), tol);
+        final ArrayList<Integer> hydrogenShiftMatches2 = this.findImplicitHydrogenShiftMatches(spectrum.getShifts(1), tol);
         // are all signals bidirectional?
         if (!casekit.NMR.Utils.isBidirectional(hydrogenShiftMatches1, hydrogenShiftMatches2)) {
-            return false;
+            return null;
         }
         casekit.NMR.Utils.setBidirectionalLinks(this.mol, hydrogenShiftMatches1, hydrogenShiftMatches2, CDKConstants.NMRSPECTYPE_2D_HHCOSY);
 
-        spectrum.setAssignedAtomIndicesByDim(hydrogenShiftMatches1, 0);
-        spectrum.setAssignedAtomIndicesByDim(hydrogenShiftMatches2, 1);
+        final HashMap<String, ArrayList<Integer>> matches = new HashMap<>();
+        matches.put(Utils.getAtomTypeFromSpectrum(spectrum, 0), hydrogenShiftMatches1);
+        matches.put(Utils.getAtomTypeFromSpectrum(spectrum, 1), hydrogenShiftMatches2);
         
-        return true;
+        return matches;
     }
 
     
@@ -682,13 +614,7 @@ public class ParseRawData {
      */
     public static final Spectrum parseINADEQUATEviaCSV(final String pathToCSV) throws IOException {
 
-        final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("C"), 
-                                                                Utils.getIsotopeIdentifier("C")}, 
-                                                new ArrayList[]{casekit.NMR.Utils.parseCSV(pathToCSV, 5), 
-                                                                casekit.NMR.Utils.parseCSV(pathToCSV, 6)},
-                                                casekit.NMR.Utils.parseCSV(pathToCSV, 9));
-        
-        return spectrum;
+        return Utils.CSVtoSpectrum(pathToCSV, new int[]{5, 6}, new String[]{"C", "C"}, 9);
     }
 
     /**
@@ -702,14 +628,8 @@ public class ParseRawData {
      * @throws org.xml.sax.SAXException
      */
     public static final Spectrum parseINADEQUATEviaXML(final String pathToXML) throws IOException, ParserConfigurationException, SAXException {
-
-        final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("C"), 
-                                                                Utils.getIsotopeIdentifier("C")}, 
-                                                new ArrayList[]{casekit.NMR.Utils.parseXML(pathToXML, 2, 2), 
-                                                                casekit.NMR.Utils.parseXML(pathToXML, 2, 1)},
-                                                casekit.NMR.Utils.parseXML(pathToXML, 2, 3));
         
-        return spectrum;
+        return Utils.XMLtoSpectrum(pathToXML, 2, new int[]{2, 1}, new String[]{"C", "C"});
     }
 
     
@@ -724,20 +644,21 @@ public class ParseRawData {
      * @param tol tolerance value [ppm] for carbon atom shift matching
      * @return 
      */
-    public final boolean setINADEQUATE(final Spectrum spectrum, final double tol) {
+    public final HashMap<String, ArrayList<Integer>> setINADEQUATE(final Spectrum spectrum, final double tol) {
 
-        final ArrayList<Integer> carbonShiftMatches1 = casekit.NMR.Utils.findShiftMatches(this.mol, spectrum.getShiftsByDim(0), tol, "C");
-        final ArrayList<Integer> carbonShiftMatches2 = casekit.NMR.Utils.findShiftMatches(this.mol, spectrum.getShiftsByDim(1), tol, "C");
+        final ArrayList<Integer> carbonShiftMatches1 = casekit.NMR.Utils.findShiftMatches(this.mol, spectrum.getShifts(0), tol, "C");
+        final ArrayList<Integer> carbonShiftMatches2 = casekit.NMR.Utils.findShiftMatches(this.mol, spectrum.getShifts(1), tol, "C");
         // are all signals bidirectional?
         if (!casekit.NMR.Utils.isBidirectional(carbonShiftMatches1, carbonShiftMatches2)) {
-            return false;
+            return null;
         }
         casekit.NMR.Utils.setBidirectionalLinks(this.mol, carbonShiftMatches1, carbonShiftMatches2, CDKConstants.NMRSPECTYPE_2D_INADEQUATE);
 
-        spectrum.setAssignedAtomIndicesByDim(carbonShiftMatches1, 0);
-        spectrum.setAssignedAtomIndicesByDim(carbonShiftMatches2, 1);
+        final HashMap<String, ArrayList<Integer>> matches = new HashMap<>();
+        matches.put(Utils.getAtomTypeFromSpectrum(spectrum, 0), carbonShiftMatches1);
+        matches.put(Utils.getAtomTypeFromSpectrum(spectrum, 1), carbonShiftMatches2);
         
-        return true;
+        return matches;
     }
     
     
@@ -753,13 +674,7 @@ public class ParseRawData {
      */
     public static final Spectrum parseHMBCviaCSV(final String pathToCSV, final String heavyAtomType) throws IOException {
         
-        final Spectrum spectrum = new Spectrum( new String[]{Utils.getIsotopeIdentifier("H"),
-                                                            Utils.getIsotopeIdentifier(heavyAtomType)},
-                                                new ArrayList[]{casekit.NMR.Utils.parseCSV(pathToCSV, 5),
-                                                                casekit.NMR.Utils.parseCSV(pathToCSV, 6)},
-                                                casekit.NMR.Utils.parseCSV(pathToCSV, 9));
-        
-        return spectrum;
+        return Utils.CSVtoSpectrum(pathToCSV, new int[]{5, 6}, new String[]{"H", heavyAtomType}, 9);
     }
 
     
@@ -776,14 +691,8 @@ public class ParseRawData {
      * @throws org.xml.sax.SAXException
      */
     public static final Spectrum parseHMBCviaXML(final String pathToXML, final String heavyAtomType) throws IOException, ParserConfigurationException, SAXException {
-
-        final Spectrum spectrum = new Spectrum( new String[]{   Utils.getIsotopeIdentifier("H"), 
-                                                                Utils.getIsotopeIdentifier(heavyAtomType)}, 
-                                                new ArrayList[]{casekit.NMR.Utils.parseXML(pathToXML, 2, 2), 
-                                                                casekit.NMR.Utils.parseXML(pathToXML, 2, 1)},
-                                                casekit.NMR.Utils.parseXML(pathToXML, 2, 3));
         
-        return spectrum;
+        return Utils.XMLtoSpectrum(pathToXML, 2, new int[]{2, 1}, new String[]{"H", heavyAtomType});
     }
     
     
@@ -796,14 +705,19 @@ public class ParseRawData {
      * where the proton shift values is given first and the heavy atom shifts as the second.
      * @param tolHydrogen tolerance value [ppm] for hydrogen shift matching
      * @param tolHeavy tolerance value [ppm] for heavy atom shift matching
+     * @return 
      */
-    public final void setHMBC(final Spectrum spectrum, final double tolHydrogen, final double tolHeavy) {
+    public final HashMap<String, ArrayList<Integer>> setHMBC(final Spectrum spectrum, final double tolHydrogen, final double tolHeavy) {
         
-        final ArrayList<Double> shiftsHydrogen = spectrum.getShiftsByDim(0);
+        final ArrayList<Double> shiftsHydrogen = spectrum.getShifts(0);
         final ArrayList<Integer> matchesHydrogen = this.correctHydrogenShiftMatches(shiftsHydrogen, this.findImplicitHydrogenShiftMatches(shiftsHydrogen, tolHydrogen), tolHydrogen);        
-        final ArrayList<Double> shiftsHeavyAtom = spectrum.getShiftsByDim(1);
+        final ArrayList<Double> shiftsHeavyAtom = spectrum.getShifts(1);
         ArrayList<Integer> matchesHeavyAtom = casekit.NMR.Utils.findShiftMatches(this.mol, shiftsHeavyAtom, tolHeavy, Utils.getElementIdentifier(spectrum.getNuclei()[1]));
         matchesHeavyAtom = casekit.NMR.Utils.correctShiftMatches(this.mol, shiftsHeavyAtom, matchesHeavyAtom, tolHeavy, Utils.getElementIdentifier(spectrum.getNuclei()[1]));
+        
+        final HashMap<String, ArrayList<Integer>> matches = new HashMap<>();
+        matches.put(Utils.getAtomTypeFromSpectrum(spectrum, 0), matchesHydrogen);
+        matches.put(Utils.getAtomTypeFromSpectrum(spectrum, 1), matchesHeavyAtom);
         
         ArrayList<Integer> HMBCList;
         for (int i = 0; i < matchesHydrogen.size(); i++) {
@@ -818,7 +732,6 @@ public class ParseRawData {
             }
         }
         
-        spectrum.setAssignedAtomIndicesByDim(matchesHydrogen, 0);
-        spectrum.setAssignedAtomIndicesByDim(matchesHeavyAtom, 1);
+        return matches;
     }
 }

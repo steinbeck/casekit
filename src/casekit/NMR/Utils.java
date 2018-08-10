@@ -24,6 +24,7 @@
 package casekit.NMR;
 
 
+import casekit.NMR.model.Signal;
 import casekit.NMR.model.Spectrum;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -33,6 +34,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,6 +63,7 @@ import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomType;
 import org.openscience.cdk.interfaces.IBond;
+import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.io.SDFWriter;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
 import org.openscience.cdk.isomorphism.matchers.QueryAtomContainer;
@@ -68,6 +71,7 @@ import org.openscience.cdk.qsar.descriptors.atomic.AtomValenceDescriptor;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.smiles.smarts.parser.SMARTSParser;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
+import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -238,19 +242,30 @@ public class Utils {
      */
     public static Spectrum CSVtoSpectrum(final String pathToPeakList, final int[] columns, final String[] atomTypes, final int intensityColumnIndex) throws IOException {
         
-        // assumes the same number of selected columns and atom types
+        // assumes the same number of selected columns (dimensions) and atom types
         if(columns.length != atomTypes.length){
             return null;
         }
-        final ArrayList<Double>[] shiftsList = new ArrayList[columns.length];
         final String[] nuclei = new String[columns.length];
         for (int col = 0; col < columns.length; col++) {
-            shiftsList[col] = Utils.parseCSV(pathToPeakList, columns[col]);
             nuclei[col] = Utils.getIsotopeIdentifier(atomTypes[col]);
         }
-        final ArrayList<Double> intensities = parseCSV(pathToPeakList, intensityColumnIndex);
+        final Spectrum spectrum = new Spectrum(nuclei);
+        ArrayList<Double> shiftList;
+        for (int col = 0; col < columns.length; col++) {
+            shiftList = Utils.parseCSV(pathToPeakList, columns[col]);
+            if(col == 0){
+                for (int i = 0; i < shiftList.size(); i++) {
+                    spectrum.addSignal(new Signal(spectrum.getNuclei()));
+                }
+            }
+            if(!spectrum.setShifts(shiftList, col)){
+                return null;
+            }
+        }
+        spectrum.setIntensities(parseCSV(pathToPeakList, intensityColumnIndex));
  
-        return new Spectrum(nuclei, shiftsList, intensities);
+        return spectrum;
      }
     
     
@@ -315,16 +330,81 @@ public class Utils {
                 || (ndim < 1 || ndim > 2)){
             return null;
         }
-        final ArrayList<Double>[] shiftLists = new ArrayList[ndim];
         final String[] nuclei = new String[ndim];
-        for (int nucl = 0; nucl < ndim; nucl++) {
-            nuclei[nucl] = Utils.getIsotopeIdentifier(atomTypes[nucl]);
-            shiftLists[nucl] = Utils.parseXML(pathToXML, ndim, attributes[nucl]);
+        for (int dim = 0; dim < ndim; dim++) {
+            nuclei[dim] = Utils.getIsotopeIdentifier(atomTypes[dim]);
         }
-
-        return new Spectrum(nuclei, shiftLists, Utils.parseXML(pathToXML, ndim, ndim + 1));
+        final Spectrum spectrum = new Spectrum(nuclei);
+        ArrayList<Double> shiftList;
+        for (int dim = 0; dim < ndim; dim++) {
+            shiftList = Utils.parseXML(pathToXML, ndim, attributes[dim]);
+            if(dim == 0){
+                for (int i = 0; i < shiftList.size(); i++) {
+                    spectrum.addSignal(new Signal(spectrum.getNuclei()));
+                }
+            }
+            if(!spectrum.setShifts(shiftList, dim)){
+                return null;
+            }
+        }
+        spectrum.setIntensities(Utils.parseXML(pathToXML, ndim, ndim + 1));
+        
+        return spectrum;
      }
     
+    public static String getAtomTypeFromSpectrum(final Spectrum spectrum, final int dim){
+        if(spectrum.checkDimension(dim)){
+            return Utils.getElementIdentifier(spectrum.getNuclei()[dim]);
+        }
+        
+        return null;
+    }
+    
+    public static int getDifferenceSpectrumSizeAndMolecularFormulaCount(final Spectrum spectrum, final IMolecularFormula molformula){
+        final String atomType = Utils.getAtomTypeFromSpectrum(spectrum, 0);
+        int atomsInMolFormula = 0;
+        if(molformula != null){
+            atomsInMolFormula = MolecularFormulaManipulator.getElementCount(molformula, atomType);
+        }
+        return atomsInMolFormula - spectrum.getSignalCount();
+    }
+    
+    public static void editSignalsInSpectrum(final Spectrum spectrum, final IMolecularFormula molFormula) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in)); int n;
+        final ArrayList<Integer> validIndices = new ArrayList<>();
+        int diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, molFormula);
+        // walk through all signals in spectrum add missing or to remove signals
+        while (diff != 0) {
+            // display all selectable signal indices in spectrum
+            if(diff > 0){
+                System.out.println("\n" + diff + " signals are missing!\nWhich signal is not unique?");
+            } else {
+                System.out.println("\n" + (-1 * diff) + " signals are to be removed!\nWhich signal is to remove?");
+            }
+            for (int s = 0; s < spectrum.getSignalCount(); s++) {
+                System.out.print("index: " + s);
+                for (int d = 0; d < spectrum.getDimCount(); d++) {
+                    System.out.print(", shift dim " + (d+1) + ": " + spectrum.getShift(s, d));
+                }
+                System.out.println("");
+                validIndices.add(s);
+            }
+            // get selected index by user input
+            n = -1;
+            while(!validIndices.contains(n)){
+                System.out.println("Enter the index: ");
+                n = Integer.parseInt(br.readLine());
+            }
+            // add/remove signals in spectrum
+            if(diff > 0){
+                spectrum.addSignal(spectrum.getSignal(validIndices.indexOf(n)).getClone());
+                spectrum.setEquivalence(spectrum.getSignalCount() - 1, validIndices.indexOf(n));
+            } else {
+                spectrum.removeSignal(validIndices.indexOf(n));
+            }
+            diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, molFormula);
+        }
+    }
     
     /**
      * Corrects a match list regarding a given shift list and an atom container.
@@ -369,6 +449,50 @@ public class Utils {
         } 
         
         return matches;
+    }
+    
+    
+    /**
+     * Corrects a match list regarding a given shift list and an atom container.
+     * This is useful when two ore more shift values (e.g. DEPT shifts) match
+     * with the same atom in the atom container. So the purpose here is to
+     * enable more unambiguous matches. This method first looks for unambiguous
+     * matches and calculates the median of the difference values between the
+     * shift list values and the shifts of atom container. Then, all shift list
+     * values are adjusted (+/-) with this median value.
+     *
+     * @param shiftList1 Shift value list to search in
+     * @param shiftList2 Shift value list to match in shiftList1
+     * @param matchesInshiftList1 Match list to correct
+     * @param tol Tolerance value
+     * @return
+     */
+    public static ArrayList<Integer> correctShiftMatches(final ArrayList<Double> shiftList1, final ArrayList<Double> shiftList2, final ArrayList<Integer> matchesInshiftList1, final double tol) {
+
+        int matchIndex;
+        // get differences of unique matches between query shift and ac shifts
+        ArrayList<Double> diffs = new ArrayList<>();
+        final HashSet<Integer> uniqueMatchIndicesSet = new HashSet<>(matchesInshiftList1);
+        for (final int uniqueMatchIndex : uniqueMatchIndicesSet) {
+            if (Collections.frequency(matchesInshiftList1, uniqueMatchIndex) == 1) {
+                matchIndex = matchesInshiftList1.indexOf(uniqueMatchIndex);
+                if (matchesInshiftList1.get(matchIndex) >= 0) {
+                    diffs.add(shiftList2.get(matchIndex) - shiftList1.get(matchesInshiftList1.get(matchIndex)));
+                }
+            }
+        }
+        // calculate the median of found unique match differences
+        if (diffs.size() > 0) {
+            final double median = casekit.NMR.Utils.getMedian(diffs);
+            // add or subtract the median of the differences to all shift list values (input) and match again then
+            for (int i = 0; i < shiftList2.size(); i++) {
+                shiftList2.set(i, shiftList2.get(i) - median);
+            }
+            // rematch
+            return casekit.NMR.Utils.findShiftMatches(shiftList1, shiftList2, tol);
+        } 
+        
+        return matchesInshiftList1;
     }
     
 
@@ -425,6 +549,52 @@ public class Utils {
 
         return matchIndex;
     }
+    
+    
+    /**
+     * Finds the matches with the lowest deviations between two given shift value
+     * lists. 
+     *
+     * @param shiftList1 shift value list to search in
+     * @param shiftList2 shift value list to match in shiftList1
+     * @param tol Tolerance value [ppm]
+     * @return List of match indices within shiftList1
+     */
+    public static ArrayList<Integer> findShiftMatches(final ArrayList<Double> shiftList1, final ArrayList<Double> shiftList2, final double tol) {
+
+        final ArrayList<Integer> matchesInShiftList1 = new ArrayList<>();
+        for (int i = 0; i < shiftList2.size(); i++) {
+            matchesInShiftList1.add(casekit.NMR.Utils.findSingleShiftMatch(shiftList1, shiftList2.get(i), tol));
+        }
+
+        return matchesInShiftList1;
+    }
+    
+    
+    /**
+     * Finds the match with the lowest deviation between a given shift value and
+     * a shift list. 
+     *
+     * @param shiftList Shift list to search in
+     * @param shift Shift value [ppm] to find in ShiftList
+     * @param tol Tolerance value [ppm]
+     * @return Match index of a query shift within shiftList
+     */
+    public static int findSingleShiftMatch(final ArrayList<Double> shiftList, final double shift, final double tol) {
+
+        int matchIndex = -1;
+        double minDiff = tol;
+        for (int k = 0; k < shiftList.size(); k++) {
+            // figure out the shift with lowest deviation 
+            if ((shift - tol <= shiftList.get(k)) && (shiftList.get(k) <= shift + tol) && (Math.abs(shift - shiftList.get(k)) < minDiff)) {
+                minDiff = Math.abs(shift - shiftList.get(k));
+                matchIndex = k;
+            }
+        }
+
+        return matchIndex;
+    }
+    
 
     /**
      * Finds match indices between a given shift list from a peak table and an atom container.
@@ -573,7 +743,7 @@ public class Utils {
             case "B": return "11B";
             case "Pt": return "195Pt";
             default:
-                return null;
+                return element;
         }
     }
     
@@ -937,13 +1107,12 @@ public class Utils {
      */
     public static IAtomContainer removeAtoms(final IAtomContainer ac, final String atomType) {
 
-        ArrayList<IAtom> toRemoveList = new ArrayList<>();
+        final ArrayList<IAtom> toRemoveList = new ArrayList<>();
         for (IAtom atomA : ac.atoms()) {
             if (atomA.getSymbol().equals(atomType)) {// detect wether the current atom A is a from the given atom type 
                 toRemoveList.add(atomA);
             }
         }
-
         for (IAtom iAtom : toRemoveList) {
             ac.removeAtom(iAtom);
         }

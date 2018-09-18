@@ -1,6 +1,15 @@
-MIT license
-
+general things:
 - JUnit
 - PMD: CDK GitHub PMD example
 - JCoCo
 - yourkit (license received)
+
+coding:
+
+-   in parseRawData class:
+        -   now usage of Assignment class objects
+        -   control function should be implemented 
+            -> assigned protons (HSQC, HMBC, ...) vs. DEPT information
+     
+-   in Assignment class:
+        -   addition of counts array as class member and functions for that

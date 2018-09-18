@@ -34,7 +34,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomContainerSet;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
@@ -61,7 +63,7 @@ public class DB {
      * @throws FileNotFoundException
      * @throws CDKException
      */
-    public static IAtomContainerSet getStructuresFromNMRShiftDBFile(final String pathToNMRShiftDB, final int maxCycleSize) throws FileNotFoundException, CDKException {
+    public static IAtomContainerSet getStructuresFromSDFile(final String pathToNMRShiftDB, final int maxCycleSize) throws FileNotFoundException, CDKException {
 
         final IAtomContainerSet acSet = new AtomContainerSet();
         final IteratingSDFReader iterator = new IteratingSDFReader(
@@ -75,6 +77,20 @@ public class DB {
         return acSet;
     }
 
+    public static HashSet<String> getAtomTypesInDB(final String pathToDB) throws FileNotFoundException{
+        final HashSet<String> atomTypes = new HashSet<>();
+        final IteratingSDFReader iterator = new IteratingSDFReader(
+                new FileReader(pathToDB),
+                SilentChemObjectBuilder.getInstance()
+        );
+        while (iterator.hasNext()) {
+            atomTypes.addAll(Utils.getAtomTypesInAtomContainer(iterator.next()));
+        }
+        
+        return atomTypes;
+    }
+    
+    
     public static Connection getDBConnection(final String server, final String options, final String user, final String pwd) throws SQLException {
 
         return DriverManager.getConnection(server + "?" + options, user, pwd);

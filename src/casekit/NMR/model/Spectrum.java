@@ -1,5 +1,5 @@
 /*
-* This class was copied and modified from NMRSpectrum class in casekit.model package (by Christoph Steinbeck)
+* This class was adopted and modified from an earlier version by Christoph Steinbeck
 */
 
 
@@ -58,7 +58,7 @@ public class Spectrum {
    /**
     * The proton frequency of the spectrometer used to record this spectrum.
     */
-   private Float spectrometerFrequency;
+   private Double spectrometerFrequency;
    private String solvent;
    private String standard;
    
@@ -323,11 +323,11 @@ public class Spectrum {
        return -1;
    }
 
-   public void setSpectrometerFrequency(final Float sf) {
+   public void setSpectrometerFrequency(final Double sf) {
        this.spectrometerFrequency = sf;
    }
 
-   public float getSpectrometerFrequency() {
+   public Double getSpectrometerFrequency() {
        return spectrometerFrequency;
    }
 

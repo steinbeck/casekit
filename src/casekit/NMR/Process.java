@@ -43,24 +43,25 @@ import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
  */
 public class Process extends ParseRawData {
     
-    final private IAtomContainer mol;
-    final private IMolecularFormula molFormula;
-    private final HashMap<String, ArrayList<Integer>> atomTypeIndices = new HashMap<>();    
+    private final IAtomContainer mol;
+    private final IMolecularFormula molFormula;
+    private final HashMap<String, ArrayList<Integer>> atomTypeIndices;    
     private int[][] neighborhoodCountsMatrix;
-    final private HashMap<Integer, ArrayList<Integer[]>> shiftIndicesInACSet = new HashMap<>(); // holding of all indices of each ac set (DB) entry [first value] and it's atom indices [second value] too
+    private final HashMap<Integer, ArrayList<Integer[]>> shiftIndicesInACSet = new HashMap<>(); // holding of all indices of each ac set (DB) entry [first value] and it's atom indices [second value] too
     
     
     public Process(){
         super();
         this.molFormula = super.getMolecularFormula();
         this.mol = super.getAtomContainer();
+        this.atomTypeIndices = super.getAtomTypeIndices();
     }
     
     public Process(final IMolecularFormula molFormula){
         super(molFormula);
         this.molFormula = super.getMolecularFormula();
         this.mol = super.getAtomContainer();
-        this.setAtomTypeIndices();
+        this.atomTypeIndices = super.getAtomTypeIndices();
     }
 
     
@@ -117,7 +118,7 @@ public class Process extends ParseRawData {
      */
     public void createLSDFile(final String projectName, final String pathToOutputFile, final String[] pathsToFilters) throws FileNotFoundException, UnsupportedEncodingException{
 
-        PrintWriter writer = new PrintWriter(pathToOutputFile, "UTF-8");
+        final PrintWriter writer = new PrintWriter(pathToOutputFile, "UTF-8");
         ArrayList<Integer> idxs;
         String hybrid, protons, MULT = "", HSQC = "", COSY = "", BOND = "", HMBC = "";
         final int[][] bondTable = new int[this.mol.getAtomCount()][this.mol.getAtomCount()];
@@ -255,17 +256,17 @@ public class Process extends ParseRawData {
     
     
     
-    public void countNeighborhoodBonds(final IAtomContainerSet acSet, final String[] bondsSet, final String elem, String[] neighborElems, final int minShift, final int maxShift, final int stepSize) throws FileNotFoundException, IOException{
+    public void countNeighborhoodBonds(final IAtomContainerSet acSet, final String[] bondsSet, final String elem, final ArrayList<String> neighborElems, final int minShift, final int maxShift, final int stepSize) throws FileNotFoundException, IOException{
         
         if (stepSize < 1) {
             System.err.println("stepSize < 1 not allowed!!!");
             return;
         }
         // creation of frequency counting matrix and shift indices holder
-        this.neighborhoodCountsMatrix = new int[stepSize * (maxShift - minShift + 1)][3 + 4 + neighborElems.length * bondsSet.length];
+        this.neighborhoodCountsMatrix = new int[stepSize * (maxShift - minShift + 1)][3 + 4 + neighborElems.size() * bondsSet.length];
         this.shiftIndicesInACSet.clear();
         for (int i = 0; i < stepSize * maxShift; i++) {
-            for (int j = 0; j < 3 + 4 + neighborElems.length * bondsSet.length; j++) {
+            for (int j = 0; j < 3 + 4 + neighborElems.size() * bondsSet.length; j++) {
                 neighborhoodCountsMatrix[i][j] = 0;
             }
             this.shiftIndicesInACSet.put(i, new ArrayList<>());

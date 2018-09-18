@@ -42,21 +42,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.w3c.dom.Document;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.lang3.StringUtils;
-import org.openscience.cdk.Atom;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
 import org.openscience.cdk.exception.CDKException;
-import org.openscience.cdk.fingerprint.IBitFingerprint;
-import org.openscience.cdk.fingerprint.KlekotaRothFingerprinter;
-import org.openscience.cdk.fingerprint.SubstructureFingerprinter;
 import org.openscience.cdk.graph.CycleFinder;
 import org.openscience.cdk.graph.Cycles;
 import org.openscience.cdk.interfaces.IAtom;
@@ -66,10 +60,8 @@ import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.io.SDFWriter;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
-import org.openscience.cdk.isomorphism.matchers.QueryAtomContainer;
 import org.openscience.cdk.qsar.descriptors.atomic.AtomValenceDescriptor;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
-import org.openscience.cdk.smiles.smarts.parser.SMARTSParser;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 import org.w3c.dom.NodeList;
@@ -92,7 +84,7 @@ public class Utils {
      * @throws CDKException
      * @throws IOException
      */
-    public static void convertSDFtoLSD(final String pathSDF, final String pathOut, final String pathMol2ab) throws FileNotFoundException, CDKException, IOException{
+    public static void SDFtoLSD(final String pathSDF, final String pathOut, final String pathMol2ab) throws FileNotFoundException, CDKException, IOException{
         
         
         System.out.println("Conversion from SDF format to LSD format... ");
@@ -203,17 +195,17 @@ public class Utils {
      * Reads a specific column of a NMR peak table and stores it into an
      * ArrayList object.
      *
-     * @param pathToPeakList path to NMR peak table
-     * @param column column to select in peak table
+     * @param pathToCSV path to NMR peak table in CSV file format
+     * @param column column index to select in peak table
      * @return ArrayList of Double shift values
      * @throws IOException
      */
-    public static ArrayList<Double> parseCSV(final String pathToPeakList, final int column) throws IOException {
+    public static ArrayList<Double> parseCSV(final String pathToCSV, final int column) throws IOException {
 
         final ArrayList<Double> shifts = new ArrayList<>();
         String line;
         String[] tokens;
-        BufferedReader fileReader = new BufferedReader(new FileReader(pathToPeakList));
+        BufferedReader fileReader = new BufferedReader(new FileReader(pathToCSV));
         while ((line = fileReader.readLine()) != null) {
             tokens = line.split(",");
             // get shift value 
@@ -233,14 +225,14 @@ public class Utils {
      * The number of columns and atom types has to be the same and defines the
      * dimension of the returning spectrum.
      *
-     * @param pathToPeakList path to NMR peak table
-     * @param columns columns to select in each peak table
+     * @param pathToCSV path to NMR peak table in CSV file format
+     * @param columns column indices to select in peak table
      * @param atomTypes atom types (element) for each dimension
      * @param intensityColumnIndex column index for intensity values
      * @return Spectrum class object containing the peak lists
      * @throws IOException
      */
-    public static Spectrum CSVtoSpectrum(final String pathToPeakList, final int[] columns, final String[] atomTypes, final int intensityColumnIndex) throws IOException {
+    public static Spectrum CSVtoSpectrum(final String pathToCSV, final int[] columns, final String[] atomTypes, final int intensityColumnIndex) throws IOException {
         
         // assumes the same number of selected columns (dimensions) and atom types
         if(columns.length != atomTypes.length){
@@ -253,7 +245,7 @@ public class Utils {
         final Spectrum spectrum = new Spectrum(nuclei);
         ArrayList<Double> shiftList;
         for (int col = 0; col < columns.length; col++) {
-            shiftList = Utils.parseCSV(pathToPeakList, columns[col]);
+            shiftList = Utils.parseCSV(pathToCSV, columns[col]);
             if(col == 0){
                 for (int i = 0; i < shiftList.size(); i++) {
                     spectrum.addSignal(new Signal(spectrum.getNuclei()));
@@ -263,7 +255,7 @@ public class Utils {
                 return null;
             }
         }
-        spectrum.setIntensities(parseCSV(pathToPeakList, intensityColumnIndex));
+        spectrum.setIntensities(parseCSV(pathToCSV, intensityColumnIndex));
  
         return spectrum;
      }
@@ -377,9 +369,9 @@ public class Utils {
         while (diff != 0) {
             // display all selectable signal indices in spectrum
             if(diff > 0){
-                System.out.println("\n" + diff + " signals are missing!\nWhich signal is not unique?");
+                System.out.println("\n" + diff + " " + spectrum.getNuclei()[0] + " signals are missing!\nWhich signal is not unique?");
             } else {
-                System.out.println("\n" + (-1 * diff) + " signals are to be removed!\nWhich signal is to remove?");
+                System.out.println("\n" + (-1 * diff) + " " + spectrum.getNuclei()[0] + " signals are to be removed!\nWhich signal is to remove?");
             }
             for (int s = 0; s < spectrum.getSignalCount(); s++) {
                 System.out.print("index: " + s);
@@ -772,16 +764,26 @@ public class Utils {
     }
     
     
-    public static int[] getNeighborhoodBondsCount(final IAtomContainer ac, final int indexAC, final String[] bondsSet, final String[] neighborElems){
-        final int[] counts = new int[neighborElems.length * bondsSet.length];
+    public static HashSet<String> getAtomTypesInAtomContainer(final IAtomContainer ac) {
+        final HashSet<String> atomTypes = new HashSet<>();
+        for (IAtom atom : ac.atoms()) {
+            atomTypes.add(atom.getSymbol());
+        }
+        
+        return atomTypes;
+    }
+    
+    
+    public static int[] getNeighborhoodBondsCount(final IAtomContainer ac, final int indexAC, final String[] bondsSet, final ArrayList<String> neighborElems){
+        final int[] counts = new int[neighborElems.size() * bondsSet.length];
         String foundBonds;
         // for all given neighbor element types
-        for (int n = 0; n < neighborElems.length; n++) {
+        for (int n = 0; n < neighborElems.size(); n++) {
             foundBonds = "";
             // for all next neighbors of a specific element
             for (IAtom neighborAtom : ac.getConnectedAtomsList(ac.getAtom(indexAC))) {
                 // skip if not the right neighborhood element or bond type is unknown/unset
-                if ((!neighborAtom.getSymbol().equals(neighborElems[n])) || (casekit.NMR.Utils.getStringFromBondOrder(ac.getBond(ac.getAtom(indexAC), neighborAtom).getOrder()) == null)) {
+                if ((!neighborAtom.getSymbol().equals(neighborElems.get(n))) || (casekit.NMR.Utils.getStringFromBondOrder(ac.getBond(ac.getAtom(indexAC), neighborAtom).getOrder()) == null)) {
                     continue;
                 }
                 foundBonds += casekit.NMR.Utils.getStringFromBondOrder(ac.getBond(ac.getAtom(indexAC), neighborAtom).getOrder());
@@ -799,32 +801,31 @@ public class Utils {
     }
     
     
-    public static void writeNeighborhoodBondsCountMatrix(final String pathToOutput, final int[][] m, final String[] bondsSet, final String elem, String[] neighborElems, final int min, final int max, final int stepSize) throws IOException{
+    public static void writeNeighborhoodBondsCountMatrix(final String pathToOutput, final int[][] m, final String[] bondsSet, final String elem, final ArrayList<String> neighborElems, final int min, final int max, final int stepSize) throws IOException{
         
         if(stepSize < 1){
             System.err.println("stepSize < 1 not allowed!!!");
             return;
         }
-        
         final StringBuilder sb = new StringBuilder();
         sb.append("shift [" + elem + "] (" + stepSize + "),nTotal,inRing,isArom,q" + elem + "," + elem + "H," + elem + "H2," + elem + "H3,");
-        for (int i = 0; i < neighborElems.length; i++) {
+        for (int i = 0; i < neighborElems.size(); i++) {
             for (int j = 0; j < bondsSet.length; j++) {
-                sb.append(bondsSet[j] + "[" + neighborElems[i] + "]");
+                sb.append(bondsSet[j] + "[" + neighborElems.get(i) + "]");
                 if (j < bondsSet.length - 1) {
                     sb.append(",");
                 }
             }
-            if (i < neighborElems.length - 1) {
+            if (i < neighborElems.size() - 1) {
                 sb.append(",");
             }
         }
         sb.append("\n");
         for (int i = 0; i < stepSize * (max - min) + 1; i++) {
             sb.append((i + min) + ",");
-            for (int j = 0; j < 3 + 4 + neighborElems.length * bondsSet.length; j++) {
+            for (int j = 0; j < 3 + 4 + neighborElems.size() * bondsSet.length; j++) {
                 sb.append(m[i][j]);
-                if (j < 3 + 4 + neighborElems.length * bondsSet.length - 1) {
+                if (j < 3 + 4 + neighborElems.size() * bondsSet.length - 1) {
                     sb.append(",");
                 }
             }
@@ -1021,6 +1022,7 @@ public class Utils {
      * @param shiftMatches1
      * @param shiftMatches2
      * @param prop
+     * @deprecated 
      */
     public static void setBidirectionalLinks(final IAtomContainer ac, final ArrayList<Integer> shiftMatches1, final ArrayList<Integer> shiftMatches2, final String prop) {
 
@@ -1046,17 +1048,11 @@ public class Utils {
     }
     
     
-    public static ArrayList<Double> countSetShiftInAtomContainer(final IAtomContainer ac, final ArrayList<Integer> indices){
-        
-        final ArrayList<Double> shifts = new ArrayList<>();
-        for (final Integer index : indices) {
-                shifts.add(ac.getAtom(index).getProperty(Utils.getNMRShiftConstant(ac.getAtom(index).getSymbol())));
-        }
-        return shifts;
-    }
-    
-    
-    
+    /**
+     *
+     * @param pathToFile
+     * @return
+     */
     public static String getFileFormat(final String pathToFile) {
 
         if(pathToFile == null || pathToFile.trim().isEmpty()){
@@ -1120,6 +1116,29 @@ public class Utils {
         return ac;
     }
     
+    
+    public static ArrayList<Integer> ArrayToArrayList(final int[] array){
+        
+        final ArrayList<Integer> list = new ArrayList<>();
+        for (int i = 0; i < array.length; i++) {
+            list.add(array[i]);
+        }
+        
+        return list;
+    }
+    
+    
+    public static String getSpectrumNucleiAsString(final Spectrum spectrum){
+        String specID = "";
+        for (int i = 0; i < spectrum.getDimCount(); i++) {
+            specID += spectrum.getNuclei()[i];
+            if(i < spectrum.getDimCount()-1){
+                specID += "-";
+            }
+        }
+        
+        return specID;
+    }
     
     
     // ########################################################################################################

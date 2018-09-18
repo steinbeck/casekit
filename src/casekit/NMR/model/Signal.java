@@ -1,5 +1,5 @@
 /*
-* This class was copied and modified from NMRSignal class in casekit.model package (by Christoph Steinbeck)
+* This class was adopted and modified from an earlier version by Christoph Steinbeck
 */
 
 /*

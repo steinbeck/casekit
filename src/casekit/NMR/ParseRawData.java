@@ -35,7 +35,9 @@ import org.openscience.cdk.Atom;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.interfaces.IAtomType;
 import org.openscience.cdk.interfaces.IMolecularFormula;
+import org.openscience.cdk.qsar.descriptors.atomic.AtomHybridizationDescriptor;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 import org.xml.sax.SAXException;
@@ -440,6 +442,9 @@ public class ParseRawData {
                     hCount = 0;
                 }
                 this.mol.getAtom(i).setImplicitHydrogenCount(hCount);
+                if( this.mol.getAtom(i).getImplicitHydrogenCount() >= 3){
+                    this.mol.getAtom(i).setHybridization(IAtomType.Hybridization.SP3);
+                }
                 hCountAll += hCount;
             }
         }
@@ -497,7 +502,7 @@ public class ParseRawData {
      * @param tolHeavyAtom tolerance value [ppm] for heavy atom shift matching
      */
     public final void assignHSQC(final Spectrum spectrum, final double tolProton, final double tolHeavyAtom) {
-        
+        // assign index of matching atoms to both dimensions and save the Spectrum and Assignment objects in class
         this.assign2DSpectrum(spectrum, tolProton, tolHeavyAtom);
         // in case the 1H spectrum is given, then assign protons to same indices from belonging carbon atoms
         if(this.getAssignments().get(CDKConstants.NMRSPECTYPE_1D + "_1H") != null){
@@ -513,8 +518,18 @@ public class ParseRawData {
                 }
             }
         }
-        
-        // implement control counter for no. of attached protons (by DEPT) on carbons ?!?
+        // attach protons on other heavy atoms than carbons via HSQC assignment counting
+        if(!spectrum.getNuclei()[1].equals("13C")){
+            final Assignment assignment2D_HSQC = this.getAssignments().get(spectrum.getSpecType() + "_" + Utils.getSpectrumNucleiAsString(spectrum));
+            for (int i = 0; i < assignment2D_HSQC.getAssignmentsCount(); i++) {
+                if((assignment2D_HSQC.getAssignment(1, i) > -1)){
+                    if(this.mol.getAtom(assignment2D_HSQC.getAssignment(1, i)).getImplicitHydrogenCount() == null){
+                        this.mol.getAtom(assignment2D_HSQC.getAssignment(1, i)).setImplicitHydrogenCount(0);
+                    }
+                    this.mol.getAtom(assignment2D_HSQC.getAssignment(1, i)).setImplicitHydrogenCount(this.mol.getAtom(assignment2D_HSQC.getAssignment(1, i)).getImplicitHydrogenCount() + 1);                    
+                }
+            }
+        }
     }
     
     
@@ -627,7 +642,7 @@ public class ParseRawData {
      */
     public final boolean assignHHCOSY(final Spectrum spectrum, final double tolProton) {
         
-        final ArrayList<Integer> protonShiftMatches1 = this.findMatchesIn1DSpectra(spectrum, 0, tolProton);
+        final ArrayList<Integer> protonShiftMatches1 = this.findMatchesIn1DSpectra(spectrum, 0, tolProton);        
         final ArrayList<Integer> protonShiftMatches2 = this.findMatchesIn1DSpectra(spectrum, 1, tolProton);
         // are all signals bidirectional?
         if (!Utils.isBidirectional(protonShiftMatches1, protonShiftMatches2)) {
@@ -693,7 +708,24 @@ public class ParseRawData {
         }
         this.assign2DSpectrum(spectrum, tolCarbon, tolCarbon);
         
+        final ArrayList<Integer> indicesInAtomContainerDim1 = this.getAssignedAtomIndices(spectrum, 0);
+        final ArrayList<Integer> indicesInAtomContainerDim2 = this.getAssignedAtomIndices(spectrum, 1);
+        for (int i = 0; i < spectrum.getSignalCount(); i++) {
+            if((indicesInAtomContainerDim1.get(i) > -1) && (indicesInAtomContainerDim2.get(i) > -1)){                    
+                this.setBond(indicesInAtomContainerDim1.get(i), indicesInAtomContainerDim2.get(i));
+            }                
+        }
+        
         return true;
+    }
+    
+    
+    private void setBond(final int index1, final int index2) {
+
+        if (this.mol.getBond(this.mol.getAtom(index1), this.mol.getAtom(index2)) != null) {
+            this.mol.removeBond(this.mol.getAtom(index1), this.mol.getAtom(index2));
+        }
+        this.mol.addBond(index1, index2, Utils.getBondTypeFromHybridizations(this.mol.getAtom(index1), this.mol.getAtom(index2)));
     }
     
     

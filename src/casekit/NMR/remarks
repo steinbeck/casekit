@@ -7,9 +7,11 @@ general things:
 coding:
 
 -   in parseRawData class:
-        -   now usage of Assignment class objects
-        -   control function should be implemented 
-            -> assigned protons (HSQC, HMBC, ...) vs. DEPT information
-     
+        -   new: usage of Assignment class objects:
+            -> atom properties for signals, e.g. HMBC, are not longer set
+        -   control function should be implemented for assigning of protons:
+            -> no. of assigned protons (HSQC, HMBC, ...) vs. DEPT information and for other heavy atoms too
+            -> how many protons for one shift value (carbons or other heavy atoms) are still left?
+        -   some function descriptions (javadoc) are deprecated and have to be updated
 -   in Assignment class:
-        -   addition of counts array as class member and functions for that
+        -   new: addition of counts array as class member and functions for that

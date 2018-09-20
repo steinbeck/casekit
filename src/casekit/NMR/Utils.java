@@ -1289,22 +1289,24 @@ public class Utils {
      */
     public static IBond.Order getBondTypeFromHybridizations(final IAtom atom1, final IAtom atom2) {
 
-        final String atomType1 = atom1.getSymbol();
+//        final String atomType1 = atom1.getSymbol();
         final IAtomType.Hybridization hybridization1 = atom1.getHybridization();
-        final String atomType2 = atom2.getSymbol();
+//        final String atomType2 = atom2.getSymbol();
         final IAtomType.Hybridization hybridization2 = atom2.getHybridization();
 
-        if (hybridization1 == null || hybridization2 == null) {
+        if (hybridization1 == null && hybridization2 == null) {
             return IBond.Order.UNSET;
-        }
-        IBond.Order bondOrder1 = IBond.Order.UNSET;
-        IBond.Order bondOrder2 = IBond.Order.UNSET;
+        }        
+        
+//        IBond.Order bondOrder1 = IBond.Order.UNSET;
+//        IBond.Order bondOrder2 = IBond.Order.UNSET;
+
         // single bond detection, the "3" means all SP3 hybrdidizations like SP3, SP3D2 or PLANAR3
-        if ((atomType1.equals("C") || atomType1.equals("O") || atomType1.equals("N") || atomType1.equals("S"))
+        if ((hybridization1 != null) //&& (atomType1.equals("C") || atomType1.equals("O") || atomType1.equals("N") || atomType1.equals("S"))
                 && hybridization1.toString().contains("3")) {
             return IBond.Order.SINGLE;
         }
-        if ((atomType2.equals("C") || atomType2.equals("O") || atomType2.equals("N") || atomType2.equals("S"))
+        if ((hybridization2 != null) //&& (atomType2.equals("C") || atomType2.equals("O") || atomType2.equals("N") || atomType2.equals("S"))
                 && hybridization2.toString().contains("3")) {
             return IBond.Order.SINGLE;
         }
@@ -1327,9 +1329,9 @@ public class Utils {
 //            bondOrder2 = IBond.Order.TRIPLE;
 //        }
 
-        if (bondOrder1.equals(bondOrder2)) {
-            return bondOrder1;
-        }
+//        if (bondOrder1.equals(bondOrder2)) {
+//            return bondOrder1;
+//        }
 
         return IBond.Order.UNSET;
     }

@@ -23,6 +23,7 @@
  */
 package casekit.NMR;
 
+import casekit.NMR.model.Spectrum;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -34,6 +35,7 @@ import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomContainerSet;
+import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 
@@ -63,49 +65,6 @@ public class Process extends ParseRawData {
         this.mol = super.getAtomContainer();
         this.atomTypeIndices = super.getAtomTypeIndices();
     }
-
-    
-     /**
-     * Sets bonds from already set experiment information (H,H-COSY, INADEQUATE
-     * and HMBC).
-     * 
-     * @param experiments
-     */
-    public void setBonds(final String[] experiments) {
-
-        String NMRSHIFT_ATOMTYPE;
-        ArrayList<Integer> signalList;
-        for (int e = 0; e < experiments.length; e++) {
-            for (int i = 0; i < this.mol.getAtomCount(); i++) {
-                NMRSHIFT_ATOMTYPE = casekit.NMR.Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol());
-                // is the NMR shift constant defined and does the nmr shift property entry in an atom exist?
-                if (NMRSHIFT_ATOMTYPE != null && this.mol.getAtom(i).getProperty(NMRSHIFT_ATOMTYPE) != null) {
-                    if (this.mol.getAtom(i).getProperties().containsKey(experiments[e])) {
-                        signalList = this.mol.getAtom(i).getProperty(experiments[e]);
-                        for (int bondPartnerIndex : signalList) {
-                            // no bonds on one and the same atom; ignore already set bonds if no override wanted
-                            if ((i == bondPartnerIndex)) {// || (this.mol.getBond(this.mol.getAtom(i), this.mol.getAtom(bondPartnerIndex)) != null)) {
-                                continue;
-                            }
-                            if (experiments[e].equals(CDKConstants.NMRSPECTYPE_2D_HMBC)) {
-                                System.out.println("HMBC bond setting: still to come!!!");
-                            } else {
-                                this.setBond(i, bondPartnerIndex);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private void setBond(final int index1, final int index2) {
-
-        if (this.mol.getBond(this.mol.getAtom(index1), this.mol.getAtom(index2)) != null) {
-            this.mol.removeBond(this.mol.getAtom(index1), this.mol.getAtom(index2));
-        }
-        this.mol.addBond(index1, index2, casekit.NMR.Utils.getBondTypeFromHybridizations(this.mol.getAtom(index1), this.mol.getAtom(index2)));
-    }
     
     
     /**
@@ -116,109 +75,113 @@ public class Process extends ParseRawData {
      * @throws FileNotFoundException
      * @throws UnsupportedEncodingException
      */
-    public void createLSDFile(final String projectName, final String pathToOutputFile, final String[] pathsToFilters) throws FileNotFoundException, UnsupportedEncodingException{
-
+    public void createLSDFile(final String projectName, final String pathToOutputFile, final String[] pathsToFilters) throws FileNotFoundException, UnsupportedEncodingException{        
+      
         final PrintWriter writer = new PrintWriter(pathToOutputFile, "UTF-8");
-        ArrayList<Integer> idxs;
-        String hybrid, protons, MULT = "", HSQC = "", COSY = "", BOND = "", HMBC = "";
-        final int[][] bondTable = new int[this.mol.getAtomCount()][this.mol.getAtomCount()];
-        for (int i = 0; i < this.mol.getAtomCount(); i++) {
-            for (int j = 0; j < this.mol.getAtomCount(); j++) {
-                bondTable[i][j] = 0;
-            }
-        }
+        String hybrid, protons, MULT = "", HSQC = "", BOND = "", HMBC = "", COSY = "";       
         writer.println("; " + projectName);
         if(this.molFormula != null){
-            writer.println("; " + MolecularFormulaManipulator.getString(this.molFormula) + "\n\n");
+            writer.println("; molecular formula: " + MolecularFormulaManipulator.getString(this.molFormula) + "\n\n");
         } else {
-            writer.println("; unknown molecular formula");
+            writer.println("; molecular formula: unknown \n\n");
         }
         for (int i = 0; i < this.mol.getAtomCount(); i++) {
             // set MULT section in LSD input file
             // set hybridization level
             if(this.mol.getAtom(i).getHybridization() == null){
-                hybrid = "X";
+                hybrid = "-";
             } else {
                 switch (this.mol.getAtom(i).getHybridization()) {
                     case SP1:
                     case S:
-                        hybrid = "1";
-                        break;
+                        hybrid = "1"; break;
                     case SP2:
-                        hybrid = "2";
-                        break;
+                        hybrid = "2"; break;
                     default:
                         hybrid = "3";
                 }
             }
             // set implicit proton number
             if(this.mol.getAtom(i).getImplicitHydrogenCount() == null){
-                protons = "X";
+                protons = "-";
             } else {
                 protons = String.valueOf(this.mol.getAtom(i).getImplicitHydrogenCount());
             }
             MULT += "MULT " + (i+1) + " " + this.mol.getAtom(i).getSymbol() + " " + hybrid + " " + protons;
-            if(this.mol.getAtom(i).getProperty(casekit.NMR.Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol())) != null){
-                MULT += ";\t" + this.mol.getAtom(i).getProperty(casekit.NMR.Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol()));
+            if(this.mol.getAtom(i).getProperty(Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol())) != null){
+                String hCount;
+                if(this.mol.getAtom(i).getImplicitHydrogenCount() == null){
+                    hCount = "x";
+                } else {
+                    hCount = String.valueOf(this.mol.getAtom(i).getImplicitHydrogenCount());
+                }
+                MULT += ";\t" + this.mol.getAtom(i).getProperty(Utils.getNMRShiftConstant(this.mol.getAtom(i).getSymbol())) + ",\t" + this.mol.getAtom(i).getSymbol() + "H" + hCount;
             }
             MULT += "\n";
             // set HSQC section in LSD input file
             if((this.mol.getAtom(i).getImplicitHydrogenCount() != null) && (this.mol.getAtom(i).getImplicitHydrogenCount() > 0)){
                 HSQC += "HSQC " + (i+1) + " " + (i+1) + ";\t" + this.mol.getAtom(i).getSymbol() + "H" + this.mol.getAtom(i).getImplicitHydrogenCount() + "\n";
-            }
-            // set BOND section in LSD input file from INADEQUATE
-            if (this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_INADEQUATE) != null) {
-                idxs = this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_INADEQUATE);
-                for (Integer idx : idxs) {
-                    if (bondTable[i][idx] == 0 && bondTable[idx][i] == 0) {
-                        bondTable[i][idx] = 1;
-                        BOND += "BOND " + (i+1) + " " + (idx+1) + ";\t" + this.mol.getAtom(i).getSymbol() + "H" + this.mol.getAtom(i).getImplicitHydrogenCount() + " - " + this.mol.getAtom(idx).getSymbol() + "H" + this.mol.getAtom(idx).getImplicitHydrogenCount() + "\n";
-                    }
-                }
-            }
-            // set BOND section in LSD input file from COSY
-            if(this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY) != null){
-                idxs = this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HHCOSY);
-                for (Integer idx : idxs) {
-                    if(bondTable[i][idx] == 0 && bondTable[idx][i] == 0){
-                        bondTable[i][idx] = 1;
-                        COSY += "COSY " + (i+1) + " " + (idx+1) + ";\t" + this.mol.getAtom(i).getSymbol() + "H" + this.mol.getAtom(i).getImplicitHydrogenCount() + " - " + this.mol.getAtom(idx).getSymbol() + "H" + this.mol.getAtom(idx).getImplicitHydrogenCount() + "\n";
-                    } else {
-                        COSY += ";COSY " + (i+1) + " " + (idx+1) + ";\t" + this.mol.getAtom(i).getSymbol() + "H" + this.mol.getAtom(i).getImplicitHydrogenCount() + " - " + this.mol.getAtom(idx).getSymbol() + "H" + this.mol.getAtom(idx).getImplicitHydrogenCount() + "\n";
-                    }
-                }
-            }
-            // set HMBC section in LSD input file
-            // sets only HMBC signals which are not represented by a bond
-            boolean test3JviaNextNeighborBond;
-            if (this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HMBC) != null) {
-                idxs = this.mol.getAtom(i).getProperty(CDKConstants.NMRSPECTYPE_2D_HMBC);
-                for (Integer idx : idxs) {
-                    if (bondTable[i][idx] == 0 && bondTable[idx][i] == 0) {
-                        test3JviaNextNeighborBond = false;
-                        for (IAtom neighbor : this.mol.getConnectedAtomsList(this.mol.getAtom(i))) {
-                            if(this.mol.getBond(neighbor, this.mol.getAtom(idx)) != null){
-                               test3JviaNextNeighborBond = true;
-                               break;
-                            }
-                        }
-                        if(test3JviaNextNeighborBond){
-                            HMBC += ";HMBC " + (idx+1) + " " + (i+1) + "; 3J\t\n";
-                        } else {
-                            HMBC += "HMBC " + (idx+1) + " " + (i+1) + ";\n";
-                        }
-                    } else {
-                        HMBC += ";HMBC " + (idx+1) + " " + (i+1) + "; 2J\t\n";
-                    }
-                }
-            }
+            }   
         }
         writer.println(MULT);
         writer.println(HSQC);
-        writer.println(BOND);
-        writer.println(COSY);
-        writer.println(HMBC);
         
+        // set BOND information in LSD input file by INADEQUATE
+        for (IBond bond : this.mol.bonds()) {
+            BOND += "BOND " + (bond.getAtom(0).getIndex()+1) + " " + (bond.getAtom(1).getIndex()+1) + ";\t" + this.mol.getAtom(bond.getAtom(0).getIndex()).getSymbol() + "H" + this.mol.getAtom(bond.getAtom(0).getIndex()).getImplicitHydrogenCount() + " - " + this.mol.getAtom(bond.getAtom(1).getIndex()).getSymbol() + "H" + this.mol.getAtom(bond.getAtom(1).getIndex()).getImplicitHydrogenCount() + "\n";
+        }
+        writer.println(BOND);
+             
+        // set HMBC information to LSD input file
+        ArrayList<Integer> indicesInAtomContainerDim1;
+        ArrayList<Integer> indicesInAtomContainerDim2;
+        final boolean [][] HMBCTable = new boolean[this.mol.getAtomCount()][this.mol.getAtomCount()];
+        for (int i = 0; i < this.mol.getAtomCount(); i++) {
+            for (int j = 0; j < this.mol.getAtomCount(); j++) {
+                HMBCTable[i][j] = false;
+            }
+        }
+        for (final Spectrum spectrum : this.getSpectra().values()) {
+            if((spectrum.getDimCount() != 2) || !spectrum.getSpecType().startsWith(CDKConstants.NMRSPECTYPE_2D_HMBC)){
+                continue;
+            }
+            indicesInAtomContainerDim1 = this.getAssignedAtomIndices(spectrum, 0);
+            indicesInAtomContainerDim2 = this.getAssignedAtomIndices(spectrum, 1);
+            HMBC += ";\t " + spectrum.getSpecType() + " " + Utils.getSpectrumNucleiAsString(spectrum) + "\n";                        
+            for (int i = 0; i < spectrum.getSignalCount(); i++) {
+                if((indicesInAtomContainerDim1.get(i) > -1) && (indicesInAtomContainerDim2.get(i) > -1)){
+                    // set signal only if it is not already covered by BOND
+                    // here reversed order (see LSD manual page): 1. heavy atom, 2. proton
+                    if(this.mol.getBond(this.mol.getAtom(indicesInAtomContainerDim2.get(i)), this.mol.getAtom(indicesInAtomContainerDim1.get(i))) != null){
+                        HMBC += ";";
+                    }
+                    HMBC += "HMBC " + (indicesInAtomContainerDim2.get(i) + 1) + " " + (indicesInAtomContainerDim1.get(i) + 1) + ";\t" + this.mol.getAtom(indicesInAtomContainerDim2.get(i)).getSymbol() + "H" + this.mol.getAtom(indicesInAtomContainerDim2.get(i)).getImplicitHydrogenCount() + " - " + this.mol.getAtom(indicesInAtomContainerDim1.get(i)).getSymbol() + "H" + this.mol.getAtom(indicesInAtomContainerDim1.get(i)).getImplicitHydrogenCount() + "\n";
+                    HMBCTable[indicesInAtomContainerDim2.get(i)][indicesInAtomContainerDim1.get(i)] = true;
+                }                   
+            }                            
+        }  
+        writer.println(HMBC);
+        // set COSY information to LSD input file
+        for (final Spectrum spectrum : this.getSpectra().values()) {
+            if((spectrum.getDimCount() != 2) || !spectrum.getSpecType().startsWith(CDKConstants.NMRSPECTYPE_2D_HHCOSY)){
+                continue;
+            }
+            indicesInAtomContainerDim1 = this.getAssignedAtomIndices(spectrum, 0);
+            indicesInAtomContainerDim2 = this.getAssignedAtomIndices(spectrum, 1);
+            COSY += ";\t " + spectrum.getSpecType() + " " + Utils.getSpectrumNucleiAsString(spectrum) + "\n";                        
+            for (int i = 0; i < spectrum.getSignalCount(); i++) {
+                if((indicesInAtomContainerDim1.get(i) > -1) && (indicesInAtomContainerDim2.get(i) > -1)){
+                    // set signal only if it is not already covered by BOND or HMBC
+                    if((this.mol.getBond(this.mol.getAtom(indicesInAtomContainerDim1.get(i)), this.mol.getAtom(indicesInAtomContainerDim2.get(i))) != null)
+                            || HMBCTable[indicesInAtomContainerDim1.get(i)][indicesInAtomContainerDim2.get(i)]){
+                        COSY += ";";
+                    }
+                    COSY += "COSY " + (indicesInAtomContainerDim1.get(i) + 1) + " " + (indicesInAtomContainerDim2.get(i) + 1) + ";\t" + this.mol.getAtom(indicesInAtomContainerDim1.get(i)).getSymbol() + "H" + this.mol.getAtom(indicesInAtomContainerDim1.get(i)).getImplicitHydrogenCount() + " - " + this.mol.getAtom(indicesInAtomContainerDim2.get(i)).getSymbol() + "H" + this.mol.getAtom(indicesInAtomContainerDim2.get(i)).getImplicitHydrogenCount() + "\n";                    
+                }                   
+            }                            
+        }  
+        writer.println(COSY);
+        // set filter definitions
         String DEFF = "";
         String FEXP = "";
         if(pathsToFilters.length > 0){

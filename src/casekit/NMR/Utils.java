@@ -890,10 +890,10 @@ public class Utils {
     }
     
     
-    public static void writeCSV(final String pathToOutput, final String table) throws IOException {
+    public static void writeTextFile(final String pathToOutput, final String content) throws IOException {
         FileWriter fr = new FileWriter(new File(pathToOutput));
         BufferedWriter br = new BufferedWriter(fr);
-        br.write(table);
+        br.write(content);
         br.close();
     }
     

@@ -75,15 +75,14 @@ public class Process extends ParseRawData {
      * @throws FileNotFoundException
      * @throws UnsupportedEncodingException
      */
-    public void createLSDFile(final String projectName, final String pathToOutputFile, final String[] pathsToFilters) throws FileNotFoundException, UnsupportedEncodingException{        
+    public void createLSDInputFile(final String projectName, final String pathToOutputFile, final String[] pathsToFilters) throws FileNotFoundException, UnsupportedEncodingException, IOException{        
       
-        final PrintWriter writer = new PrintWriter(pathToOutputFile, "UTF-8");
-        String hybrid, protons, MULT = "", HSQC = "", BOND = "", HMBC = "", COSY = "";       
-        writer.println("; " + projectName);
+        String wholeContent, hybrid, protons, MULT = "", HSQC = "", BOND = "", HMBC = "", COSY = "";       
+        wholeContent = "; project name: " + projectName + "\n";
         if(this.molFormula != null){
-            writer.println("; molecular formula: " + MolecularFormulaManipulator.getString(this.molFormula) + "\n\n");
+            wholeContent += "; molecular formula: " + MolecularFormulaManipulator.getString(this.molFormula) + "\n\n";
         } else {
-            writer.println("; molecular formula: unknown \n\n");
+            wholeContent += "; molecular formula: unknown \n\n";
         }
         for (int i = 0; i < this.mol.getAtomCount(); i++) {
             // set MULT section in LSD input file
@@ -123,14 +122,14 @@ public class Process extends ParseRawData {
                 HSQC += "HSQC " + (i+1) + " " + (i+1) + ";\t" + this.mol.getAtom(i).getSymbol() + "H" + this.mol.getAtom(i).getImplicitHydrogenCount() + "\n";
             }   
         }
-        writer.println(MULT);
-        writer.println(HSQC);
+        wholeContent += MULT + "\n";
+        wholeContent += HSQC + "\n";
         
         // set BOND information in LSD input file by INADEQUATE
         for (IBond bond : this.mol.bonds()) {
             BOND += "BOND " + (bond.getAtom(0).getIndex()+1) + " " + (bond.getAtom(1).getIndex()+1) + ";\t" + this.mol.getAtom(bond.getAtom(0).getIndex()).getSymbol() + "H" + this.mol.getAtom(bond.getAtom(0).getIndex()).getImplicitHydrogenCount() + " - " + this.mol.getAtom(bond.getAtom(1).getIndex()).getSymbol() + "H" + this.mol.getAtom(bond.getAtom(1).getIndex()).getImplicitHydrogenCount() + "\n";
         }
-        writer.println(BOND);
+        wholeContent += BOND + "\n";
              
         // set HMBC information to LSD input file
         ArrayList<Integer> indicesInAtomContainerDim1;
@@ -160,7 +159,7 @@ public class Process extends ParseRawData {
                 }                   
             }                            
         }  
-        writer.println(HMBC);
+        wholeContent += HMBC + "\n";
         // set COSY information to LSD input file
         for (final Spectrum spectrum : this.getSpectra().values()) {
             if((spectrum.getDimCount() != 2) || !spectrum.getSpecType().startsWith(CDKConstants.NMRSPECTYPE_2D_HHCOSY)){
@@ -180,7 +179,7 @@ public class Process extends ParseRawData {
                 }                   
             }                            
         }  
-        writer.println(COSY);
+        wholeContent += COSY + "\n";
         // set filter definitions
         String DEFF = "";
         String FEXP = "";
@@ -203,10 +202,10 @@ public class Process extends ParseRawData {
             FEXP += "\"";
         }
         
-        writer.println(DEFF);
-        writer.println(FEXP);
-        writer.close();
+        wholeContent += DEFF + "\n";
+        wholeContent += FEXP + "\n";
         
+        Utils.writeTextFile(pathToOutputFile, wholeContent);
     }
     
     

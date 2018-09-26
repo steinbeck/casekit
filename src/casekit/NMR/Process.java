@@ -27,12 +27,10 @@ import casekit.NMR.model.Spectrum;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import org.openscience.cdk.CDKConstants;
-import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomContainerSet;
 import org.openscience.cdk.interfaces.IBond;
@@ -242,14 +240,14 @@ public class Process extends ParseRawData {
                 if (shiftsDB == null) {
                     continue;
                 }
-                String[][] shiftsDBvalues = casekit.NMR.Utils.parseShiftsNMRShiftDB(shiftsDB);
+                String[][] shiftsDBvalues = casekit.NMR.Utils.parseShiftsInNMRShiftDBEntry(shiftsDB);
                 for (String[] shiftsDBvalue : shiftsDBvalues) {
                     atomIndexDB = Integer.parseInt(shiftsDBvalue[2]);
                     // sometimes the DB atom index is wrong and out of array range 
                     if (atomIndexDB > acDB.getAtomCount() - 1) {
                         continue;
                     }
-                    shiftDBDouble = Math.round(Double.parseDouble(shiftsDBvalue[0]) * stepSize) / (double) stepSize;;
+                    shiftDBDouble = Math.round(Double.parseDouble(shiftsDBvalue[0]) * stepSize) / (double) stepSize;
                     // if DB shift value out of min-max-range then skip this shift 
                     if(shiftDBDouble < minShift || shiftDBDouble > maxShift - 1){
                         continue;

@@ -29,6 +29,7 @@
 package casekit.NMR.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  *
@@ -191,7 +192,7 @@ public class Spectrum {
    }
    
    private boolean checkNuclei(final String[] nuclei){
-       return nuclei == this.getNuclei();
+       return Arrays.equals(nuclei, this.getNuclei());
    }
    
    /**

@@ -50,6 +50,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
+import org.openscience.cdk.depict.DepictionGenerator;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.graph.CycleFinder;
 import org.openscience.cdk.graph.Cycles;
@@ -653,7 +654,7 @@ public class Utils {
      * 1. dimension: shift entry (row); 
      * 2. dimension: shift value (column 1), atom index in atom container (column 2)
      */
-    public static String[][] parseShiftsNMRShiftDB(final String shiftsString){
+    public static String[][] parseShiftsInNMRShiftDBEntry(final String shiftsString){
         
         if(shiftsString.trim().length() == 0){
             return new String[][]{};
@@ -671,6 +672,31 @@ public class Utils {
         
         return values;
     }
+    
+    
+    public static void assignNMRShiftDBShiftsToAtomContainer(final IAtomContainer ac, final String spectrumPropertyString){
+                
+        // property string has to be changed for general case and not only "Spectrum 13C 0"
+        if (ac.getProperty(spectrumPropertyString) == null) {
+            return;
+        }
+        final String[][] spectrumStringArray = Utils.parseShiftsInNMRShiftDBEntry(ac.getProperty(spectrumPropertyString));
+        
+        int atomIndexSpectrumDB;
+        Double shiftDB;
+        for (int k = 0; k < ac.getAtomCount(); k++) {  
+            shiftDB = null;
+            for (int i = 0; i < spectrumStringArray.length; i++) {
+                atomIndexSpectrumDB = Integer.parseInt(spectrumStringArray[i][2]);                
+                if (atomIndexSpectrumDB == k) {
+                    shiftDB = Double.parseDouble(spectrumStringArray[i][0]);
+                    break;
+                }
+            }
+            ac.getAtom(k).setProperty(Utils.getNMRShiftConstant(ac.getAtom(k).getSymbol()), shiftDB);
+        }        
+    }
+    
     
     /**
      * Returns the NMR shift constant value for a given element. As far as 
@@ -895,6 +921,20 @@ public class Utils {
         BufferedWriter br = new BufferedWriter(fr);
         br.write(content);
         br.close();
+    }
+    
+    /**
+     * Simple function without any settings to generate a picture from a structure 
+     * given as IAtomcontainer.
+     *
+     * @param ac Atom container
+     * @param path Path to file for storing
+     * @throws IOException
+     * @throws CDKException
+     */
+    public static void generatePicture(IAtomContainer ac, String path) throws IOException, CDKException {        
+        final DepictionGenerator dg = new DepictionGenerator().withSize(1200, 1200).withAtomColors().withAtomValues().withFillToFit();
+        dg.depict(ac).writeTo(path);
     }
     
     

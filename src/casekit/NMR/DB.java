@@ -23,6 +23,7 @@
  */
 package casekit.NMR;
 
+import casekit.NMR.model.Signal;
 import casekit.NMR.model.Spectrum;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -36,7 +37,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import org.openscience.cdk.exception.CDKException;
-import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomContainerSet;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
@@ -50,7 +50,7 @@ import org.openscience.cdk.silent.SilentChemObjectBuilder;
 public class DB {
     
     /**
-     * Returns the molecules of a given NMRShiftDB file.
+     * Returns the molecules of a given MOL/SDF file.
      * This function sets the molecule aromaticity (with allowed exocyclic pi
      * bonds) by using the
      * {@link #setAromaticitiesInAtomContainer(org.openscience.cdk.interfaces.IAtomContainer, int)}
@@ -325,5 +325,90 @@ public class DB {
         }
 
         return spectra;
+    }
+    
+    
+    /**
+     * Creates a two dimensional array of a given NMRShiftDB NMR entry 
+     * with all shift values and atom indices.
+     *
+     * @param shiftsString
+     * @return two dimensional array: 
+     * 1. dimension: shift entry (row); 
+     * 2. dimension: shift value (column 1), atom index in atom container (column 2)
+     */
+    public static String[][] parseNMRShiftDBSpectrum(final String shiftsString){
+        
+        if(shiftsString.trim().isEmpty()){
+            return new String[][]{};
+        }
+        
+        String[] signalSplit;
+        final String[] shiftsSplit = shiftsString.split("\\|");
+        final String[][] values = new String[shiftsSplit.length][3];
+        for (int i = 0; i < shiftsSplit.length; i++) {
+            signalSplit = shiftsSplit[i].split(";");
+            values[i][0] = signalSplit[0];
+            values[i][1] = signalSplit[1];
+            values[i][2] = signalSplit[2];
+        }
+        
+        return values;
+    }
+    
+    /**
+     * Sets shifts and implicit hydrogen counts in atoms of an atom container 
+     * by means of given spectrum property string.
+     *
+     * @param ac IAtomContainer to set
+     * @param spectrumPropertyString Property string of spectrum in NMRShiftDB format.
+     * @return 
+     */
+    public static boolean setNMRShiftDBShiftsToAtomContainer(final IAtomContainer ac, final String spectrumPropertyString){
+                
+        if (ac.getProperty(spectrumPropertyString) == null) {
+            return false;
+        }
+        final String[][] spectrumStringArray = DB.parseNMRShiftDBSpectrum(ac.getProperty(spectrumPropertyString));
+        
+        int atomIndexSpectrumDB;
+        Integer multiplicity;
+        Double shift;
+        for (int k = 0; k < ac.getAtomCount(); k++) {  
+            shift = null;
+            multiplicity = null;
+            for (int i = 0; i < spectrumStringArray.length; i++) {
+                atomIndexSpectrumDB = Integer.parseInt(spectrumStringArray[i][2]);                
+                if (atomIndexSpectrumDB == k) {
+                    shift = Double.parseDouble(spectrumStringArray[i][0]);
+                    multiplicity = Utils.getHydrogenCountFromMultiplicity(spectrumStringArray[i][1].substring(spectrumStringArray[i][1].length() - 1));
+                    break;
+                }
+            }
+            ac.getAtom(k).setProperty(Utils.getNMRShiftConstant(ac.getAtom(k).getSymbol()), shift);
+            ac.getAtom(k).setImplicitHydrogenCount(multiplicity);
+        }        
+        
+        return true;
+    }
+    
+    
+    public static Spectrum NMRShiftDBSpectrumToSpectrum(final String NMRShiftDBSpectrum, final String atomType){
+        if ((NMRShiftDBSpectrum == null) || NMRShiftDBSpectrum.trim().isEmpty()) {
+            return null;
+        }
+        final String[][] spectrumStringArray = DB.parseNMRShiftDBSpectrum(NMRShiftDBSpectrum);
+        
+        final Spectrum spectrum = new Spectrum(new String[]{Utils.getIsotopeIdentifier(atomType)});
+        String multiplicity;
+        Double shift, intensity;
+        for (int i = 0; i < spectrumStringArray.length; i++) {
+            shift = Double.parseDouble(spectrumStringArray[i][0]);
+            multiplicity = spectrumStringArray[i][1].substring(spectrumStringArray[i][1].length() - 1);
+            intensity = Double.parseDouble(spectrumStringArray[i][1].substring(0, spectrumStringArray[i][1].length() - 1));
+            spectrum.addSignal(new Signal(new String[]{Utils.getIsotopeIdentifier(atomType)}, new Double[]{shift}, intensity, multiplicity));
+        }
+        
+        return spectrum;
     }
 }

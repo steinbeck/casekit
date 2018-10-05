@@ -240,7 +240,7 @@ public class Process extends ParseRawData {
                 if (shiftsDB == null) {
                     continue;
                 }
-                String[][] shiftsDBvalues = casekit.NMR.Utils.parseShiftsInNMRShiftDBEntry(shiftsDB);
+                String[][] shiftsDBvalues = casekit.NMR.DB.parseNMRShiftDBSpectrum(shiftsDB);
                 for (String[] shiftsDBvalue : shiftsDBvalues) {
                     atomIndexDB = Integer.parseInt(shiftsDBvalue[2]);
                     // sometimes the DB atom index is wrong and out of array range 

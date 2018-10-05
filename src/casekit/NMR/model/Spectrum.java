@@ -285,6 +285,23 @@ public class Spectrum {
        return true;
    }
    
+    public ArrayList<String> getMultiplicities() {
+        final ArrayList<String> multiplicities = new ArrayList<>();        
+        for (final Signal sig : this.signals) {
+            multiplicities.add(sig.getMultiplicity());
+        }
+
+        return multiplicities;
+    }
+
+    public String getMultiplicity(final int SignalIndex) {
+        if (!this.checkSignalIndex(SignalIndex)) {
+            return null;
+        }
+
+        return this.getSignal(SignalIndex).getMultiplicity();
+    }
+   
    public ArrayList<Signal> getSignals(){
        return this.signals;
    }

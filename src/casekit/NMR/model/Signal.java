@@ -67,6 +67,11 @@ public class Signal {
         this.intensity = intensity;
     }
     
+    public Signal(final String[] nuclei, final Double[] shifts, final Double intensity, final String multiplicity) {
+        this(nuclei, shifts, intensity);
+        this.multiplicity = multiplicity;
+    }
+    
     private Double[] initShifts(final Double[] shifts, final int nDim){
         final Double[] tempShifts = new Double[nDim];
         for (int d = 0; d < nDim; d++) {

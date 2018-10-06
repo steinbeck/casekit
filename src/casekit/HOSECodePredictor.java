@@ -7,6 +7,7 @@
 
 package casekit;
 
+import casekit.NMR.Utils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -14,7 +15,6 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.StringTokenizer;
 
 import org.apache.commons.cli.CommandLine;
@@ -274,20 +274,7 @@ public class HOSECodePredictor {
 	 */
 	void fixExplicitHydrogens(IAtomContainer ac)
 	{
-                List<IAtom> toRemoveList = new ArrayList<>();
-		IAtom atomB;
-		for (IAtom atomA : ac.atoms())
-		{
-			if (atomA.getAtomicNumber() == 1)
-			{
-				atomB = ac.getConnectedAtomsList(atomA).get(0);
-				atomB.setImplicitHydrogenCount(atomB.getImplicitHydrogenCount() +1 );
-				toRemoveList.add(atomA);
-			}
-		}
-                for (IAtom iAtom : toRemoveList) {
-                    ac.removeAtom(iAtom);
-                }
+                Utils.setExplicitToImplicitHydrogens(ac);
 	}
 	
 	private void parseArgs(String[] args) throws ParseException

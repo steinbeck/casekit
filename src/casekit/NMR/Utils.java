@@ -42,6 +42,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.w3c.dom.Document;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -604,6 +606,7 @@ public class Utils {
      * @param column Column number of shift values in peak table
      * @return Indices of matches for each shift within the IAtomContainer 
      * @throws IOException
+     * @deprecated 
      */
     public static ArrayList<Integer> matchShiftsFromPeakTable(final IAtomContainer ac, final String pathToPeakList, final String atomType, final double tol, final int column) throws IOException {
 
@@ -634,6 +637,7 @@ public class Utils {
      * @throws IOException
      * @throws javax.xml.parsers.ParserConfigurationException
      * @throws org.xml.sax.SAXException
+     * @deprecated
      */
     public static ArrayList<Integer> matchShiftsFromXML(final IAtomContainer ac, final String pathToXML, final String atomType, final double tol, final int ndim, final int attribute) throws IOException, ParserConfigurationException, SAXException {
 
@@ -645,56 +649,36 @@ public class Utils {
     }
     
     
-    /**
-     * Creates a two dimensional array of a given NMRShiftDB NMR entry 
-     * with all shift values and atom indices.
-     *
-     * @param shiftsString
-     * @return two dimensional array: 
-     * 1. dimension: shift entry (row); 
-     * 2. dimension: shift value (column 1), atom index in atom container (column 2)
-     */
-    public static String[][] parseShiftsInNMRShiftDBEntry(final String shiftsString){
+    public static Integer getHydrogenCountFromMultiplicity(final String mult){
         
-        if(shiftsString.trim().length() == 0){
-            return new String[][]{};
+        switch(mult){
+            case "Q": 
+                return 3;
+            case "T": 
+                return 2;
+            case "D": 
+                return 1;
+            case "S": 
+                return 0;
+            default: 
+                return null;
         }
-        
-        String[] signalSplit;
-        final String[] shiftsSplit = shiftsString.split("\\|");
-        final String[][] values = new String[shiftsSplit.length][3];
-        for (int i = 0; i < shiftsSplit.length; i++) {
-            signalSplit = shiftsSplit[i].split(";");
-            values[i][0] = signalSplit[0];
-            values[i][1] = signalSplit[1];
-            values[i][2] = signalSplit[2];
-        }
-        
-        return values;
     }
     
     
-    public static void assignNMRShiftDBShiftsToAtomContainer(final IAtomContainer ac, final String spectrumPropertyString){
-                
-        // property string has to be changed for general case and not only "Spectrum 13C 0"
-        if (ac.getProperty(spectrumPropertyString) == null) {
-            return;
+    public static String getMultiplicityFromHydrogenCount(final int hCount) {
+        switch (hCount) {
+            case 0:
+                return "S";
+            case 1:
+                return "D";
+            case 2:
+                return "T";
+            case 3:
+                return "Q";
+            default:
+                return null;
         }
-        final String[][] spectrumStringArray = Utils.parseShiftsInNMRShiftDBEntry(ac.getProperty(spectrumPropertyString));
-        
-        int atomIndexSpectrumDB;
-        Double shiftDB;
-        for (int k = 0; k < ac.getAtomCount(); k++) {  
-            shiftDB = null;
-            for (int i = 0; i < spectrumStringArray.length; i++) {
-                atomIndexSpectrumDB = Integer.parseInt(spectrumStringArray[i][2]);                
-                if (atomIndexSpectrumDB == k) {
-                    shiftDB = Double.parseDouble(spectrumStringArray[i][0]);
-                    break;
-                }
-            }
-            ac.getAtom(k).setProperty(Utils.getNMRShiftConstant(ac.getAtom(k).getSymbol()), shiftDB);
-        }        
     }
     
     
@@ -714,7 +698,7 @@ public class Utils {
             case "N": return CDKConstants.NMRSHIFT_NITROGEN;
             case "P": return CDKConstants.NMRSHIFT_PHOSPORUS;
             case "F": return CDKConstants.NMRSHIFT_FLUORINE;
-            case "S": return CDKConstants.NMRSHIFT_SULFUR;
+//            case "S": return CDKConstants.NMRSHIFT_SULFUR;
             default:
                 return null;
         }
@@ -800,6 +784,12 @@ public class Utils {
     }
     
     
+    public static boolean checkMinMaxValue(final int min, final int max, final int value){
+        
+        return (value >= min || value <= max);
+    }
+    
+    
     public static int[] getNeighborhoodBondsCount(final IAtomContainer ac, final int indexAC, final String[] bondsSet, final ArrayList<String> neighborElems){
         final int[] counts = new int[neighborElems.size() * bondsSet.length];
         String foundBonds;
@@ -825,7 +815,7 @@ public class Utils {
         
         return counts;
     }
-    
+        
     
     public static void writeNeighborhoodBondsCountMatrix(final String pathToOutput, final int[][] m, final String[] bondsSet, final String elem, final ArrayList<String> neighborElems, final int min, final int max, final int stepSize) throws IOException{
         
@@ -933,7 +923,7 @@ public class Utils {
      * @throws CDKException
      */
     public static void generatePicture(IAtomContainer ac, String path) throws IOException, CDKException {        
-        final DepictionGenerator dg = new DepictionGenerator().withSize(1200, 1200).withAtomColors().withAtomValues().withFillToFit();
+        final DepictionGenerator dg = new DepictionGenerator().withSize(1200, 1200).withAtomColors().withFillToFit().withAtomNumbers();
         dg.depict(ac).writeTo(path);
     }
     
@@ -1004,24 +994,6 @@ public class Utils {
         } else {
             return (data.get(data.size() / 2 - 1) + data.get(data.size() / 2)) / 2.0;
         }
-    }
-    
-    
-    /**
-     *
-     * @param data
-     * @return
-     */
-    public static double getRMS(final ArrayList<Double> data) {
-        if(data.size() == 1){
-            return data.get(0);
-        }
-        double qSum = 0;
-        for (final Double d : data) {
-            qSum += d*d;
-        }
-        
-        return Math.sqrt(qSum/data.size());
     }
     
     
@@ -1103,7 +1075,26 @@ public class Utils {
         return split[split.length - 1];
     }
    
-    
+
+    /**
+     *
+     * @param data
+     * @return
+     */
+    public static Double getRMS(final ArrayList<Double> data) {
+        if(data.isEmpty()){
+            return null;
+        }
+        if (data.size() == 1) {
+            return data.get(0);
+        }
+        double qSum = 0;
+        for (final Double d : data) {
+            qSum += d * d;
+        }
+
+        return Math.sqrt(qSum / data.size());
+    }
     
     
     /**
@@ -1116,11 +1107,45 @@ public class Utils {
         final HashMap<String, Double> rms = new HashMap<>();
         for (final String key : lookup.keySet()) {
             rms.put(key, casekit.NMR.Utils.getRMS(lookup.get(key)));
-//            System.out.println("count: " + lookup.get(key).size() + ", mean: " + NMR.Utils.getMean(lookup.get(key)) + ", rms: " +  rms.get(key) + ", median: " + NMR.Utils.getMedian(lookup.get(key)));
         }
       
         return rms;
     }
+    
+    
+    public static void combineHashMaps(final HashMap<String, ArrayList<Double>> hoseLookupToKeep, final HashMap<String, ArrayList<Double>> hoseLookup){
+        
+        for (String hose : hoseLookup.keySet()) {
+            if(!hoseLookupToKeep.containsKey(hose)){
+                hoseLookupToKeep.put(hose, new ArrayList<>());
+            }
+            hoseLookupToKeep.get(hose).addAll(hoseLookup.get(hose));
+        }        
+    } 
+    
+    
+    /**
+     *
+     * @param ac
+     */
+    public static void setExplicitToImplicitHydrogens(final IAtomContainer ac){
+        final List<IAtom> toRemoveList = new ArrayList<>();
+        IAtom atomB;
+        for (final IAtom atomA : ac.atoms()) {
+            if (atomA.getAtomicNumber() == 1) {
+                atomB = ac.getConnectedAtomsList(atomA).get(0);
+                if(atomB.getImplicitHydrogenCount() == null){
+                    atomB.setImplicitHydrogenCount(0);
+                }
+                atomB.setImplicitHydrogenCount(atomB.getImplicitHydrogenCount() + 1);
+                toRemoveList.add(atomA);
+            }
+        }
+        for (final IAtom iAtom : toRemoveList) {
+            ac.removeAtom(iAtom);
+        }
+    }
+    
     
     public static IAtomContainer setAromaticitiesInAtomContainer(final IAtomContainer ac, final int maxCycleSize) throws CDKException {
         
@@ -1178,6 +1203,19 @@ public class Utils {
         }
         
         return specID;
+    }
+    
+    
+    public static ExecutorService initExecuter(final int nThreads) {
+        return Executors.newFixedThreadPool(nThreads);
+    }
+
+    public static void stopExecuter(final ExecutorService executor) {
+        executor.shutdown();
+        if (!executor.isTerminated()) {
+            System.err.println("killing non-finished tasks");
+        }
+        executor.shutdownNow();
     }
     
     

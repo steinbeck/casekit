@@ -44,6 +44,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.w3c.dom.Document;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -784,9 +787,9 @@ public class Utils {
     }
     
     
-    public static boolean checkMinMaxValue(final int min, final int max, final int value){
+    public static boolean checkMinMaxValue(final double min, final double max, final double value){
         
-        return (value >= min || value <= max);
+        return (value >= min && value <= max);
     }
     
     
@@ -1002,12 +1005,36 @@ public class Utils {
      * @param data
      * @return
      */
-    public static double getMean(final ArrayList<Double> data) {
+    public static Double getMean(final ArrayList<Double> data) {
         double sum = 0;
-        for (Double d : data) {
-            sum += d;
+        int nullCounter = 0;
+        for (final Double d : data) {
+            if(d != null){
+                sum += d;
+            } else {
+                nullCounter++;
+            }
         }
-        return sum/data.size();
+        return ((data.size() - nullCounter) != 0) ? (sum/(data.size() - nullCounter)) : null;
+    }
+    
+    
+    /**
+     *
+     * @param data
+     * @return
+     */
+    public static Double getMean(final Double[] data) {
+        double sum = 0;
+        int nullCounter = 0;
+        for (final Double d : data) {
+            if(d != null){
+                sum += d;
+            } else {
+                nullCounter++;
+            }
+        }
+        return ((data.length - nullCounter) != 0) ? (sum/(data.length - nullCounter)) : null;
     }
     
     
@@ -1088,12 +1115,17 @@ public class Utils {
         if (data.size() == 1) {
             return data.get(0);
         }
+        int nullCounter = 0;
         double qSum = 0;
         for (final Double d : data) {
-            qSum += d * d;
+            if(d != null){
+                qSum += d * d;
+            } else {
+                nullCounter++;
+            }
         }
 
-        return Math.sqrt(qSum / data.size());
+        return ((data.size() - nullCounter) != 0) ? Math.sqrt(qSum / (data.size() - nullCounter)) : null;
     }
     
     
@@ -1105,15 +1137,19 @@ public class Utils {
     public static HashMap<String, Double> getRMS(final HashMap<String, ArrayList<Double>> lookup){
         
         final HashMap<String, Double> rms = new HashMap<>();
+        Double rmsInList;
         for (final String key : lookup.keySet()) {
-            rms.put(key, casekit.NMR.Utils.getRMS(lookup.get(key)));
+            rmsInList = Utils.getRMS(lookup.get(key));
+            if(rmsInList != null) {
+                rms.put(key, rmsInList);
+            }
         }
       
         return rms;
     }
     
     
-    public static void combineHashMaps(final HashMap<String, ArrayList<Double>> hoseLookupToKeep, final HashMap<String, ArrayList<Double>> hoseLookup){
+    public static Void combineHashMaps(final HashMap<String, ArrayList<Double>> hoseLookupToKeep, final HashMap<String, ArrayList<Double>> hoseLookup){
         
         for (String hose : hoseLookup.keySet()) {
             if(!hoseLookupToKeep.containsKey(hose)){
@@ -1121,6 +1157,7 @@ public class Utils {
             }
             hoseLookupToKeep.get(hose).addAll(hoseLookup.get(hose));
         }        
+        return null;
     } 
     
     
@@ -1211,11 +1248,17 @@ public class Utils {
     }
 
     public static void stopExecuter(final ExecutorService executor) {
-        executor.shutdown();
-        if (!executor.isTerminated()) {
-            System.err.println("killing non-finished tasks");
+        try {
+            executor.shutdown();
+            executor.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            System.err.println("termination interrupted");
+        } finally {
+            if (!executor.isTerminated()) {
+                System.err.println("killing non-finished tasks");
+            }
+            executor.shutdownNow();
         }
-        executor.shutdownNow();
     }
     
     
@@ -1223,130 +1266,6 @@ public class Utils {
     // test functions -> not ready to use
     
     
-    
-    
-     /**
-     * Returns 
-     *
-     * @param values
-     * @return
-     */
-    public static HashMap<Integer, Double> getValueFrequencies(final ArrayList<Integer> values) {
-        
-        final HashMap<Integer, Double> freqs = new HashMap<>();
-        final HashSet<Integer> valueLevels = new HashSet<>(values);
-        int sum = 0;
-        for (int value : valueLevels) {
-            sum += Collections.frequency(values, value);
-        }
-        for (int value : valueLevels) {            
-            freqs.put(value, (Collections.frequency(values, value) / (double) sum));
-        }
-        
-        return freqs;
-    }
-    
-
-        /**
-     * Returns a list of open bonds of an atom.
-     *
-     * @param ac atom container
-     * @param atomIndex index of the atom to test
-     * @return
-     */
-    public static ArrayList<IBond.Order> getOpenBonds(final IAtomContainer ac, final int atomIndex) {
-
-        final IAtom atom = ac.getAtom(atomIndex);
-        if (atom.getHybridization() == null) {
-            return null;
-        }
-        final ArrayList<IBond.Order> bondOrderList = new ArrayList<>();
-        final AtomValenceDescriptor valenceDesc = new AtomValenceDescriptor();
-        final int valence = Integer.valueOf(valenceDesc.calculate(atom, ac).getValue().toString());
-        int electronsLeft = (8 - (valence + atom.getImplicitHydrogenCount()));
-
-        if (electronsLeft == 0) {
-//            System.out.println(atom.getSymbol() + ": " + atomIndex + " (" + atom.getHybridization() + "): " + bondOrderList);
-            return bondOrderList;
-        }
-        // only one single bond left; possible at SP1, SP2 and SP3
-        if (electronsLeft == 1) {
-            bondOrderList.add(IBond.Order.SINGLE);
-//            System.out.println(atom.getSymbol() + ": " + atomIndex + " (" + atom.getHybridization() + "): " + bondOrderList);
-            return bondOrderList;
-        }
-        // with SP3 are only single bonds possible
-        if (atom.getHybridization().equals(IAtomType.Hybridization.SP3)) {
-            // subtract the single bonded neighbor number
-            electronsLeft -= ac.getConnectedAtomsList(atom).size();
-            for (int k = 0; k < electronsLeft; k++) {
-                bondOrderList.add(IBond.Order.SINGLE);
-            }
-//            System.out.println(atom.getSymbol() + ": " + atomIndex + " (" + atom.getHybridization() + "): " + bondOrderList);
-            return bondOrderList;
-        }
-
-        if (atom.getHybridization().equals(IAtomType.Hybridization.SP2)) {
-            switch (atom.getSymbol()) {
-                case "O":
-                case "S":
-                    bondOrderList.add(IBond.Order.DOUBLE);
-                    return bondOrderList;
-                case "C":
-                    bondOrderList.add(IBond.Order.SINGLE);
-                    bondOrderList.add(IBond.Order.SINGLE);
-                    bondOrderList.add(IBond.Order.DOUBLE);
-                    break;
-                case "N":
-                    bondOrderList.add(IBond.Order.SINGLE);
-                    bondOrderList.add(IBond.Order.DOUBLE);
-                    break;
-                default:
-                    break;
-            }
-        } else if (atom.getHybridization().equals(IAtomType.Hybridization.SP1)) {
-            switch (atom.getSymbol()) {
-                case "C":
-                    bondOrderList.add(IBond.Order.DOUBLE);
-                    bondOrderList.add(IBond.Order.DOUBLE);
-                    // or
-                    bondOrderList.add(IBond.Order.SINGLE);
-                    bondOrderList.add(IBond.Order.TRIPLE);
-                    break;
-                case "N":
-                    bondOrderList.add(IBond.Order.TRIPLE);
-                    break;
-                default:
-                    break;
-            }
-        }
-        for (IAtom neighbor : ac.getConnectedAtomsList(atom)) {
-            bondOrderList.remove(ac.getBond(atom, neighbor).getOrder());
-            electronsLeft -= casekit.NMR.Utils.getElectronNumberByBondOrder(ac.getBond(atom, neighbor).getOrder());
-        }
-
-        int theoCounter = 0;
-        for (IBond.Order order : bondOrderList) {
-            theoCounter += casekit.NMR.Utils.getElectronNumberByBondOrder(order);
-        }
-
-        switch (Math.abs(theoCounter - electronsLeft)) {
-            case 1:
-                bondOrderList.remove(IBond.Order.SINGLE);
-                theoCounter -= 1;
-                break;
-            case 2:
-
-                break;
-            case 3:
-
-                break;
-        }
-
-//        System.out.println(atom.getSymbol() + ": " + atomIndex + " (" + atom.getHybridization() + "): " + bondOrderList + " -> e: " + theoCounter + " (theo) vs. " + electronsLeft + " (real), bond counter: " + ac.getConnectedAtomsList(atom).size() + " (+" + atom.getImplicitHydrogenCount() + "H)");
-        return bondOrderList;
-    }
-  
         /**
      * Returns a bond type for two bond atoms from its hybridization.
      * CURRENTLY ONLY SINGLE BOND DETECTION POSSIBLE!!!

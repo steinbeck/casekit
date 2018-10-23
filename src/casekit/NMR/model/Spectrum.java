@@ -127,12 +127,7 @@ public class Spectrum {
      * @return 
     */
    public boolean addSignal(final Signal signal) {
-       if(!this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())){
-           return false;
-       }
-       this.addSignal(signal, null);
-       
-       return true;
+       return this.addSignal(signal, null);       
    }
    
    /**
@@ -179,6 +174,12 @@ public class Spectrum {
        return (signalIndex != null) && (signalIndex >= 0) && (signalIndex < this.getSignalCount());
    }
    
+    /**
+     * Checks whether the input dimension exists in this spectrum or not.
+     *
+     * @param dim
+     * @return
+     */
    public boolean checkDimension(final int dim){
        return (dim >= 0) && (dim < this.nDim);
    }
@@ -318,11 +319,11 @@ public class Spectrum {
        return this.equivalences.get(signalIndex);
    }
    
-   public boolean setEquivalence(final int signalIndex, final int equivalentSignalIndex){
-       if(!this.checkSignalIndex(signalIndex) || !this.checkSignalIndex(equivalentSignalIndex)){
+   public boolean setEquivalence(final int signalIndex, final int isEquivalentToSignalIndex){
+       if(!this.checkSignalIndex(signalIndex) || !this.checkSignalIndex(isEquivalentToSignalIndex)){
            return false;
        }
-       this.equivalences.set(signalIndex, equivalentSignalIndex);
+       this.equivalences.set(signalIndex, isEquivalentToSignalIndex);
        
        return true;
    }

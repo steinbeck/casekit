@@ -236,7 +236,7 @@ public class Process extends ParseRawData {
         for (int k = 0; k < acSet.getAtomContainerCount(); k++) {
             acDB = acSet.getAtomContainer(k);
             // for all DB entries containing a spectrum for the current query atom type
-            for (final String shiftsDB : casekit.NMR.DB.getSpectraFromNMRShiftDBEntry(acDB, elem)) {
+            for (final String shiftsDB : DB.getNMRShiftDBSpectra(acDB, elem)) {
                 if (shiftsDB == null) {
                     continue;
                 }

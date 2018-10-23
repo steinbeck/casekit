@@ -651,7 +651,12 @@ public class Utils {
         return matchesAtomType;
     }
     
-    
+    /**
+     * Specified for carbons only -> not generic!!!
+     *
+     * @param mult
+     * @return
+     */
     public static Integer getHydrogenCountFromMultiplicity(final String mult){
         
         switch(mult){
@@ -668,7 +673,12 @@ public class Utils {
         }
     }
     
-    
+    /**
+     * Specified for carbons only -> not generic!!!
+     *
+     * @param hCount
+     * @return
+     */
     public static String getMultiplicityFromHydrogenCount(final int hCount) {
         switch (hCount) {
             case 0:
@@ -1247,16 +1257,15 @@ public class Utils {
         return Executors.newFixedThreadPool(nThreads);
     }
 
-    public static void stopExecuter(final ExecutorService executor) {
+    public static void stopExecuter(final ExecutorService executor, final long seconds) {      
+        executor.shutdown();
         try {
-            executor.shutdown();
-            executor.awaitTermination(10, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            System.err.println("termination interrupted");
-        } finally {
-            if (!executor.isTerminated()) {
-                System.err.println("killing non-finished tasks");
+            if (!executor.awaitTermination(seconds, TimeUnit.SECONDS)) {
+                System.err.println("killing non-finished tasks!");
+                executor.shutdownNow();
             }
+        } catch (InterruptedException e) {
+            System.err.println("killing non-finished tasks!");
             executor.shutdownNow();
         }
     }

@@ -314,7 +314,7 @@ public class DB {
     }
     
     
-    public static ArrayList<String> getSpectraFromNMRShiftDBEntry(final IAtomContainer ac, final String elem) {
+    public static ArrayList<String> getNMRShiftDBSpectra(final IAtomContainer ac, final String elem) {
 
         ArrayList<String> props = (ArrayList<String>) (ArrayList<?>) (new ArrayList<>(ac.getProperties().keySet()));
         final ArrayList<String> spectra = new ArrayList<>();
@@ -361,15 +361,15 @@ public class DB {
      * by means of given spectrum property string.
      *
      * @param ac IAtomContainer to set
-     * @param spectrumPropertyString Property string of spectrum in NMRShiftDB format.
+     * @param NMRShiftDBSpectrum Property string of spectrum in NMRShiftDB format.
      * @return 
      */
-    public static boolean setNMRShiftDBShiftsToAtomContainer(final IAtomContainer ac, final String spectrumPropertyString){
+    public static boolean setNMRShiftDBShiftsToAtomContainer(final IAtomContainer ac, final String NMRShiftDBSpectrum){
                 
-        if (ac.getProperty(spectrumPropertyString) == null) {
+        if (ac.getProperty(NMRShiftDBSpectrum) == null) {
             return false;
         }
-        final String[][] spectrumStringArray = DB.parseNMRShiftDBSpectrum(ac.getProperty(spectrumPropertyString));
+        final String[][] spectrumStringArray = DB.parseNMRShiftDBSpectrum(ac.getProperty(NMRShiftDBSpectrum));
         
         int atomIndexSpectrumDB;
         Integer multiplicity;

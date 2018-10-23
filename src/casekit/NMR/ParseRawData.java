@@ -31,6 +31,7 @@ import java.util.HashMap;
 import javax.xml.parsers.ParserConfigurationException;
 import org.openscience.cdk.Atom;
 import org.openscience.cdk.CDKConstants;
+import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomType;
@@ -213,8 +214,9 @@ public class ParseRawData {
      * 
      * @param spectrum Spectrum class object containing the 1D shift information
      * @throws java.io.IOException
+     * @throws org.openscience.cdk.exception.CDKException
      */
-    public final void assign1DSpectrum(final Spectrum spectrum) throws IOException{
+    public final void assign1DSpectrum(final Spectrum spectrum) throws IOException, CDKException{
         // checks whether number of signals is equal to molecular formula if given
         // if not equal then edit signal list in spectrum
         this.check1DSpectrum(spectrum);
@@ -239,12 +241,12 @@ public class ParseRawData {
      * @throws IOException
      * @see Utils#editSignalsInSpectrum(casekit.NMR.model.Spectrum, org.openscience.cdk.interfaces.IMolecularFormula) 
      */
-    private void check1DSpectrum(final Spectrum spectrum) throws IOException{
+    private void check1DSpectrum(final Spectrum spectrum) throws IOException, CDKException{
         if(this.molFormula != null){
-            final int diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, this.molFormula);
+            final int diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, this.molFormula, 0);
             if (diff != 0) {
                 // adjust Spectrum size by user
-                Utils.editSignalsInSpectrum(spectrum, this.molFormula);
+                Utils.editSignalsInSpectrum(spectrum, this.molFormula, 0);
             }
         } 
     }

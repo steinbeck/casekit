@@ -34,13 +34,11 @@ public class Assignment {
     final int nDim;
     final String[] nuclei;
     final int[][] assignments;
-    final int[][] counts;
 
     public Assignment(final Spectrum spectrum) {
         this.nuclei = spectrum.getNuclei();
         this.nDim = this.nuclei.length;
         this.assignments = this.initAssignments(this.nDim, spectrum.getSignalCount());
-        this.counts = this.initCounts(this.nDim, spectrum.getSignalCount());
     }
     
     private int[][] initAssignments(final int nDim, final int nSignal){
@@ -53,43 +51,7 @@ public class Assignment {
         
         return temp;
     }
-    
-    private int[][] initCounts(final int nDim, final int nSignal){
-        final int[][] temp = new int[nDim][nSignal];
-        for (int i = 0; i < nDim; i++) {
-            for (int j = 0; j < nSignal; j++) {
-                temp[i][j] = 0;
-            }
-        }
-        
-        return temp;
-    }
-    
-    public boolean setCount(final int dim, final int indexInSpectrum, final int newCountValue){
-        if(!this.checkDimension(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
-            return false;
-        }
-        this.counts[dim][indexInSpectrum] = newCountValue;
-        
-        return true;
-    }
-    
-    public Integer getCount(final int dim, final int indexInSpectrum){
-        if(!this.checkDimension(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
-            return null;
-        }
-
-        return this.counts[dim][indexInSpectrum];
-    }
-    
-    public int[] getCounts(final int dim){
-        if(!this.checkDimension(dim)){
-            return null;
-        }
-
-        return this.counts[dim];
-    }
-    
+ 
     public boolean setAssignment(final int dim, final int indexInSpectrum, final int indexInAtomContainer){
         if(!this.checkDimension(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
             return false;

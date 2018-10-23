@@ -87,5 +87,11 @@
             <artifactId>cdk-silent</artifactId>
             <version>2.2-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.openscience.cdk</groupId>
+            <artifactId>cdk-standard</artifactId>
+            <version>2.2-SNAPSHOT</version>
+            <type>jar</type>
+        </dependency>
     </dependencies>
 </project>

@@ -358,19 +358,22 @@ public class Utils {
         return null;
     }
     
-    public static int getDifferenceSpectrumSizeAndMolecularFormulaCount(final Spectrum spectrum, final IMolecularFormula molformula){
-        final String atomType = Utils.getAtomTypeFromSpectrum(spectrum, 0);
+    public static int getDifferenceSpectrumSizeAndMolecularFormulaCount(final Spectrum spectrum, final IMolecularFormula molFormula, final int dim) throws CDKException{
+        if(!spectrum.checkDimension(dim)){
+            throw new CDKException(Thread.currentThread().getStackTrace()[2].getClassName() + "." + Thread.currentThread().getStackTrace()[2].getMethodName() + ": invalid dimension in spectrum given");
+        }
+        final String atomType = Utils.getAtomTypeFromSpectrum(spectrum, dim);
         int atomsInMolFormula = 0;
-        if(molformula != null){
-            atomsInMolFormula = MolecularFormulaManipulator.getElementCount(molformula, atomType);
+        if(molFormula != null){
+            atomsInMolFormula = MolecularFormulaManipulator.getElementCount(molFormula, atomType);
         }
         return atomsInMolFormula - spectrum.getSignalCount();
     }
     
-    public static void editSignalsInSpectrum(final Spectrum spectrum, final IMolecularFormula molFormula) throws IOException {
+    public static void editSignalsInSpectrum(final Spectrum spectrum, final IMolecularFormula molFormula, final int dim) throws IOException, CDKException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in)); int n;
         final ArrayList<Integer> validIndices = new ArrayList<>();
-        int diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, molFormula);
+        int diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, molFormula, dim);
         // walk through all signals in spectrum add missing or to remove signals
         while (diff != 0) {
             // display all selectable signal indices in spectrum
@@ -400,7 +403,7 @@ public class Utils {
             } else {
                 spectrum.removeSignal(validIndices.indexOf(n));
             }
-            diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, molFormula);
+            diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, molFormula, dim);
         }
     }
     

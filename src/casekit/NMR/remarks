@@ -13,5 +13,4 @@ coding:
             -> no. of assigned protons (HSQC, HMBC, ...) vs. DEPT information and for other heavy atoms too
             -> how many protons for one shift value (carbons or other heavy atoms) are still left?
         -   some function descriptions (javadoc) are deprecated and have to be updated
--   in Assignment class:
-        -   new: addition of counts array as class member and functions for that
+-   add exceptions where needed

@@ -67,6 +67,7 @@ import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.io.SDFWriter;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
 import org.openscience.cdk.qsar.descriptors.atomic.AtomValenceDescriptor;
+import org.openscience.cdk.silent.Atom;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
@@ -662,6 +663,10 @@ public class Utils {
      */
     public static Integer getHydrogenCountFromMultiplicity(final String mult){
         
+        if(mult == null){
+            System.out.println("null!!!");
+            return null;
+        }
         switch(mult){
             case "Q": 
                 return 3;
@@ -672,6 +677,7 @@ public class Utils {
             case "S": 
                 return 0;
             default: 
+                System.out.println("unknown symbol!!");
                 return null;
         }
     }
@@ -1255,6 +1261,9 @@ public class Utils {
         return specID;
     }
     
+    public static boolean checkIndexInAtomContainer(final IAtomContainer ac, final int atomIndex){
+        return ((atomIndex >= 0) && atomIndex < ac.getAtomCount());
+    }    
     
     public static ExecutorService initExecuter(final int nThreads) {
         return Executors.newFixedThreadPool(nThreads);

@@ -31,7 +31,7 @@ package casekit.NMR.model;
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Signal {
+public class Signal implements Cloneable {
     
     private final int nDim;
 
@@ -150,4 +150,8 @@ public class Signal {
         return signalClone;
     }
     
+    @Override
+    public Signal clone() throws CloneNotSupportedException{
+        return (Signal) super.clone();
+    }
 }

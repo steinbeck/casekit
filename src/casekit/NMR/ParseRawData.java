@@ -386,13 +386,13 @@ public class ParseRawData {
         final Assignment assignment1D_13C = this.getAssignment(this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_13C"));
                
         for (int i = 0; i < assignment1D_DEPT90.getAssignmentsCount(); i++) {            
-            if (assignment1D_13C.getAssignment(0, matchesIn1DSpectrum_DEPT90.get(i)) >= 0) {
-                assignment1D_DEPT90.setAssignment(0, i, assignment1D_13C.getAssignment(0, matchesIn1DSpectrum_DEPT90.get(i)));
+            if (assignment1D_13C.getAtomIndex(0, matchesIn1DSpectrum_DEPT90.get(i)) >= 0) {
+                assignment1D_DEPT90.setAssignment(0, i, assignment1D_13C.getAtomIndex(0, matchesIn1DSpectrum_DEPT90.get(i)));
             }
         }
         for (int i = 0; i < assignment1D_DEPT135.getAssignmentsCount(); i++) {            
-            if (assignment1D_13C.getAssignment(0, matchesIn1DSpectrum_DEPT135.get(i)) >= 0) {
-                assignment1D_DEPT135.setAssignment(0, i, assignment1D_13C.getAssignment(0, matchesIn1DSpectrum_DEPT135.get(i)));
+            if (assignment1D_13C.getAtomIndex(0, matchesIn1DSpectrum_DEPT135.get(i)) >= 0) {
+                assignment1D_DEPT135.setAssignment(0, i, assignment1D_13C.getAtomIndex(0, matchesIn1DSpectrum_DEPT135.get(i)));
             }
         }
         
@@ -511,9 +511,9 @@ public class ParseRawData {
             
             for (int i = 0; i < assignment2D_HSQC.getAssignmentsCount(); i++) {
                 // if heavy atom i has an assignment in class atom container then assign that index i to belonging protons as index
-                if (assignment2D_HSQC.getAssignment(1, i) >= 0) {
-                    assignment1D_1H.setAssignment(0, matchesIn1DSpectrum_1H.get(i), assignment2D_HSQC.getAssignment(1, i));  
-                    assignment2D_HSQC.setAssignment(0, i, assignment1D_1H.getAssignment(0, matchesIn1DSpectrum_1H.get(i)));
+                if (assignment2D_HSQC.getAtomIndex(1, i) >= 0) {
+                    assignment1D_1H.setAssignment(0, matchesIn1DSpectrum_1H.get(i), assignment2D_HSQC.getAtomIndex(1, i));  
+                    assignment2D_HSQC.setAssignment(0, i, assignment1D_1H.getAtomIndex(0, matchesIn1DSpectrum_1H.get(i)));
                 }
             }
         }
@@ -521,11 +521,11 @@ public class ParseRawData {
         if(!spectrum.getNuclei()[1].equals("13C")){
             final Assignment assignment2D_HSQC = this.getAssignments().get(spectrum.getSpecType() + "_" + Utils.getSpectrumNucleiAsString(spectrum));
             for (int i = 0; i < assignment2D_HSQC.getAssignmentsCount(); i++) {
-                if((assignment2D_HSQC.getAssignment(1, i) > -1)){
-                    if(this.mol.getAtom(assignment2D_HSQC.getAssignment(1, i)).getImplicitHydrogenCount() == null){
-                        this.mol.getAtom(assignment2D_HSQC.getAssignment(1, i)).setImplicitHydrogenCount(0);
+                if((assignment2D_HSQC.getAtomIndex(1, i) > -1)){
+                    if(this.mol.getAtom(assignment2D_HSQC.getAtomIndex(1, i)).getImplicitHydrogenCount() == null){
+                        this.mol.getAtom(assignment2D_HSQC.getAtomIndex(1, i)).setImplicitHydrogenCount(0);
                     }
-                    this.mol.getAtom(assignment2D_HSQC.getAssignment(1, i)).setImplicitHydrogenCount(this.mol.getAtom(assignment2D_HSQC.getAssignment(1, i)).getImplicitHydrogenCount() + 1);                    
+                    this.mol.getAtom(assignment2D_HSQC.getAtomIndex(1, i)).setImplicitHydrogenCount(this.mol.getAtom(assignment2D_HSQC.getAtomIndex(1, i)).getImplicitHydrogenCount() + 1);                    
                 }
             }
         }
@@ -591,7 +591,7 @@ public class ParseRawData {
             return atomIndices;
         }
         
-        return Utils.ArrayToArrayList(this.getAssignment(spectrum).getAssignments(dim));
+        return Utils.ArrayToArrayList(this.getAssignment(spectrum).getAtomIndices(dim));
     }            
     
 

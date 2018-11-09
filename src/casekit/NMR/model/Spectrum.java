@@ -35,7 +35,7 @@ import java.util.Arrays;
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Spectrum {
+public class Spectrum implements Cloneable {
                                                   
    /**
     * An arbitrary name or description that can be assigned to this spectrum for identification purposes.
@@ -413,6 +413,9 @@ public class Spectrum {
        return pickedSignals;
    }
    
-   
+   @Override
+   public Spectrum clone() throws CloneNotSupportedException{
+       return (Spectrum) super.clone();
+   }
    
 }

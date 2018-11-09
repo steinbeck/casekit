@@ -36,6 +36,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomContainerSet;
@@ -357,12 +358,15 @@ public class DB {
     }
     
     /**
-     * Sets shifts and implicit hydrogen counts in atoms of an atom container 
+     * Sets shifts, intensities and implicit hydrogen counts in atoms of an atom container 
      * by means of given spectrum property string.
      *
      * @param ac IAtomContainer to set
      * @param NMRShiftDBSpectrum Property string of spectrum in NMRShiftDB format.
      * @return 
+     * 
+     * @see DB#parseNMRShiftDBSpectrum(java.lang.String) 
+     * @see Utils#getHydrogenCountFromMultiplicity(java.lang.String) 
      */
     public static boolean setNMRShiftDBShiftsToAtomContainer(final IAtomContainer ac, final String NMRShiftDBSpectrum){
                 
@@ -371,23 +375,19 @@ public class DB {
         }
         final String[][] spectrumStringArray = DB.parseNMRShiftDBSpectrum(ac.getProperty(NMRShiftDBSpectrum));
         
-        int atomIndexSpectrumDB;
-        Integer multiplicity;
+        Integer atomIndexSpectrum;
+        String multiplicity;
         Double shift;
-        for (int k = 0; k < ac.getAtomCount(); k++) {  
-            shift = null;
-            multiplicity = null;
-            for (int i = 0; i < spectrumStringArray.length; i++) {
-                atomIndexSpectrumDB = Integer.parseInt(spectrumStringArray[i][2]);                
-                if (atomIndexSpectrumDB == k) {
-                    shift = Double.parseDouble(spectrumStringArray[i][0]);
-                    multiplicity = Utils.getHydrogenCountFromMultiplicity(spectrumStringArray[i][1].substring(spectrumStringArray[i][1].length() - 1));
-                    break;
-                }
-            }
-            ac.getAtom(k).setProperty(Utils.getNMRShiftConstant(ac.getAtom(k).getSymbol()), shift);
-            ac.getAtom(k).setImplicitHydrogenCount(multiplicity);
-        }        
+        
+        for (int i = 0; i < spectrumStringArray.length; i++) {
+            atomIndexSpectrum = Integer.parseInt(spectrumStringArray[i][2]);
+            shift = Double.parseDouble(spectrumStringArray[i][0]);
+            multiplicity = spectrumStringArray[i][1].substring(spectrumStringArray[i][1].length() - 1);
+            if(Utils.checkIndexInAtomContainer(ac, atomIndexSpectrum)){
+                ac.getAtom(atomIndexSpectrum).setProperty(Utils.getNMRShiftConstant(ac.getAtom(atomIndexSpectrum).getSymbol()), shift);
+                ac.getAtom(atomIndexSpectrum).setImplicitHydrogenCount(Utils.getHydrogenCountFromMultiplicity(multiplicity));
+            }    
+        }            
         
         return true;
     }
@@ -398,7 +398,6 @@ public class DB {
             return null;
         }
         final String[][] spectrumStringArray = DB.parseNMRShiftDBSpectrum(NMRShiftDBSpectrum);
-        
         final Spectrum spectrum = new Spectrum(new String[]{Utils.getIsotopeIdentifier(atomType)});
         String multiplicity;
         Double shift, intensity;

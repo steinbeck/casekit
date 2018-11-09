@@ -29,11 +29,11 @@ import java.util.ArrayList;
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Assignment {
+public class Assignment implements Cloneable {
     
     final int nDim;
     final String[] nuclei;
-    final int[][] assignments;
+    int[][] assignments;
 
     public Assignment(final Spectrum spectrum) {
         this.nuclei = spectrum.getNuclei();
@@ -52,6 +52,14 @@ public class Assignment {
         return temp;
     }
  
+    /**
+     * Sets an assignment as atom index for a signal position.
+     *
+     * @param dim
+     * @param indexInSpectrum
+     * @param indexInAtomContainer
+     * @return
+     */
     public boolean setAssignment(final int dim, final int indexInSpectrum, final int indexInAtomContainer){
         if(!this.checkDimension(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
             return false;
@@ -72,7 +80,7 @@ public class Assignment {
         return true;
     }
     
-    public Integer getAssignment(final int dim, final int indexInSpectrum){
+    public Integer getAtomIndex(final int dim, final int indexInSpectrum){
         if(!this.checkDimension(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
             return null;
         }
@@ -80,7 +88,20 @@ public class Assignment {
         return this.assignments[dim][indexInSpectrum];
     }
     
-    public int[] getAssignments(final int dim){
+    public Integer getSignalIndex(final int dim, final int atomIndexInStructure){
+        if(!this.checkDimension(dim)){
+            return null;
+        }
+        for (int signalIndex = 0; signalIndex < this.assignments[dim].length; signalIndex++) {
+            if(this.getAtomIndex(dim, signalIndex) == atomIndexInStructure){
+                return signalIndex;
+            }
+        }
+        
+        return null;
+    }
+    
+    public int[] getAtomIndices(final int dim){
         if(!this.checkDimension(dim)){
             return null;
         }
@@ -99,6 +120,34 @@ public class Assignment {
         return 0;
     }
     
+    public int getSetAssignmentsCount(final int dim){
+        int setAssignmentsCounter = 0;
+        if((this.getDimCount() > 0) && (this.checkDimension(dim))){
+            for (int j = 0; j < this.assignments[dim].length; j++) {
+                if(this.assignments[dim][j] != -1){
+                    setAssignmentsCounter++;
+                }
+            }
+        }
+        return setAssignmentsCounter;
+    }
+    
+    public boolean addAssignment(final int[] indices){
+        if(indices.length != this.nDim){
+            return false;
+        }
+        final int[][] extendedAssignments = new int[this.nDim][this.getAssignmentsCount()+1];
+        for (int dim = 0; dim < this.nDim; dim++) {
+            for (int i = 0; i < this.getAssignmentsCount(); i++) {
+                extendedAssignments[dim][i] = this.getAtomIndex(dim, i);
+            }
+            extendedAssignments[dim][this.getAssignmentsCount()] = indices[dim];
+        }
+        this.assignments = extendedAssignments;
+        
+        return true;
+    }    
+    
     public boolean checkDimension(final int dim){
        return (dim >= 0) && (dim < this.nDim);
     }
@@ -110,4 +159,9 @@ public class Assignment {
     private boolean checkInputListSize(final int size){
        return (size == this.getAssignmentsCount());
    } 
+    
+    @Override
+    public Assignment clone() throws CloneNotSupportedException{
+        return (Assignment) super.clone();
+    }
 }

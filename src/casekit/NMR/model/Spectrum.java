@@ -30,12 +30,15 @@ package casekit.NMR.model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Spectrum implements Cloneable {
+public class Spectrum {
                                                   
    /**
     * An arbitrary name or description that can be assigned to this spectrum for identification purposes.
@@ -62,16 +65,15 @@ public class Spectrum implements Cloneable {
    private Double spectrometerFrequency;
    private String solvent;
    private String standard;
-   
    private final ArrayList<Signal> signals = new ArrayList<>();
    private final ArrayList<Integer> equivalences = new ArrayList<>();
+   private  ArrayList<Integer>[] equivalentSignals;
   
 
    public Spectrum(final String[] nuclei) {
        this.nuclei = nuclei;
        this.nDim = this.nuclei.length;
    }
-   
    
    public String[] getNuclei(){
        return this.nuclei;
@@ -120,38 +122,59 @@ public class Spectrum implements Cloneable {
    public int getSignalCount() {
        return this.signals.size();
    }
-
-   /**
-    * Adds a Signal ({@link casekit.NMR.model.Signal}) to this Spectrum class object at the end.
-     * @param signal
-     * @return 
-    */
-   public boolean addSignal(final Signal signal) {
-       return this.addSignal(signal, null);       
+   
+    /**
+     * Adds a list of signals to this spectrum.
+     *
+     * @param signals list of signals to add
+     * @return
+     */
+   public boolean addSignals(final ArrayList<Signal> signals){
+       for (final Signal signal : signals) {
+           if (!this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())) {
+               return false;
+           }
+       }
+       for (final Signal signal : signals) {
+           this.addSignal(signal);
+       }
+       
+       return true;
    }
    
    /**
-    * Adds a Signal ({@link casekit.NMR.model.Signal}) to this Spectrum class object at given index.
-     * @param signal
-     * @param index index where to insert the signal, if null the signal will be added at the end of signal list
-     * @return 
+    * Adds a signal to this spectrum.
+    * 
+    * @param signal signal to add
+    * @return 
     */
-   public boolean addSignal(final Signal signal, final Integer index) {
+   public boolean addSignal(final Signal signal) {
        if(!this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())){
            return false;
        }
-       // is index valid? if yes then insert it there
-       if(this.checkSignalIndex(index)){
-           this.signals.add(index, signal);
-           this.equivalences.add(index, -1);
-       // if not then check for null value and add signal at the end    
-       } else if(index == null){
-           this.signals.add(signal);
-           this.equivalences.add(-1);
-       // no valid index value, nothing to insert or add in spectrum    
-       } else {
+       // add signal at the end of signal list  
+       this.signals.add(signal);
+       this.equivalences.add(-1);
+       this.updateEquivalentSignalClasses();
+       
+       return true;
+   }
+   
+   /**
+    * Adds a signal to this spectrum and stores an equivalent signal index.
+    * 
+    * @param signal signal to add
+    * @param equivalentSignalIndex index of equivalent signal in this spectrum
+    * @return 
+    */
+   public boolean addSignal(final Signal signal, final int equivalentSignalIndex) {
+       if(!this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())){
            return false;
        }
+       // add signal at the end of signal list  
+       this.signals.add(signal);
+       this.equivalences.add(equivalentSignalIndex);
+       this.updateEquivalentSignalClasses();
        
        return true;
    }
@@ -166,6 +189,7 @@ public class Spectrum implements Cloneable {
        }
        this.signals.remove(signalIndex);
        this.equivalences.remove(signalIndex);
+       this.updateEquivalentSignalClasses();
        
        return true;
    }
@@ -307,6 +331,93 @@ public class Spectrum implements Cloneable {
        return this.signals;
    }
    
+   public Boolean hasEquivalences(final int signalIndex){
+       if(!this.checkSignalIndex(signalIndex)){
+           return null;
+       }
+       
+       return (this.getEquivalence(signalIndex) != -1) || (this.getEquivalences().contains(signalIndex));
+   }
+   
+   private ArrayList<Integer> searchEquivalentSignals(final int signalIndex){       
+       if(!this.checkSignalIndex(signalIndex)){
+           return null;
+       }
+       final ArrayList<Integer> equivalentSignalIndices = new ArrayList<>();
+       // case 1: signal was first input signal (root) of an equivalence class and is actually not knowing any of its equivalences; collect all equivalent signals
+       if(this.getEquivalence(signalIndex) == -1){
+           for (int i = 0; i < this.getEquivalences().size(); i++) {
+               if((this.getEquivalences().get(i) != -1) && (this.getEquivalences().get(i) == signalIndex)) {
+                   equivalentSignalIndices.add(i);
+               }               
+           }
+       } else {
+           // case 2: signal was not the first input signal of that equivalent class; store the class root signal
+           equivalentSignalIndices.add(this.getEquivalences().get(signalIndex));
+       }
+       // check all stored signals for further equivalent signals (i.e. for the added root signal in case 2)
+       for (int i = 0; i < equivalentSignalIndices.size(); i++) {
+           for (int j = 0; j < this.getEquivalences().size(); j++) {
+               // do not store the own signal index in own equ. signal class
+               if(j == signalIndex){
+                   continue;
+               }
+               if ((this.getEquivalences().get(j) != -1) 
+                       && (Integer.compare(this.getEquivalences().get(j), equivalentSignalIndices.get(i)) == 0)
+                       && !equivalentSignalIndices.contains(j)) {
+                   equivalentSignalIndices.add(j);
+               }
+           }           
+       }
+       
+       return equivalentSignalIndices;
+   }
+   
+   private void updateEquivalentSignalClasses(){     
+       this.equivalentSignals = new ArrayList[this.getSignalCount()];
+       for(int i = 0; i < this.getSignalCount(); i++) {
+           this.equivalentSignals[i] = this.searchEquivalentSignals(i);
+//           this.equivalentSignals.put(i, this.searchEquivalentSignals(i));
+       }
+   }
+   
+    /**
+     * Returns equivalent signals for requested signal. 
+     *
+     * @param signalIndex
+     * @return
+     */
+    public ArrayList<Integer> getEquivalentSignals(final int signalIndex){
+       if(!this.checkSignalIndex(signalIndex)){
+           return null;
+       }
+       
+       return this.equivalentSignals[signalIndex];
+   }
+    
+    /**
+     * Returns a hashmap of equivalent signal classes. 
+     * The key set of that hashmap is just a numerical class index and is not 
+     * belonging to any signal.
+     *
+     * @return
+     */
+    public HashMap<Integer, ArrayList<Integer>> getEquivalentSignalClasses(){
+        this.updateEquivalentSignalClasses();
+        // create a new HashMap object to return, containing the key signal index to have a full equivalent signal class
+        final HashMap<Integer, ArrayList<Integer>> equivalentSignalClasses = new HashMap<>();
+        final HashSet<Integer> storedSignalIndices = new HashSet<>();
+        for (int i = 0; i < this.getSignalCount(); i++) {
+            if (!storedSignalIndices.contains(i)) {               
+                equivalentSignalClasses.put(equivalentSignalClasses.size(), new ArrayList<>(this.equivalentSignals[i]));
+                equivalentSignalClasses.get(equivalentSignalClasses.size() - 1).add(i);
+                storedSignalIndices.addAll(equivalentSignalClasses.get(equivalentSignalClasses.size() - 1));
+            }
+        }
+
+        return equivalentSignalClasses;
+   }
+   
    public ArrayList<Integer> getEquivalences(){
        return this.equivalences;
    }
@@ -324,19 +435,20 @@ public class Spectrum implements Cloneable {
            return false;
        }
        this.equivalences.set(signalIndex, isEquivalentToSignalIndex);
+       this.updateEquivalentSignalClasses();
        
        return true;
    }
 
    /**
     * Returns the position of an NMRSignal the List
-     * @param signal
-     * @return 
+    * @param signal
+    * @return 
     */
    public int getSignalIndex(final Signal signal) {
-       for (int f = 0; f < this.signals.size(); f++) {
-           if (this.signals.get(f) == signal) {
-               return f;
+       for (int s = 0; s < this.signals.size(); s++) {
+           if (this.signals.get(s) == signal) {
+               return s;
            }
        }
        return -1;
@@ -368,12 +480,12 @@ public class Spectrum implements Cloneable {
    
 
    /**
-    * Returns the signal closest to the shift sought. If no Signal is found within the interval
-    * defined by pickprecision, null is returned.
-     * @param shift
-     * @param dim
-     * @param pickPrecision
-     * @return 
+    * Returns the signal index closest to the given shift. If no Signal is found within the interval
+    * defined by pickprecision, -1 is returned.
+    * @param shift query shift
+    * @param dim dimension in spectrum to look in
+    * @param pickPrecision tolerance value for search window
+    * @return 
     */
    public int pickClosestSignal(final double shift, final int dim, final double pickPrecision) {       
        int matchIndex = -1;
@@ -392,30 +504,47 @@ public class Spectrum implements Cloneable {
    }
 
    /**
-    * Returns a List with signal indices within the interval defined by pickPrecision. If none is found
-    * an empty ArrayList is returned.
-     * @param shift
-     * @param dim
-     * @param pickPrecision
-     * @return 
+    * Returns a list of signal indices within the interval defined by 
+    * pickPrecision. That list is sorted by the distances to the query shift.    
+    * If none is found an empty ArrayList is returned.
+    * @param shift query shift
+    * @param dim dimension in spectrum to look in
+    * @param pickPrecision tolerance value for search window
+    * @return 
     */
-   public ArrayList<Integer> pickSignals(final double shift, final int dim, final double pickPrecision) {
+   public ArrayList<Integer> pickSignals(final Double shift, final int dim, final double pickPrecision) {
        final ArrayList<Integer> pickedSignals = new ArrayList<>();
        if(!this.checkDimension(dim)){
            return pickedSignals;
        }
        for (int s = 0; s < this.getSignalCount(); s++) {
-           if (Math.abs(this.getShift(s, dim) - shift) < pickPrecision) {
+           if (Math.abs(this.getShift(s, dim) - shift) <= pickPrecision) {
                pickedSignals.add(s);
            }
        }
+       // sort signal indices by distance to query shift
+       pickedSignals.sort(new Comparator<Integer>() {
+           @Override
+           public int compare(final Integer pickedSignalIndex1, final Integer pickedSignalIndex2) {
+               return Double.compare(Math.abs(shift - getShift(pickedSignalIndex1, dim)), Math.abs(shift - getShift(pickedSignalIndex2, dim)));
+           }
+       });
        
        return pickedSignals;
    }
    
-   @Override
-   public Spectrum clone() throws CloneNotSupportedException{
-       return (Spectrum) super.clone();
+   public Spectrum getClone() {
+       final Spectrum clone = new Spectrum(this.nuclei);       
+       for (int i = 0; i < this.getSignalCount(); i++) {
+           clone.addSignal(this.getSignal(i), this.getEquivalence(i));
+       }              
+       clone.setSpecDescription(this.description);
+       clone.setSolvent(this.solvent);
+       clone.setSpecType(this.specType);
+       clone.setSpectrometerFrequency(this.spectrometerFrequency);
+       clone.setStandard(this.standard);
+       
+       return clone;
    }
    
 }

@@ -35,6 +35,7 @@ import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomType;
+import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
@@ -724,7 +725,7 @@ public class ParseRawData {
         if (this.mol.getBond(this.mol.getAtom(index1), this.mol.getAtom(index2)) != null) {
             this.mol.removeBond(this.mol.getAtom(index1), this.mol.getAtom(index2));
         }
-        this.mol.addBond(index1, index2, Utils.getBondTypeFromHybridizations(this.mol.getAtom(index1), this.mol.getAtom(index2)));
+        this.mol.addBond(index1, index2, IBond.Order.UNSET);
     }
     
     

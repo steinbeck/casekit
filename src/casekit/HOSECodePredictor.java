@@ -274,7 +274,7 @@ public class HOSECodePredictor {
 	 */
 	void fixExplicitHydrogens(IAtomContainer ac)
 	{
-                Utils.setExplicitToImplicitHydrogens(ac);
+                Utils.convertExplicitToImplicitHydrogens(ac);
 	}
 	
 	private void parseArgs(String[] args) throws ParseException

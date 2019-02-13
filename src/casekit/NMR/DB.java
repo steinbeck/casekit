@@ -23,6 +23,7 @@
  */
 package casekit.NMR;
 
+import casekit.NMR.model.Assignment;
 import casekit.NMR.model.Signal;
 import casekit.NMR.model.Spectrum;
 import java.io.FileNotFoundException;
@@ -36,7 +37,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomContainerSet;
@@ -54,30 +54,107 @@ public class DB {
      * Returns the molecules of a given MOL/SDF file.
      * This function sets the molecule aromaticity (with allowed exocyclic pi
      * bonds) by using the
-     * {@link #setAromaticitiesInAtomContainer(org.openscience.cdk.interfaces.IAtomContainer, int)}
+     * {@link Utils#setAromaticitiesInAtomContainer(org.openscience.cdk.interfaces.IAtomContainer)}
      * function.
      *
      * @param pathToNMRShiftDB path to NMRShiftDB file
-     * @param maxCycleSize maximum cycle size for setting the aromaticity in a
-     * molecule
+     * @param setAromaticity whether to set aromaticities in structures or not
      * @return
      * @throws FileNotFoundException
      * @throws CDKException
+     * @deprecated 
      */
-    public static IAtomContainerSet getStructuresFromSDFile(final String pathToNMRShiftDB, final int maxCycleSize) throws FileNotFoundException, CDKException {
-
+    public static IAtomContainerSet getStructuresFromSDFile(final String pathToNMRShiftDB, final boolean setAromaticity) throws FileNotFoundException, CDKException {      
         final IAtomContainerSet acSet = new AtomContainerSet();
         final IteratingSDFReader iterator = new IteratingSDFReader(
                 new FileReader(pathToNMRShiftDB),
                 SilentChemObjectBuilder.getInstance()
         );
+        IAtomContainer ac;
         while (iterator.hasNext()) {
-            acSet.addAtomContainer(casekit.NMR.Utils.setAromaticitiesInAtomContainer(iterator.next(), maxCycleSize));
+            ac = iterator.next();
+            if(setAromaticity){
+                Utils.setAromaticitiesInAtomContainer(ac);
+            }
+            acSet.addAtomContainer(ac);
         }
 
         return acSet;
     }
+    
+    
+    /**
+     * Returns the spectra of a given MOL/SDF file containing NMRShiftDB properties.
+     *
+     * @param pathToNMRShiftDB path to NMRShiftDB file
+     * @param NMRShiftDBSpectrumProperty spectrum property name to use
+     * @param atomType atomType of requested spectra
+     * @return
+     * @throws FileNotFoundException
+     * @throws CDKException
+     * @deprecated 
+     */
+    public static ArrayList<Spectrum> getSpectraFromSDFile(final String pathToNMRShiftDB, final String NMRShiftDBSpectrumProperty , final String atomType) throws FileNotFoundException, CDKException {
 
+        final ArrayList<Spectrum> spectrumSet = new ArrayList<>();
+        final IteratingSDFReader iterator = new IteratingSDFReader(
+                new FileReader(pathToNMRShiftDB),
+                SilentChemObjectBuilder.getInstance()
+        );
+        IAtomContainer ac;
+        while (iterator.hasNext()) {
+            ac = iterator.next();
+            if((ac == null) || (ac.getProperty(NMRShiftDBSpectrumProperty) == null)){
+                spectrumSet.add(null);
+            } else {                
+                spectrumSet.add(DB.NMRShiftDBSpectrumToSpectrum(ac.getProperty(NMRShiftDBSpectrumProperty), atomType));
+            }
+        }
+
+        return spectrumSet;
+    }
+    
+    /**
+     * Returns 3-tuples consisting of structure, spectrum and assignments 
+     * for each molecule in the given NMRShiftDB file.
+     *
+     * @param pathToNMRShiftDB path to NMRShiftDB file
+     * @param NMRShiftDBSpectrumProperty spectrum property string to use
+     * @param atomType atomType of requested spectra
+     * @return
+     * @throws FileNotFoundException
+     * @throws CDKException
+     */
+    public static HashMap<Integer, Object[]> getSSCComponentsFromNMRShiftDB(final String pathToNMRShiftDB, final String NMRShiftDBSpectrumProperty, final String atomType) throws FileNotFoundException, CDKException {
+        final HashMap<Integer, Object[]> structureSetWithSpectra = new HashMap<>();
+        final IteratingSDFReader iterator = new IteratingSDFReader(
+                new FileReader(pathToNMRShiftDB),
+                SilentChemObjectBuilder.getInstance()
+        );
+        IAtomContainer ac;
+        Spectrum spectrum;
+        Assignment assignment;
+        while (iterator.hasNext()) {
+            ac = iterator.next();
+            Utils.setAromaticitiesInAtomContainer(ac);
+            
+            spectrum = DB.NMRShiftDBSpectrumToSpectrum(ac.getProperty(NMRShiftDBSpectrumProperty), atomType);
+            assignment = DB.NMRShiftDBSpectrumToAssignment(ac.getProperty(NMRShiftDBSpectrumProperty), atomType);
+            if ((ac != null) && (spectrum != null)) {                
+                structureSetWithSpectra.put(structureSetWithSpectra.size(), new Object[]{ac, spectrum, assignment});
+            }
+        }
+
+        return structureSetWithSpectra;
+    }
+
+    /**
+     *
+     * @param pathToDB
+     * @return
+     * @throws FileNotFoundException
+     * @deprecated 
+     */
     public static HashSet<String> getAtomTypesInDB(final String pathToDB) throws FileNotFoundException{
         final HashSet<String> atomTypes = new HashSet<>();
         final IteratingSDFReader iterator = new IteratingSDFReader(
@@ -91,12 +168,36 @@ public class DB {
         return atomTypes;
     }
     
-    
+    /**
+     *
+     * @param server
+     * @param options
+     * @param user
+     * @param pwd
+     * @return
+     * @throws SQLException
+     * @deprecated 
+     */
     public static Connection getDBConnection(final String server, final String options, final String user, final String pwd) throws SQLException {
 
         return DriverManager.getConnection(server + "?" + options, user, pwd);
     }
 
+    /**
+     *
+     * @param DBConnection
+     * @param bondsSet
+     * @param elem
+     * @param neighborElems
+     * @param minShift
+     * @param maxShift
+     * @param stepSize
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     * @throws SQLException
+     * @deprecated 
+     */
     public static int[][] countNeighborhoodBonds(final Connection DBConnection, final String[] bondsSet, final String elem, String[] neighborElems, final int minShift, final int maxShift, final int stepSize) throws FileNotFoundException, IOException, SQLException {
 
         if (DBConnection == null || stepSize < 1) {
@@ -170,7 +271,14 @@ public class DB {
         return neighborhoodCountsMatrix;
     }
     
-    
+    /**
+     *
+     * @param DBConnection
+     * @param query
+     * @return
+     * @throws SQLException
+     * @deprecated 
+     */
     public static ResultSet getResultSet(final Connection DBConnection, final String query) throws SQLException{
         
         if (DBConnection == null) {
@@ -192,6 +300,7 @@ public class DB {
      * @param elem
      * @return
      * @throws SQLException
+     * @deprecated 
      */
     public static ArrayList<Integer> getSignalIDsFromNMRShiftDB(final Connection DBConnection, final double minShift, final double maxShift, final String mult, final Double minIntens, final Double maxIntens, final String elem) throws SQLException {
 
@@ -223,6 +332,19 @@ public class DB {
     }
     
     // currently only for 1D spectra
+
+    /**
+     *
+     * @param DBConnection
+     * @param spectrum
+     * @param shiftDev
+     * @param intensDev
+     * @param stepSize
+     * @param dim
+     * @return
+     * @throws SQLException
+     * @deprecated 
+     */
     public static HashMap<Integer, ArrayList<Integer>> matchSpectrumAgainstDB(final Connection DBConnection, final Spectrum spectrum, final double shiftDev, final Double intensDev, final int stepSize, final int dim) throws SQLException{
        
         final HashMap<Integer, ArrayList<Integer>> hits = new HashMap<>(); double shift;
@@ -246,6 +368,7 @@ public class DB {
      * @param elem
      * @return
      * @throws SQLException
+     * @deprecated 
      */
     public static HashMap<String, ArrayList<Double>> getLookupTableFromNMRShiftDB(final Connection DBConnection, final String elem) throws SQLException {
 
@@ -284,6 +407,7 @@ public class DB {
      * @param elem
      * @return
      * @throws SQLException
+     * @deprecated 
      */
     public static HashMap<String, Double> getRMS(final Connection DBConnection, final double minShift, final double maxShift, final String elem) throws SQLException {
 
@@ -331,27 +455,27 @@ public class DB {
     
     /**
      * Creates a two dimensional array of a given NMRShiftDB NMR entry 
-     * with all shift values and atom indices.
+     * with all signal shift values, intensities, multiplicities and atom indices.
      *
-     * @param shiftsString
+     * @param NMRShiftDBSpectrum
      * @return two dimensional array: 
-     * 1. dimension: shift entry (row); 
-     * 2. dimension: shift value (column 1), atom index in atom container (column 2)
+     * 1. dimension: signal index (row); 
+     * 2. dimension: signal shift value (column 1), signal intensity (column 2), 
+     * signal multiplicity (column 3), atom index in structure (column 4)
      */
-    public static String[][] parseNMRShiftDBSpectrum(final String shiftsString){
-        
-        if(shiftsString.trim().isEmpty()){
+    public static String[][] parseNMRShiftDBSpectrum(final String NMRShiftDBSpectrum){
+        if(NMRShiftDBSpectrum.trim().isEmpty()){
             return new String[][]{};
         }
-        
         String[] signalSplit;
-        final String[] shiftsSplit = shiftsString.split("\\|");
-        final String[][] values = new String[shiftsSplit.length][3];
+        final String[] shiftsSplit = NMRShiftDBSpectrum.split("\\|");
+        final String[][] values = new String[shiftsSplit.length][4];
         for (int i = 0; i < shiftsSplit.length; i++) {
             signalSplit = shiftsSplit[i].split(";");
-            values[i][0] = signalSplit[0];
-            values[i][1] = signalSplit[1];
-            values[i][2] = signalSplit[2];
+            values[i][0] = signalSplit[0]; // shift value
+            values[i][1] = signalSplit[1].substring(0, signalSplit[1].length() - 1); // intensity
+            values[i][2] = signalSplit[1].substring(signalSplit[1].length() - 1); // multiplicity
+            values[i][3] = signalSplit[2]; // atom index
         }
         
         return values;
@@ -367,25 +491,25 @@ public class DB {
      * 
      * @see DB#parseNMRShiftDBSpectrum(java.lang.String) 
      * @see Utils#getHydrogenCountFromMultiplicity(java.lang.String) 
+     * @deprecated 
      */
     public static boolean setNMRShiftDBShiftsToAtomContainer(final IAtomContainer ac, final String NMRShiftDBSpectrum){
-                
         if (ac.getProperty(NMRShiftDBSpectrum) == null) {
             return false;
         }
         final String[][] spectrumStringArray = DB.parseNMRShiftDBSpectrum(ac.getProperty(NMRShiftDBSpectrum));
         
         Integer atomIndexSpectrum;
-        String multiplicity;
+//        String multiplicity;
         Double shift;
         
         for (int i = 0; i < spectrumStringArray.length; i++) {
-            atomIndexSpectrum = Integer.parseInt(spectrumStringArray[i][2]);
+            atomIndexSpectrum = Integer.parseInt(spectrumStringArray[i][3]);
             shift = Double.parseDouble(spectrumStringArray[i][0]);
-            multiplicity = spectrumStringArray[i][1].substring(spectrumStringArray[i][1].length() - 1);
+//            multiplicity = spectrumStringArray[i][3];
             if(Utils.checkIndexInAtomContainer(ac, atomIndexSpectrum)){
                 ac.getAtom(atomIndexSpectrum).setProperty(Utils.getNMRShiftConstant(ac.getAtom(atomIndexSpectrum).getSymbol()), shift);
-                ac.getAtom(atomIndexSpectrum).setImplicitHydrogenCount(Utils.getHydrogenCountFromMultiplicity(multiplicity));
+//                ac.getAtom(atomIndexSpectrum).setImplicitHydrogenCount(Utils.getHydrogenCountFromMultiplicity(multiplicity));
             }    
         }            
         
@@ -403,11 +527,26 @@ public class DB {
         Double shift, intensity;
         for (int i = 0; i < spectrumStringArray.length; i++) {
             shift = Double.parseDouble(spectrumStringArray[i][0]);
-            multiplicity = spectrumStringArray[i][1].substring(spectrumStringArray[i][1].length() - 1);
-            intensity = Double.parseDouble(spectrumStringArray[i][1].substring(0, spectrumStringArray[i][1].length() - 1));
+            intensity = Double.parseDouble(spectrumStringArray[i][1]);
+            multiplicity = spectrumStringArray[i][2];            
             spectrum.addSignal(new Signal(new String[]{Utils.getIsotopeIdentifier(atomType)}, new Double[]{shift}, intensity, multiplicity));
         }
+        Utils.setSpectrumEquivalences(spectrum);
         
         return spectrum;
+    }
+    
+    public static Assignment NMRShiftDBSpectrumToAssignment(final String NMRShiftDBSpectrum, final String atomType) {
+        if ((NMRShiftDBSpectrum == null) || NMRShiftDBSpectrum.trim().isEmpty()) {
+            return null;
+        }
+        final String[][] NMRShiftDBSpectrumStringArray = DB.parseNMRShiftDBSpectrum(NMRShiftDBSpectrum);
+        final Spectrum spectrum = DB.NMRShiftDBSpectrumToSpectrum(NMRShiftDBSpectrum, atomType);
+        final Assignment assignment = new Assignment(spectrum);
+        for (int i = 0; i < NMRShiftDBSpectrumStringArray.length; i++) {
+            assignment.setAssignment(0, i, new Integer(NMRShiftDBSpectrumStringArray[i][3]));
+        }        
+
+        return assignment;
     }
 }

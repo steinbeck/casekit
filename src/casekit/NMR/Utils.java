@@ -45,8 +45,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.w3c.dom.Document;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -55,6 +53,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
+import org.openscience.cdk.atomtype.CDKAtomTypeMatcher;
 import org.openscience.cdk.depict.DepictionGenerator;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.graph.CycleFinder;
@@ -66,10 +65,10 @@ import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.io.SDFWriter;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
-import org.openscience.cdk.qsar.descriptors.atomic.AtomValenceDescriptor;
-import org.openscience.cdk.silent.Atom;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
+import org.openscience.cdk.tools.CDKHydrogenAdder;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
+import org.openscience.cdk.tools.manipulator.AtomTypeManipulator;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -903,7 +902,6 @@ public class Utils {
         return bondOrderSets;
     }
     
-    
     public static String getStringFromBondOrder(final IBond.Order order) {
         switch (order) {
             case SINGLE:
@@ -915,8 +913,7 @@ public class Utils {
             default:
                 return null;
         }
-    }
-    
+    }        
     
     public static IBond.Order getBondOrderFromString(final String order){
         switch(order){
@@ -944,7 +941,7 @@ public class Utils {
      * @throws IOException
      * @throws CDKException
      */
-    public static void generatePicture(IAtomContainer ac, String path) throws IOException, CDKException {        
+    public static void generatePicture(final IAtomContainer ac, final String path) throws IOException, CDKException {        
         final DepictionGenerator dg = new DepictionGenerator().withSize(1200, 1200).withAtomColors().withFillToFit().withAtomNumbers();
         dg.depict(ac).writeTo(path);
     }
@@ -988,13 +985,16 @@ public class Utils {
      * @param data
      * @return
      */
-    public static double getMedian(final List<Integer> data) {
+    public static Double getMedian(final List<Integer> data) {
+        if(data == null){
+            return null;
+        }
         if(data.size() == 1){
-            return data.get(0);
+            return data.get(0).doubleValue();
         }
         Collections.sort(data);
         if (data.size() % 2 == 1) {
-            return data.get(data.size() / 2);
+            return data.get(data.size() / 2).doubleValue();
         } else {
             return (data.get(data.size() / 2 - 1) + data.get(data.size() / 2)) / 2.0;
         }
@@ -1006,7 +1006,10 @@ public class Utils {
      * @param data
      * @return
      */
-    public static double getMedian(final ArrayList<Double> data) {
+    public static Double getMedian(final ArrayList<Double> data) {
+        if ((data == null) || data.isEmpty()) {
+            return null;
+        }
         if(data.size() == 1){
             return data.get(0);
         }
@@ -1016,7 +1019,7 @@ public class Utils {
         } else {
             return (data.get(data.size() / 2 - 1) + data.get(data.size() / 2)) / 2.0;
         }
-    }
+    }           
     
     
     /**
@@ -1025,6 +1028,9 @@ public class Utils {
      * @return
      */
     public static Double getMean(final ArrayList<Double> data) {
+        if(data == null){
+            return null;
+        }
         double sum = 0;
         int nullCounter = 0;
         for (final Double d : data) {
@@ -1044,6 +1050,9 @@ public class Utils {
      * @return
      */
     public static Double getMean(final Double[] data) {
+        if(data == null){
+            return null;
+        }
         double sum = 0;
         int nullCounter = 0;
         for (final Double d : data) {
@@ -1128,7 +1137,7 @@ public class Utils {
      * @return
      */
     public static Double getRMS(final ArrayList<Double> data) {
-        if(data.isEmpty()){
+        if((data == null) || data.isEmpty()){
             return null;
         }
         if (data.size() == 1) {
@@ -1154,7 +1163,6 @@ public class Utils {
      * @return
      */
     public static HashMap<String, Double> getRMS(final HashMap<String, ArrayList<Double>> lookup){
-        
         final HashMap<String, Double> rms = new HashMap<>();
         Double rmsInList;
         for (final String key : lookup.keySet()) {
@@ -1167,24 +1175,155 @@ public class Utils {
         return rms;
     }
     
-    
-    public static Void combineHashMaps(final HashMap<String, ArrayList<Double>> hoseLookupToKeep, final HashMap<String, ArrayList<Double>> hoseLookup){
+    public static boolean isSaturated(final IAtomContainer ac, final int atomIndex) throws CDKException {
+//        return CDKValencyChecker.getInstance(ac.getBuilder()).isSaturated(atom, ac);
+
+        IAtom atom = ac.getAtom(atomIndex);
+//        double existingBondsOrderSum = 0;
+//        for (final IBond bond : ac.getConnectedBondsList(atom)) {
+//            existingBondsOrderSum += bond.getOrder().numeric();
+//        }
+
+        double existingBondsOrderSum = AtomContainerManipulator.getBondOrderSum(ac, atom);
         
-        for (String hose : hoseLookup.keySet()) {
-            if(!hoseLookupToKeep.containsKey(hose)){
-                hoseLookupToKeep.put(hose, new ArrayList<>());
+        int implicitHydrogenCount = (atom.getImplicitHydrogenCount() != null) ? atom.getImplicitHydrogenCount() : 0;
+
+//        System.out.println("i: " + atomIndex + " --> " + existingBondsOrderSum + " + " + implicitHydrogenCount + " = " + (existingBondsOrderSum + implicitHydrogenCount) + " <= " + atom.getValency() + " ? ");
+        
+        return (existingBondsOrderSum + implicitHydrogenCount) >= atom.getValency();
+    }
+    
+    public static void addImplicitHydrogens(final IAtomContainer ac) throws CDKException{
+        final CDKAtomTypeMatcher matcher = CDKAtomTypeMatcher.getInstance(ac.getBuilder());
+        for (IAtom atom : ac.atoms()) {
+            IAtomType type = matcher.findMatchingAtomType(ac, atom);
+            AtomTypeManipulator.configure(atom, type);
+        }
+        CDKHydrogenAdder adder = CDKHydrogenAdder.getInstance(ac.getBuilder());
+        adder.addImplicitHydrogens(ac);
+    }
+    
+    public static int countElements(final String input){
+        int counter = 0;
+        for (int k = 0; k < input.length(); k++) {            
+            // Check for uppercase letters
+            if (Character.isLetter(input.charAt(k)) && Character.isUpperCase(input.charAt(k))) {
+                counter++;
             }
-            hoseLookupToKeep.get(hose).addAll(hoseLookup.get(hose));
+        }
+        
+        return counter;
+    }
+    
+    public static ArrayList<String> getComponents(final String symbols){
+        final ArrayList<String> components = new ArrayList<>();
+        for (int i = 0; i < symbols.length(); i++) {
+            if ((i + 1 < symbols.length())
+                    && Character.isLowerCase(symbols.charAt(i + 1))) {
+                components.add(symbols.substring(i, i + 2));
+                i++;
+            } else {
+                components.add(symbols.substring(i, i + 1));
+            }
+        }
+        
+        return components;
+    }
+    
+    /**
+     *
+     * @param lookup
+     * @return
+     */
+    public static HashMap<String, Double> getMedian(final HashMap<String, ArrayList<Double>> lookup) {
+
+        final HashMap<String, Double> medians = new HashMap<>();
+        Double medianInList;
+        for (final String key : lookup.keySet()) {
+            medianInList = Utils.getMedian(lookup.get(key));
+            if (medianInList != null) {
+                medians.put(key, medianInList);
+            }
+        }
+
+        return medians;
+    }
+    
+    
+    public static void combineHashMaps(final HashMap<String, ArrayList<Double>> hoseLookupToExtend, final HashMap<String, ArrayList<Double>> hoseLookup){
+        for (final String hose : hoseLookup.keySet()) {
+            if(!hoseLookupToExtend.containsKey(hose)){
+                hoseLookupToExtend.put(hose, new ArrayList<>());
+            }
+            hoseLookupToExtend.get(hose).addAll(hoseLookup.get(hose));
         }        
-        return null;
     } 
     
+    /**
+     * Checks whether a structure contains explicit hydrogen atoms or not.
+     *
+     * @param ac structure to check
+     * @return
+     */
+    public static boolean containsExplicitHydrogens(final IAtomContainer ac){
+        for (final IAtom atomA : ac.atoms()) {
+            // check each atom whether it is an hydrogen
+            if (atomA.getSymbol().equals("H")) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Stores all explicit hydrogens as implicit counter for the bonded heavy 
+     * atoms and removes those from the atom container. Also, a HashMap 
+     * containing non-hydrogen atoms and its indices 
+     * before the removals will be returned which one can use for atom index 
+     * comparison (before and after the removals) later. 
+     *
+     * @param ac the structure to convert
+     * @return 
+     * 
+     * @see #containsExplicitHydrogens(org.openscience.cdk.interfaces.IAtomContainer) 
+     */
+    public static HashMap<IAtom, Integer> convertExplicitToImplicitHydrogens(final IAtomContainer ac){
+        // create a list of atom indices which one can use for index comparison (before vs. after) after removing the explict hydrogens
+        final HashMap<IAtom, Integer> atomIndices = new HashMap<>();
+        final List<IAtom> toRemoveList = new ArrayList<>();
+        IAtom atomB;
+        for (final IAtom atomA : ac.atoms()) {
+            // check each atom whether it is an hydrogen;
+            // if yes then store (increase) the number of implicit hydrogens 
+            // for its bonded heavy atom
+            if (atomA.getSymbol().equals("H")) {
+                atomB = ac.getConnectedAtomsList(atomA).get(0);
+                if(atomB.getImplicitHydrogenCount() == null){
+                    atomB.setImplicitHydrogenCount(0);
+                }
+                atomB.setImplicitHydrogenCount(atomB.getImplicitHydrogenCount() + 1);
+                toRemoveList.add(atomA);                                                
+            } else {
+                // store all non-hydrogen atoms and their indices
+                atomIndices.put(atomA, atomA.getIndex());
+            }
+            
+        }
+        // remove all explicit hydrogen atoms
+        for (final IAtom iAtom : toRemoveList) {
+            ac.removeAtom(iAtom);
+        }
+        
+        return atomIndices;
+    }
     
     /**
      *
      * @param ac
+     * @return 
      */
-    public static void setExplicitToImplicitHydrogens(final IAtomContainer ac){
+    public static int getExplicitHydrogenCount(final IAtomContainer ac){
         final List<IAtom> toRemoveList = new ArrayList<>();
         IAtom atomB;
         for (final IAtom atomA : ac.atoms()) {
@@ -1197,21 +1336,17 @@ public class Utils {
                 toRemoveList.add(atomA);
             }
         }
-        for (final IAtom iAtom : toRemoveList) {
-            ac.removeAtom(iAtom);
-        }
+        
+        return toRemoveList.size();
     }
     
     
-    public static IAtomContainer setAromaticitiesInAtomContainer(final IAtomContainer ac, final int maxCycleSize) throws CDKException {
-        
+    public static void setAromaticitiesInAtomContainer(final IAtomContainer ac) throws CDKException {
         AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(ac);
         final ElectronDonation model = ElectronDonation.cdkAllowingExocyclic();
-        final CycleFinder cycles = Cycles.or(Cycles.all(), Cycles.all(maxCycleSize));
+        final CycleFinder cycles = Cycles.all(ac.getAtomCount());
         final Aromaticity aromaticity = new Aromaticity(model, cycles);
         aromaticity.apply(ac);
-        
-        return ac;
     }
     
     
@@ -1261,6 +1396,25 @@ public class Utils {
         return specID;
     }
     
+    public static Spectrum setSpectrumEquivalences(final Spectrum spectrum){
+        int equivalentSignalIndex;
+        for (final Signal signal : spectrum.getSignals()) {
+            equivalentSignalIndex = -1;
+            for (final int closestSignalIndex : spectrum.pickSignals(signal.getShift(0), 0, 0.0)) {
+                if (spectrum.getSignalIndex(signal) <= closestSignalIndex) {
+                    continue;
+                }
+                if (signal.getMultiplicity().equals(spectrum.getSignal(closestSignalIndex).getMultiplicity())) {
+                    equivalentSignalIndex = closestSignalIndex;
+                    break;
+                }
+            }
+            spectrum.setEquivalence(spectrum.getSignalIndex(signal), equivalentSignalIndex);
+        }
+        
+        return spectrum;
+    }
+    
     public static boolean checkIndexInAtomContainer(final IAtomContainer ac, final int atomIndex){
         return ((atomIndex >= 0) && atomIndex < ac.getAtomCount());
     }    
@@ -1282,75 +1436,25 @@ public class Utils {
         }
     }
     
-    
-    // ########################################################################################################
-    // test functions -> not ready to use
-    
-    
-        /**
-     * Returns a bond type for two bond atoms from its hybridization.
-     * CURRENTLY ONLY SINGLE BOND DETECTION POSSIBLE!!!
-     * This function detects single, double and triple bonds and returns a
-     * bond order from {@link org.openscience.cdk.interfaces.IBond.Order}.
-     * If no bond type could be detected then
-     * {@link org.openscience.cdk.interfaces.IBond.Order#UNSET} will be
-     * returned.
-     * For single and double bond detection, the following elements are defined
-     * so far: C, O, N, S.
-     * For triple bond detection, the following elements are defined so far: C,
-     * N.
+     /**
+     * Returns the bond order for a numeric order value.
      *
-     *
-     * @param atom1
-     * @param atom2
+     * @param orderNumber 
      * @return
      */
-    public static IBond.Order getBondTypeFromHybridizations(final IAtom atom1, final IAtom atom2) {
-
-//        final String atomType1 = atom1.getSymbol();
-        final IAtomType.Hybridization hybridization1 = atom1.getHybridization();
-//        final String atomType2 = atom2.getSymbol();
-        final IAtomType.Hybridization hybridization2 = atom2.getHybridization();
-
-        if (hybridization1 == null && hybridization2 == null) {
-            return IBond.Order.UNSET;
-        }        
+    public static IBond.Order getBondOrder(final int orderNumber) {
+        for (IBond.Order order : IBond.Order.values()){
+            if(order.numeric() == orderNumber){
+                return order;
+            }
+        }            
         
-//        IBond.Order bondOrder1 = IBond.Order.UNSET;
-//        IBond.Order bondOrder2 = IBond.Order.UNSET;
-
-        // single bond detection, the "3" means all SP3 hybrdidizations like SP3, SP3D2 or PLANAR3
-        if ((hybridization1 != null) //&& (atomType1.equals("C") || atomType1.equals("O") || atomType1.equals("N") || atomType1.equals("S"))
-                && hybridization1.toString().contains("3")) {
-            return IBond.Order.SINGLE;
-        }
-        if ((hybridization2 != null) //&& (atomType2.equals("C") || atomType2.equals("O") || atomType2.equals("N") || atomType2.equals("S"))
-                && hybridization2.toString().contains("3")) {
-            return IBond.Order.SINGLE;
-        }
-//        // double bond detection
-//        if ((atomType1.equals("C") && (hybridization1.equals(IAtomType.Hybridization.SP1) || hybridization1.equals(IAtomType.Hybridization.SP2)))
-//                || ((atomType1.equals("O") || atomType1.equals("N") || atomType1.equals("S")) && (hybridization1.equals(IAtomType.Hybridization.SP2)))) {
-//            bondOrder1 = IBond.Order.DOUBLE;
-//        }
-//        if ((atomType2.equals("C") && (hybridization2.equals(IAtomType.Hybridization.SP1) || hybridization2.equals(IAtomType.Hybridization.SP2)))
-//                || ((atomType2.equals("O") || atomType2.equals("N") || atomType2.equals("S")) && hybridization2.equals(IAtomType.Hybridization.SP2))) {
-//            bondOrder2 = IBond.Order.DOUBLE;
-//        }
-//        // triple bond detection
-//        if ((atomType1.equals("C") && (hybridization1.equals(IAtomType.Hybridization.SP1)))
-//                && (atomType2.equals("N") && hybridization2.equals(IAtomType.Hybridization.SP1))) {
-//            bondOrder1 = IBond.Order.TRIPLE;
-//        }
-//        if ((atomType2.equals("N") && (hybridization2.equals(IAtomType.Hybridization.SP1)))
-//                && (atomType1.equals("C") && hybridization1.equals(IAtomType.Hybridization.SP1))) {
-//            bondOrder2 = IBond.Order.TRIPLE;
-//        }
-
-//        if (bondOrder1.equals(bondOrder2)) {
-//            return bondOrder1;
-//        }
-
-        return IBond.Order.UNSET;
+        return null;
     }
+
+    public static Integer getBondOrderInteger(final IBond.Order order) {
+        return (order != null) ? order.numeric() : null;
+    }
+    
+    
 }

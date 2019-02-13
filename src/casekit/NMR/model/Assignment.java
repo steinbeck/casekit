@@ -98,7 +98,7 @@ public class Assignment implements Cloneable {
             }
         }
         
-        return null;
+        return -1;
     }
     
     public int[] getAtomIndices(final int dim){
@@ -132,8 +132,15 @@ public class Assignment implements Cloneable {
         return setAssignmentsCounter;
     }
     
-    public boolean addAssignment(final int[] indices){
-        if(indices.length != this.nDim){
+    /**
+     * Adds a new assignment entry for a further signal. The given atom indices 
+     * will be stored as atom index for each dimension of the signal/spectrum. 
+     *
+     * @param atomIndicesInStructure
+     * @return
+     */
+    public boolean addAssignment(final int[] atomIndicesInStructure){
+        if(atomIndicesInStructure.length != this.nDim){
             return false;
         }
         final int[][] extendedAssignments = new int[this.nDim][this.getAssignmentsCount()+1];
@@ -141,7 +148,7 @@ public class Assignment implements Cloneable {
             for (int i = 0; i < this.getAssignmentsCount(); i++) {
                 extendedAssignments[dim][i] = this.getAtomIndex(dim, i);
             }
-            extendedAssignments[dim][this.getAssignmentsCount()] = indices[dim];
+            extendedAssignments[dim][this.getAssignmentsCount()] = atomIndicesInStructure[dim];
         }
         this.assignments = extendedAssignments;
         

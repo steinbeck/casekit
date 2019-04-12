@@ -31,7 +31,7 @@ package casekit.NMR.model;
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Signal implements Cloneable {
+public class Signal {
     
     private final int nDim;
 
@@ -51,25 +51,19 @@ public class Signal implements Cloneable {
 
     
     public Signal(final String[] nuclei) {
-        this.nuclei = nuclei;
-        this.nDim = this.nuclei.length;
-        this.shifts = this.initShifts(null, this.nDim);
+        this(nuclei, null);
     }
     
     public Signal(final String[] nuclei, final Double[] shifts) {
+        this(nuclei, shifts, null, null);
+    }
+
+    public Signal(final String[] nuclei, final Double[] shifts, final String multiplicity, final Double intensity) {
         this.nuclei = nuclei;
         this.nDim = this.nuclei.length;
         this.shifts = this.initShifts(shifts, this.nDim);
-    }
-    
-    public Signal(final String[] nuclei, final Double[] shifts, final Double intensity) {
-        this(nuclei, shifts);
-        this.intensity = intensity;
-    }
-    
-    public Signal(final String[] nuclei, final Double[] shifts, final Double intensity, final String multiplicity) {
-        this(nuclei, shifts, intensity);
         this.multiplicity = multiplicity;
+        this.intensity = intensity;
     }
     
     private Double[] initShifts(final Double[] shifts, final int nDim){
@@ -142,16 +136,10 @@ public class Signal implements Cloneable {
      * @return
      */
     public Signal getClone(){
-        final Signal signalClone = new Signal(this.nuclei, this.shifts);
-        signalClone.setIntensity(this.intensity);
-        signalClone.setMultiplicity(this.multiplicity);
-        signalClone.setPhase(this.phase);
+        final Signal clone = new Signal(this.nuclei, this.shifts, this.multiplicity, this.intensity);
+        clone.setPhase(this.phase);
         
-        return signalClone;
+        return clone;
     }
     
-    @Override
-    public Signal clone() throws CloneNotSupportedException{
-        return (Signal) super.clone();
-    }
 }

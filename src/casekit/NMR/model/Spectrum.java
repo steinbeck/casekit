@@ -65,14 +65,19 @@ public class Spectrum {
    private Double spectrometerFrequency;
    private String solvent;
    private String standard;
-   private final ArrayList<Signal> signals = new ArrayList<>();
-   private final ArrayList<Integer> equivalences = new ArrayList<>();
+   private final ArrayList<Signal> signals;
+   private int signalCount;
+   private final ArrayList<Integer> equivalences;
    private  ArrayList<Integer>[] equivalentSignals;
   
 
    public Spectrum(final String[] nuclei) {
        this.nuclei = nuclei;
        this.nDim = this.nuclei.length;
+       this.signals = new ArrayList<>();
+       this.signalCount = 0;
+       this.equivalences = new ArrayList<>();
+       this.equivalentSignals = new ArrayList[]{};
    }
    
    public String[] getNuclei(){
@@ -110,7 +115,7 @@ public class Spectrum {
         return true;
    }
    
-   public final boolean setShift(final double shift, final int dim, final int signalIndex){
+   public final boolean setShift(final Double shift, final int dim, final int signalIndex){
         if(!this.checkDimension(dim) || !this.checkSignalIndex(signalIndex)){
             return false;
         }    
@@ -120,7 +125,7 @@ public class Spectrum {
    }
    
    public int getSignalCount() {
-       return this.signals.size();
+       return this.signalCount;
    }
    
     /**
@@ -148,16 +153,8 @@ public class Spectrum {
     * @param signal signal to add
     * @return 
     */
-   public boolean addSignal(final Signal signal) {
-       if(!this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())){
-           return false;
-       }
-       // add signal at the end of signal list  
-       this.signals.add(signal);
-       this.equivalences.add(-1);
-       this.updateEquivalentSignalClasses();
-       
-       return true;
+   public boolean addSignal(final Signal signal) {       
+       return this.addSignal(signal, -1);
    }
    
    /**
@@ -172,11 +169,15 @@ public class Spectrum {
            return false;
        }
        // add signal at the end of signal list  
-       this.signals.add(signal);
-       this.equivalences.add(equivalentSignalIndex);
-       this.updateEquivalentSignalClasses();
+       if(this.signals.add(signal)){
+           this.signalCount++;
+           this.equivalences.add(equivalentSignalIndex);
+           this.updateEquivalentSignalClasses();
+           
+           return true;
+       }       
        
-       return true;
+       return false;
    }
 
    public boolean removeSignal(final Signal signal){
@@ -184,17 +185,21 @@ public class Spectrum {
    }
    
    public boolean removeSignal(final int signalIndex){
-       if(!this.checkSignalIndex(signalIndex)){
+        if(!this.checkSignalIndex(signalIndex)){
            return false;
-       }
-       this.signals.remove(signalIndex);
-       this.equivalences.remove(signalIndex);
-       this.updateEquivalentSignalClasses();
-       
-       return true;
+        }
+        if(this.signals.remove(signalIndex) != null){
+            this.signalCount--;
+            this.equivalences.remove(signalIndex);
+            this.updateEquivalentSignalClasses();   
+            
+            return true;
+        }       
+                  
+        return false;
    }
    
-   private boolean checkSignalIndex(final Integer signalIndex){
+   private boolean checkSignalIndex(final Integer signalIndex){       
        return (signalIndex != null) && (signalIndex >= 0) && (signalIndex < this.getSignalCount());
    }
    
@@ -230,7 +235,11 @@ public class Spectrum {
            return null;
        }
        
-       return this.signals.get(signalIndex);
+       try {
+           return this.signals.get(signalIndex);
+       } catch (Exception e) {
+           return null;
+       }
    }
    
    public ArrayList<Double> getIntensities(){
@@ -377,7 +386,6 @@ public class Spectrum {
        this.equivalentSignals = new ArrayList[this.getSignalCount()];
        for(int i = 0; i < this.getSignalCount(); i++) {
            this.equivalentSignals[i] = this.searchEquivalentSignals(i);
-//           this.equivalentSignals.put(i, this.searchEquivalentSignals(i));
        }
    }
    
@@ -536,7 +544,7 @@ public class Spectrum {
    public Spectrum getClone() {
        final Spectrum clone = new Spectrum(this.nuclei);       
        for (int i = 0; i < this.getSignalCount(); i++) {
-           clone.addSignal(this.getSignal(i), this.getEquivalence(i));
+           clone.addSignal(this.getSignal(i).getClone(), this.getEquivalence(i));
        }              
        clone.setSpecDescription(this.description);
        clone.setSolvent(this.solvent);

@@ -216,61 +216,61 @@ public class Process extends ParseRawData {
     
     
     
-    public void countNeighborhoodBonds(final IAtomContainerSet acSet, final String[] bondsSet, final String elem, final ArrayList<String> neighborElems, final int minShift, final int maxShift, final int stepSize) throws FileNotFoundException, IOException{
-        
-        if (stepSize < 1) {
-            System.err.println("stepSize < 1 not allowed!!!");
-            return;
-        }
-        // creation of frequency counting matrix and shift indices holder
-        this.neighborhoodCountsMatrix = new int[stepSize * (maxShift - minShift + 1)][3 + 4 + neighborElems.size() * bondsSet.length];
-        this.shiftIndicesInACSet.clear();
-        for (int i = 0; i < stepSize * maxShift; i++) {
-            for (int j = 0; j < 3 + 4 + neighborElems.size() * bondsSet.length; j++) {
-                neighborhoodCountsMatrix[i][j] = 0;
-            }
-            this.shiftIndicesInACSet.put(i, new ArrayList<>());
-        }
-        int atomIndexDB, shiftDBInt; double shiftDBDouble; IAtomContainer acDB;
-        // go through all molecules in DB
-        for (int k = 0; k < acSet.getAtomContainerCount(); k++) {
-            acDB = acSet.getAtomContainer(k);
-            // for all DB entries containing a spectrum for the current query atom type
-            for (final String shiftsDB : DB.getNMRShiftDBSpectra(acDB, elem)) {
-                if (shiftsDB == null) {
-                    continue;
-                }
-                String[][] shiftsDBvalues = casekit.NMR.DB.parseNMRShiftDBSpectrum(shiftsDB);
-                for (String[] shiftsDBvalue : shiftsDBvalues) {
-                    atomIndexDB = Integer.parseInt(shiftsDBvalue[2]);
-                    // sometimes the DB atom index is wrong and out of array range 
-                    if (atomIndexDB > acDB.getAtomCount() - 1) {
-                        continue;
-                    }
-                    shiftDBDouble = Math.round(Double.parseDouble(shiftsDBvalue[0]) * stepSize) / (double) stepSize;
-                    // if DB shift value out of min-max-range then skip this shift 
-                    if(shiftDBDouble < minShift || shiftDBDouble > maxShift - 1){
-                        continue;
-                    }
-                    shiftDBInt = (int) (shiftDBDouble * stepSize);
-                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][0] += 1; // increase number of this shift occurence
-                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][1] += (acDB.getAtom(atomIndexDB).isInRing()) ? 1 : 0; // increase if atom is a ring member
-                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][2] += (acDB.getAtom(atomIndexDB).isAromatic()) ? 1 : 0; // increase if atom is aromatic
-                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][3] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 0)) ? 1 : 0; // qC count or equivalents, e.g. qN
-                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][4] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 1)) ? 1 : 0; // CH count or equivalents, e.g. NH
-                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][5] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 2)) ? 1 : 0; // CH2 count or equivalents, e.g. NH2
-                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][6] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 3)) ? 1 : 0; // CH3 count or equivalents, e.g. NH3
-                    // add counts for a specific atom to matrix m
-                    int[] counts = casekit.NMR.Utils.getNeighborhoodBondsCount(acDB, atomIndexDB, bondsSet, neighborElems);
-                    for (int i = 0; i < counts.length; i++) {
-                        this.neighborhoodCountsMatrix[shiftDBInt - minShift][3 + 4 + i] += counts[i];
-                    }
-                    // add this atom container index and atom index within it to belonging hash map
-                    this.shiftIndicesInACSet.get(shiftDBInt).add(new Integer[]{k, atomIndexDB});
-                }
-            }
-        }
-    }
+//    public void countNeighborhoodBonds(final IAtomContainerSet acSet, final String[] bondsSet, final String elem, final ArrayList<String> neighborElems, final int minShift, final int maxShift, final int stepSize) throws FileNotFoundException, IOException{
+//        
+//        if (stepSize < 1) {
+//            System.err.println("stepSize < 1 not allowed!!!");
+//            return;
+//        }
+//        // creation of frequency counting matrix and shift indices holder
+//        this.neighborhoodCountsMatrix = new int[stepSize * (maxShift - minShift + 1)][3 + 4 + neighborElems.size() * bondsSet.length];
+//        this.shiftIndicesInACSet.clear();
+//        for (int i = 0; i < stepSize * maxShift; i++) {
+//            for (int j = 0; j < 3 + 4 + neighborElems.size() * bondsSet.length; j++) {
+//                neighborhoodCountsMatrix[i][j] = 0;
+//            }
+//            this.shiftIndicesInACSet.put(i, new ArrayList<>());
+//        }
+//        int atomIndexDB, shiftDBInt; double shiftDBDouble; IAtomContainer acDB;
+//        // go through all molecules in DB
+//        for (int k = 0; k < acSet.getAtomContainerCount(); k++) {
+//            acDB = acSet.getAtomContainer(k);
+//            // for all DB entries containing a spectrum for the current query atom type
+//            for (final String shiftsDB : DB.getNMRShiftDBSpectra(acDB, elem)) {
+//                if (shiftsDB == null) {
+//                    continue;
+//                }
+//                String[][] shiftsDBvalues = casekit.NMR.DB.parseNMRShiftDBSpectrum(shiftsDB);
+//                for (String[] shiftsDBvalue : shiftsDBvalues) {
+//                    atomIndexDB = Integer.parseInt(shiftsDBvalue[2]);
+//                    // sometimes the DB atom index is wrong and out of array range 
+//                    if (atomIndexDB > acDB.getAtomCount() - 1) {
+//                        continue;
+//                    }
+//                    shiftDBDouble = Math.round(Double.parseDouble(shiftsDBvalue[0]) * stepSize) / (double) stepSize;
+//                    // if DB shift value out of min-max-range then skip this shift 
+//                    if(shiftDBDouble < minShift || shiftDBDouble > maxShift - 1){
+//                        continue;
+//                    }
+//                    shiftDBInt = (int) (shiftDBDouble * stepSize);
+//                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][0] += 1; // increase number of this shift occurence
+//                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][1] += (acDB.getAtom(atomIndexDB).isInRing()) ? 1 : 0; // increase if atom is a ring member
+//                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][2] += (acDB.getAtom(atomIndexDB).isAromatic()) ? 1 : 0; // increase if atom is aromatic
+//                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][3] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 0)) ? 1 : 0; // qC count or equivalents, e.g. qN
+//                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][4] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 1)) ? 1 : 0; // CH count or equivalents, e.g. NH
+//                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][5] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 2)) ? 1 : 0; // CH2 count or equivalents, e.g. NH2
+//                    this.neighborhoodCountsMatrix[shiftDBInt - minShift][6] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 3)) ? 1 : 0; // CH3 count or equivalents, e.g. NH3
+//                    // add counts for a specific atom to matrix m
+//                    int[] counts = casekit.NMR.Utils.getNeighborhoodBondsCount(acDB, atomIndexDB, bondsSet, neighborElems);
+//                    for (int i = 0; i < counts.length; i++) {
+//                        this.neighborhoodCountsMatrix[shiftDBInt - minShift][3 + 4 + i] += counts[i];
+//                    }
+//                    // add this atom container index and atom index within it to belonging hash map
+//                    this.shiftIndicesInACSet.get(shiftDBInt).add(new Integer[]{k, atomIndexDB});
+//                }
+//            }
+//        }
+//    }
     
     
     

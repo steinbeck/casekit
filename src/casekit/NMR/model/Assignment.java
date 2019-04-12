@@ -132,6 +132,14 @@ public class Assignment implements Cloneable {
         return setAssignmentsCounter;
     }
     
+    public Boolean isFullyAssigned(final int dim){
+        if(!this.checkDimension(dim)){
+            return null;
+        }
+        
+        return this.getSetAssignmentsCount(dim) == this.getAssignmentsCount();
+    }
+    
     /**
      * Adds a new assignment entry for a further signal. The given atom indices 
      * will be stored as atom index for each dimension of the signal/spectrum. 

@@ -165,7 +165,7 @@ public class Spectrum {
     * @return 
     */
    public boolean addSignal(final Signal signal, final int equivalentSignalIndex) {
-       if(!this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())){
+       if((signal == null) || !this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())){
            return false;
        }
        // add signal at the end of signal list  

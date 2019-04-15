@@ -354,10 +354,15 @@ public class Utils {
     
     public static String getAtomTypeFromSpectrum(final Spectrum spectrum, final int dim){
         if(spectrum.checkDimension(dim)){
-            return Utils.getElementIdentifier(spectrum.getNuclei()[dim]);
+            return Utils.getAtomTypeFromNucleus(spectrum.getNuclei()[dim]);
         }
         
         return null;
+    }
+    
+    public static String getAtomTypeFromNucleus(final String nucleus){
+        final String[] nucleusSplit = nucleus.split("\\d");
+        return nucleusSplit[nucleusSplit.length - 1];
     }
     
     public static int getDifferenceSpectrumSizeAndMolecularFormulaCount(final Spectrum spectrum, final IMolecularFormula molFormula, final int dim) throws CDKException{
@@ -727,27 +732,6 @@ public class Utils {
         }
     }
     
-    
-    public static int getElectronNumberByBondOrder(final IBond.Order order) {
-        switch (order) {
-            case SINGLE:
-                return 1;
-            case DOUBLE:
-                return 2;
-            case TRIPLE:
-                return 3;
-            case QUADRUPLE:
-                return 4;    
-            case QUINTUPLE:
-                return 5;
-            case SEXTUPLE:
-                return 6;    
-            default:
-                return 0;
-        }
-    }
-    
-    
     /**
      * Returns the NMR isotope identifier for a given element, e.g. C -> 13C. 
      * Elements defined so far: C, H, N, P, F, D, O, S, Si, B, Pt.
@@ -770,31 +754,7 @@ public class Utils {
             default:
                 return element;
         }
-    }
-    
-    /**
-     * Returns the element identifier for a given isotope, e.g. 13C -> C.
-     * Elements defined so far: C, H, N, P, F, D, O, S, Si, B, Pt.
-     *
-     * @param isotope isotope's symbol (e.g. "13C")
-     * @return
-     */
-    public static String getElementIdentifier(final String isotope) {
-        switch (isotope) {
-            case "13C": return "C";
-            case "1H":  return "H";
-            case "15N": return "N";
-            case "31P": return "P";
-            case "19F": return "F";
-            case "17O": return "O";
-            case "33S": return "S";
-            case "29Si": return "Si";
-            case "11B": return "B";
-            case "195Pt": return "Pt";
-            default:
-                return null;
-        }
-    }
+    }    
     
     
     public static HashSet<String> getAtomTypesInAtomContainer(final IAtomContainer ac) {
@@ -812,7 +772,16 @@ public class Utils {
         return (value >= min && value <= max);
     }
     
-    
+    /**
+     *
+     * @param ac
+     * @param indexAC
+     * @param bondsSet
+     * @param neighborElems
+     * @return
+     * 
+     * @deprecated 
+     */
     public static int[] getNeighborhoodBondsCount(final IAtomContainer ac, final int indexAC, final String[] bondsSet, final ArrayList<String> neighborElems){
         final int[] counts = new int[neighborElems.size() * bondsSet.length];
         String foundBonds;
@@ -839,7 +808,21 @@ public class Utils {
         return counts;
     }
         
-    
+    /**
+     *
+     * @param pathToOutput
+     * @param m
+     * @param bondsSet
+     * @param elem
+     * @param neighborElems
+     * @param min
+     * @param max
+     * @param stepSize
+     * 
+     * @throws IOException
+     * 
+     * @deprecated 
+     */
     public static void writeNeighborhoodBondsCountMatrix(final String pathToOutput, final int[][] m, final String[] bondsSet, final String elem, final ArrayList<String> neighborElems, final int min, final int max, final int stepSize) throws IOException{
         
         if(stepSize < 1){
@@ -877,14 +860,26 @@ public class Utils {
         writer.close();
     }
     
-    
+    /**
+     *
+     * @param s
+     * @return
+     * 
+     * @deprecated 
+     */
     public static String sortString(final String s) {
         final char[] c = s.toCharArray();
         Arrays.sort(c);
         return new String(c);
     }
     
-    
+    /**
+     *
+     * @param valences
+     * @return
+     * 
+     * @deprecated 
+     */
     public static ArrayList<ArrayList<IBond.Order>> getBondOrderSets(final String[] valences) {
         
         final ArrayList<ArrayList<IBond.Order>> bondOrderSets = new ArrayList<>();
@@ -904,6 +899,13 @@ public class Utils {
         return bondOrderSets;
     }
     
+    /**
+     *
+     * @param order
+     * @return
+     * 
+     * @deprecated 
+     */
     public static String getStringFromBondOrder(final IBond.Order order) {
         switch (order) {
             case SINGLE:
@@ -915,16 +917,7 @@ public class Utils {
             default:
                 return null;
         }
-    }        
-    
-    public static IBond.Order getBondOrderFromString(final String order){
-        switch(order){
-            case "-": return IBond.Order.SINGLE;
-            case "=": return IBond.Order.DOUBLE;
-            case "%": return IBond.Order.TRIPLE;
-            default:  return null;
-        }
-    }
+    }                
     
     
     public static void writeTextFile(final String pathToOutputFile, final String content) throws IOException {
@@ -1403,7 +1396,13 @@ public class Utils {
         return ac;
     }
     
-    
+    /**
+     *
+     * @param array
+     * @return
+     * 
+     * @deprecated 
+     */
     public static ArrayList<Integer> ArrayToArrayList(final int[] array){
         
         final ArrayList<Integer> list = new ArrayList<>();

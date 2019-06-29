@@ -1,0 +1,16 @@
+general things:
+- JUnit
+- PMD: CDK GitHub PMD example
+- JCoCo
+- yourkit (license received)
+
+coding:
+
+-   in parseRawData class:
+        -   new: usage of Assignment class objects:
+            -> atom properties for signals, e.g. HMBC, are not longer set
+        -   control function should be implemented for assigning of protons:
+            -> no. of assigned protons (HSQC, HMBC, ...) vs. DEPT information and for other heavy atoms too
+            -> how many protons for one shift value (carbons or other heavy atoms) are still left?
+        -   some function descriptions (javadoc) are deprecated and have to be updated
+-   add exceptions where needed

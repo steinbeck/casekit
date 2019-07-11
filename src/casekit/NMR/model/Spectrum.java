@@ -28,8 +28,9 @@
  */
 package casekit.NMR.model;
 
+import casekit.NMR.model.dimensional.DimensionalNMR;
+
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,7 +39,7 @@ import java.util.HashSet;
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Spectrum {
+public class Spectrum extends DimensionalNMR {
                                                   
    /**
     * An arbitrary name or description that can be assigned to this spectrum for identification purposes.
@@ -50,15 +51,6 @@ public class Spectrum {
     * numerous experiments yielding basically identical information having different names
     */
    private String specType;
-   
-   /**
-    * Declares how many axes are in involved in this spectrum.
-    */
-   private final int nDim;
-   /**
-    * The nuclei of the different axes.
-    */
-   private final String nuclei[];
    /**
     * The proton frequency of the spectrometer used to record this spectrum.
     */
@@ -72,22 +64,13 @@ public class Spectrum {
   
 
    public Spectrum(final String[] nuclei) {
-       this.nuclei = nuclei;
-       this.nDim = this.nuclei.length;
+       super(nuclei);
        this.signals = new ArrayList<>();
        this.signalCount = 0;
        this.equivalences = new ArrayList<>();
        this.equivalentSignals = new ArrayList[]{};
    }
-   
-   public String[] getNuclei(){
-       return this.nuclei;
-   }
-   
-   public int getDimCount(){
-       return this.nDim;
-   }
-   
+
    public void setSpecType(final String specType){
        this.specType = specType;
    }
@@ -105,7 +88,7 @@ public class Spectrum {
    }
    
    public final boolean setShifts(final ArrayList<Double> shiftList, final int dim){
-        if(!this.checkDimension(dim) || (!this.checkInputListSize(shiftList.size()))){
+        if(!this.containsDim(dim) || (!this.checkInputListSize(shiftList.size()))){
             return false;
         }
         for (int i = 0; i < shiftList.size(); i++) {
@@ -116,7 +99,7 @@ public class Spectrum {
    }
    
    public final boolean setShift(final Double shift, final int dim, final int signalIndex){
-        if(!this.checkDimension(dim) || !this.checkSignalIndex(signalIndex)){
+        if(!this.containsDim(dim) || !this.checkSignalIndex(signalIndex)){
             return false;
         }    
         this.getSignal(signalIndex).setShift(shift, dim);
@@ -136,7 +119,7 @@ public class Spectrum {
      */
    public boolean addSignals(final ArrayList<Signal> signals){
        for (final Signal signal : signals) {
-           if (!this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())) {
+           if (!this.compareNuclei(signal.getNuclei())) {
                return false;
            }
        }
@@ -165,7 +148,7 @@ public class Spectrum {
     * @return 
     */
    public boolean addSignal(final Signal signal, final int equivalentSignalIndex) {
-       if((signal == null) || !this.checkDimCount(signal.getDimCount()) || !this.checkNuclei(signal.getNuclei())){
+       if((signal == null) || !this.compareNuclei(signal.getNuclei())){
            return false;
        }
        // add signal at the end of signal list  
@@ -203,26 +186,8 @@ public class Spectrum {
        return (signalIndex != null) && (signalIndex >= 0) && (signalIndex < this.getSignalCount());
    }
    
-    /**
-     * Checks whether the input dimension exists in this spectrum or not.
-     *
-     * @param dim
-     * @return
-     */
-   public boolean checkDimension(final int dim){
-       return (dim >= 0) && (dim < this.nDim);
-   }
-   
    private boolean checkInputListSize(final int size){
        return (size == this.getSignalCount());
-   }
-   
-   private boolean checkDimCount(final int ndim){
-       return ndim == this.getDimCount();
-   }
-   
-   private boolean checkNuclei(final String[] nuclei){
-       return Arrays.equals(nuclei, this.getNuclei());
    }
    
    /**
@@ -281,7 +246,7 @@ public class Spectrum {
    
    public ArrayList<Double> getShifts(final int dim){
        final ArrayList<Double> shifts = new ArrayList<>();
-       if(!this.checkDimension(dim)){
+       if(!this.containsDim(dim)){
            return shifts;
        }
        for (final Signal sig : this.signals) {
@@ -448,6 +413,42 @@ public class Spectrum {
        return true;
    }
 
+    /**
+     * Detects equivalent signals within this spectrum by a pick precision of 0.0 (no shift deviations are allowed).
+     *
+     * @see #detectEquivalences(double)
+     */
+   public void detectEquivalences(){
+       this.detectEquivalences(0.0);
+   }
+
+    /**
+     * Detects equivalent signals within this spectrum by a given pick precision (shift deviations are allowed).
+     *
+     * @param pickPrecision tolerance value used for signal shift matching to find equivalent signals
+     *
+     * @see #getEquivalence(int)
+     * @see #getEquivalences()
+     * @see #getEquivalentSignals(int)
+     * @see #getEquivalentSignalClasses()
+     */
+    public void detectEquivalences(final double pickPrecision){
+        int equivalentSignalIndex;
+        for (final Signal signal : this.getSignals()) {
+            equivalentSignalIndex = -1;
+            for (final int closestSignalIndex : this.pickSignals(signal.getShift(0), 0, pickPrecision)) {
+                if (this.getSignalIndex(signal) <= closestSignalIndex) {
+                    continue;
+                }
+                if (signal.getMultiplicity().equals(this.getSignal(closestSignalIndex).getMultiplicity())) {
+                    equivalentSignalIndex = closestSignalIndex;
+                    break;
+                }
+            }
+            this.setEquivalence(this.getSignalIndex(signal), equivalentSignalIndex);
+        }
+    }
+
    /**
     * Returns the position of an NMRSignal the List
     * @param signal
@@ -497,7 +498,7 @@ public class Spectrum {
     */
    public int pickClosestSignal(final double shift, final int dim, final double pickPrecision) {       
        int matchIndex = -1;
-       if(!this.checkDimension(dim)){
+       if(!this.containsDim(dim)){
            return matchIndex;
        }
        double diff = pickPrecision;
@@ -522,7 +523,7 @@ public class Spectrum {
     */
    public ArrayList<Integer> pickSignals(final Double shift, final int dim, final double pickPrecision) {
        final ArrayList<Integer> pickedSignals = new ArrayList<>();
-       if(!this.checkDimension(dim)){
+       if(!this.containsDim(dim)){
            return pickedSignals;
        }
        for (int s = 0; s < this.getSignalCount(); s++) {
@@ -537,12 +538,12 @@ public class Spectrum {
                return Double.compare(Math.abs(shift - getShift(pickedSignalIndex1, dim)), Math.abs(shift - getShift(pickedSignalIndex2, dim)));
            }
        });
-       
+
        return pickedSignals;
    }
    
-   public Spectrum getClone() {
-       final Spectrum clone = new Spectrum(this.nuclei);       
+   public Spectrum getClone() throws Exception {
+       final Spectrum clone = new Spectrum(this.getNuclei());
        for (int i = 0; i < this.getSignalCount(); i++) {
            clone.addSignal(this.getSignal(i).getClone(), this.getEquivalence(i));
        }              

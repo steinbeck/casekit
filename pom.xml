@@ -98,11 +98,5 @@
             <artifactId>mongo-java-driver</artifactId>
             <version>3.10.0</version>
         </dependency>
-        <dependency>
-            <groupId>org.openscience</groupId>
-            <artifactId>FragAssembler</artifactId>
-            <version>1.0-SNAPSHOT</version>
-            <type>jar</type>
-        </dependency>
     </dependencies>
 </project>

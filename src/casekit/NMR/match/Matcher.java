@@ -20,7 +20,9 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.similarity.Tanimoto;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 
 public class Matcher {
@@ -277,4 +279,50 @@ public class Matcher {
 
         return matchAssignment;
     }
+
+
+    // might be useful in future to correct matches between spectra
+
+//    /**
+//     * Corrects a match list regarding a given shift list and an atom container.
+//     * This is useful when two ore more shift values (e.g. DEPT shifts) match
+//     * with the same atom in the atom container. So the purpose here is to
+//     * enable more unambiguous matches. This method first looks for unambiguous
+//     * matches and calculates the median of the difference values between the
+//     * shift list values and the shifts of atom container. Then, all shift list
+//     * values are adjusted (+/-) with this median value.
+//     *
+//     * @param shiftList1 Shift value list to search in
+//     * @param shiftList2 Shift value list to match in shiftList1
+//     * @param matchesInShiftList1 Matcher list to correct
+//     * @param tol Tolerance value
+//     * @return
+//     */
+//    public static ArrayList<Integer> correctShiftMatches(final ArrayList<Double> shiftList1, final ArrayList<Double> shiftList2, final ArrayList<Integer> matchesInShiftList1, final double tol) {
+//
+//        int matchIndex;
+//        // get differences of unique matches between query shift and ac shifts
+//        ArrayList<Double> diffs = new ArrayList<>();
+//        final HashSet<Integer> uniqueMatchIndicesSet = new HashSet<>(matchesInShiftList1);
+//        for (final int uniqueMatchIndex : uniqueMatchIndicesSet) {
+//            if (Collections.frequency(matchesInShiftList1, uniqueMatchIndex) == 1) {
+//                matchIndex = matchesInShiftList1.indexOf(uniqueMatchIndex);
+//                if (matchesInShiftList1.get(matchIndex) >= 0) {
+//                    diffs.add(shiftList2.get(matchIndex) - shiftList1.get(matchesInShiftList1.get(matchIndex)));
+//                }
+//            }
+//        }
+//        // calculate the median of found unique match differences
+//        if (diffs.size() > 0) {
+//            final double median = casekit.NMR.Utils.getMedian(diffs);
+//            // add or subtract the median of the differences to all shift list values (input) and match again then
+//            for (int i = 0; i < shiftList2.size(); i++) {
+//                shiftList2.set(i, shiftList2.get(i) - median);
+//            }
+//            // rematch
+//            return casekit.NMR.Utils.findShiftMatches(shiftList1, shiftList2, tol);
+//        }
+//
+//        return matchesInShiftList1;
+//    }
 }

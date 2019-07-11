@@ -1,37 +1,25 @@
 /*
  * The MIT License
  *
- * Copyright 2018 Michael Wenk [https://github.com/michaelwenk].
+ * Copyright 2019 Michael Wenk [https://github.com/michaelwenk]
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package casekit.NMR;
+package casekit.NMR.interpretation;
 
+import casekit.NMR.Utils;
 import casekit.NMR.model.Assignment;
 import casekit.NMR.model.Spectrum;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import javax.xml.parsers.ParserConfigurationException;
+
 import org.openscience.cdk.Atom;
 import org.openscience.cdk.CDKConstants;
-import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IAtomType;
@@ -39,13 +27,12 @@ import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
-import org.xml.sax.SAXException;
 
 /**
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class ParseRawData {
+public class InterpretData {
     
     final private IAtomContainer mol;
     final private IMolecularFormula molFormula;
@@ -56,10 +43,10 @@ public class ParseRawData {
     /**
      * Creates an instances of this class with an empty class atom container.
      */
-    public ParseRawData(){
+    public InterpretData(){
         this.molFormula = null;
         this.mol = SilentChemObjectBuilder.getInstance().newAtomContainer();
-        this.setAtomTypeIndices();
+        this.updateAtomTypeIndices();
     }
     
     /**
@@ -68,12 +55,13 @@ public class ParseRawData {
      * 
      * @param molFormula IMolecularFormula object for IAtomContainer creation
      */
-    public ParseRawData(final IMolecularFormula molFormula){
+    public InterpretData(final IMolecularFormula molFormula){
         this.molFormula = molFormula;
         this.mol = Utils.removeAtoms(MolecularFormulaManipulator.getAtomContainer(this.molFormula), "H");
-        this.setAtomTypeIndices();
+        this.updateAtomTypeIndices();
     }
-    
+
+
     
     /**
      * Returns used IMolecularFormula object for this class instance.
@@ -114,7 +102,7 @@ public class ParseRawData {
      * @see Utils#getAtomTypeIndices(org.openscience.cdk.interfaces.IAtomContainer) 
      *
      */
-    private void setAtomTypeIndices(){
+    private void updateAtomTypeIndices(){
         
         this.atomTypeIndices = Utils.getAtomTypeIndices(this.mol);
     }
@@ -157,47 +145,9 @@ public class ParseRawData {
         }
          
         return this.assignments.get(spectrum.getSpecType() + "_" + Utils.getSpectrumNucleiAsString(spectrum));
-    } 
-    
-    
-    /**
-     * Creates a Spectrum class object from 1D NMR peak list in CSV file format.
-     * 
-     * @param pathToCSV Path to peak list (Bruker's TopSpin csv file
-     * format)
-     * @param atomType Element name (e.g. "C") which also occurrs in
-     * {@link Utils#getNMRShiftConstant(java.lang.String)}
-     * @return Spectrum class object from given input file
-     * @throws java.io.IOException
-     */
-    public static final Spectrum parse1DNMRviaCSV(final String pathToCSV, final String atomType) throws IOException {
-        final Spectrum spectrum = Utils.CSVtoSpectrum(pathToCSV, new int[]{4}, new String[]{atomType}, 6);
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_1D);
-        
-        return spectrum;
     }
 
-    
-    /**
-     * Creates a Spectrum class object from 1D NMR peak list in XML file format.
-     * 
-     * @param pathToXML Path to peak list (Bruker's TopSpin csv file
-     * format)
-     * @param atomType Element name (e.g. "C") which also occurrs in
-     * {@link Utils#getNMRShiftConstant(java.lang.String)}
-     * @return Spectrum class object from given input file
-     * @throws java.io.IOException
-     * @throws javax.xml.parsers.ParserConfigurationException
-     * @throws org.xml.sax.SAXException
-     */
-    public static final Spectrum parse1DNMRviaXML(final String pathToXML, final String atomType) throws IOException, ParserConfigurationException, SAXException {
-        final Spectrum spectrum = Utils.XMLtoSpectrum(pathToXML, 1, new int[]{1}, new String[]{atomType});
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_1D);
-        
-        return spectrum;
-    }
 
-    
     /**
      * Sets the 1D NMR shift values for given Spectrum object to atoms of the class IAtomContainer.
      * The shift values will be assigned sequentially.  
@@ -217,7 +167,7 @@ public class ParseRawData {
      * @throws java.io.IOException
      * @throws org.openscience.cdk.exception.CDKException
      */
-    public final void assign1DSpectrum(final Spectrum spectrum) throws IOException, CDKException{
+    public final void assign1DSpectrum(final Spectrum spectrum) throws Exception {
         // checks whether number of signals is equal to molecular formula if given
         // if not equal then edit signal list in spectrum
         this.check1DSpectrum(spectrum);
@@ -240,16 +190,16 @@ public class ParseRawData {
      *
      * @param spectrum
      * @throws IOException
-     * @see Utils#editSignalsInSpectrum(casekit.NMR.model.Spectrum, org.openscience.cdk.interfaces.IMolecularFormula) 
+     * @see Utils#editSignalsInSpectrum(Spectrum, IMolecularFormula, int)
      */
-    private void check1DSpectrum(final Spectrum spectrum) throws IOException, CDKException{
-        if(this.molFormula != null){
+    private void check1DSpectrum(final Spectrum spectrum) throws Exception {
+        if(this.molFormula != null) {
             final int diff = Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, this.molFormula, 0);
             if (diff != 0) {
                 // adjust Spectrum size by user
                 Utils.editSignalsInSpectrum(spectrum, this.molFormula, 0);
             }
-        } 
+        }
     }
     
     
@@ -258,7 +208,8 @@ public class ParseRawData {
      *
      * @param spectrum Spectrum class object which contains shifts in first 
      * dimension
-     * @see  Utils#getNMRShiftConstant(java.lang.String) 
+     * @see  Utils#getNMRShiftConstant(java.lang.String)
+     *
      */
     private void assignShiftValuesToAtoms(final Spectrum spectrum){
         final String atomType = Utils.getAtomTypeFromSpectrum(spectrum, 0);
@@ -273,7 +224,7 @@ public class ParseRawData {
                 atom.setImplicitHydrogenCount(null);
                 this.mol.addAtom(atom);                
             }
-            this.setAtomTypeIndices();
+            this.updateAtomTypeIndices();
         }
         // assign shifts to atoms as property
         if(this.atomTypeIndices.get(atomType) != null){
@@ -307,64 +258,15 @@ public class ParseRawData {
             this.mol.removeAtom(iAtom);
         }
         
-        this.setAtomTypeIndices();
-    }
-    
-    
-    /**
-     * Sets the number of implicit hydrogens from two carbon DEPT90 and DEPT135
-     * peak
-     * tables to carbon atoms. The meanwhile found matches are corrected,
-     * see
-     * {@link Utils#correctShiftMatches(IAtomContainer, ArrayList, ArrayList, double,String)}.
-     *
-     * @param pathToCSV Path to one DEPT peak list (Bruker's TopSpin csv file
-     * format)
-     * @param mode used angle: either 90° [0] or 135° [1]
-     * @return 
-     * @throws java.io.IOException
-     */
-    public static final Spectrum parseDEPTviaCSV(final String pathToCSV, final int mode) throws IOException {
-        final Spectrum spectrum = Utils.CSVtoSpectrum(pathToCSV, new int[]{4}, new String[]{"C"}, 6);
-        if(mode == 0){
-            spectrum.setSpecType(CDKConstants.NMRSPECTYPE_1D_DEPT90);
-        } else if(mode == 1){
-            spectrum.setSpecType(CDKConstants.NMRSPECTYPE_1D_DEPT135);
-        }
-        
-        return spectrum;
+        this.updateAtomTypeIndices();
     }
 
-    /**
-     * Sets the number of implicit hydrogens from two carbon DEPT90 and DEPT135
-     * XML files to carbon atoms. The meanwhile found matches are corrected, see
-     * {@link Utils#correctShiftMatches(IAtomContainer, ArrayList, ArrayList, double,String)}.
-     *
-     * @param pathToXML Path to one DEPT peak list (Bruker's TopSpin XML file
-     * format)
-     * @param mode used angle: either 90° [0] or 135° [1]
-     * @return 
-     * @throws java.io.IOException
-     * @throws javax.xml.parsers.ParserConfigurationException
-     * @throws org.xml.sax.SAXException
-     */
-    public static final Spectrum parseDEPTviaXML(final String pathToXML, final int mode) throws IOException, ParserConfigurationException, SAXException {
-        final Spectrum spectrum = Utils.XMLtoSpectrum(pathToXML, 1, new int[]{1}, new String[]{"C"});
-        if(mode == 0){
-            spectrum.setSpecType(CDKConstants.NMRSPECTYPE_1D_DEPT90);
-        } else if(mode == 1){
-            spectrum.setSpecType(CDKConstants.NMRSPECTYPE_1D_DEPT135);
-        }
-        
-        return spectrum;
-    }
-    
     /**
      * Sets the assignments of carbon atoms in class atom container
      * by usage of DEPT90 and DEPT135 information. The implicit hydrogen count
      * property is set too.
      * 
-     * @see ParseRawData#setImplicitHydrogenCountsFromDEPT() 
+     * @see InterpretData#setImplicitHydrogenCountsFromDEPT()
      * 
      * @param spectrum1D_DEPT90 DEPT90 spectrum
      * @param spectrum1D_DEPT135 DEPT135 spectrum which has to contain intensity 
@@ -379,7 +281,7 @@ public class ParseRawData {
                 || (this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_13C") == null)){
             return false;
         }        
-        
+
         final Assignment assignment1D_DEPT90 = new Assignment(spectrum1D_DEPT90);
         final Assignment assignment1D_DEPT135 = new Assignment(spectrum1D_DEPT135);
         final ArrayList<Integer> matchesIn1DSpectrum_DEPT90 = this.findMatchesIn1DSpectra(spectrum1D_DEPT90, 0, tol);
@@ -411,7 +313,7 @@ public class ParseRawData {
     /**
      * Sets the implicitHydrogenCount() property in atoms of class atom container 
      * by using the already set DEPT information.
-     * @see ParseRawData#assignDEPT(casekit.NMR.model.Spectrum, casekit.NMR.model.Spectrum, double) 
+     * @see InterpretData#assignDEPT(casekit.NMR.model.Spectrum, casekit.NMR.model.Spectrum, double)
      */
     private void setImplicitHydrogenCountsFromDEPT() {
         
@@ -455,45 +357,9 @@ public class ParseRawData {
         }
         
     }
-    
-    
-    /**
-     * Creates a Spectrum class object from given HSQC input file in CSV format.
-     *
-     * @param pathToCSV path to HSQC peak table (Bruker's TopSpin csv file
-     * format)
-     * @param heavyAtomType Element name of H bonded heavy atom (e.g. "C") which also occurrs in
-     * {@link Utils#getNMRShiftConstant(java.lang.String)}
-     * @return 
-     * @throws IOException
-     */
-    public static final Spectrum parseHSQCviaCSV(final String pathToCSV, final String heavyAtomType) throws IOException {
-        final Spectrum spectrum = Utils.CSVtoSpectrum(pathToCSV, new int[]{5, 6}, new String[]{"H", heavyAtomType}, 9);
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_2D_HSQC);
-        
-        return spectrum;
-    }
+
 
     /**
-     * Creates a Spectrum class object from given HSQC input file in XML format.
-     *
-     * @param pathToXML path to HSQC XML file
-     * @param heavyAtomType Element name of H bonded heavy atom (e.g. "C") which also occurrs in
-     * {@link Utils#getNMRShiftConstant(java.lang.String)}
-     * @return 
-     * @throws IOException
-     * @throws javax.xml.parsers.ParserConfigurationException
-     * @throws org.xml.sax.SAXException
-     */
-    public static final Spectrum parseHSQCviaXML(final String pathToXML, final String heavyAtomType) throws IOException, ParserConfigurationException, SAXException {
-        final Spectrum spectrum = Utils.XMLtoSpectrum(pathToXML, 2, new int[]{2, 1}, new String[]{"H", heavyAtomType});
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_2D_HSQC);
-        
-        return spectrum;
-    }
-    
-    
-     /**
      *  
      * @param spectrum Spectrum class object consisting of Signal class objects 
      * where the proton shifts values are given in first dimension and the 
@@ -531,15 +397,15 @@ public class ParseRawData {
             }
         }
     }
-    
-    
+
+
     private void assign2DSpectrum(final Spectrum spectrum, final double tolDim1, final double tolDim2){
-        
+
         final ArrayList<Integer> matchesQueryIn1DSpectrumDim1 = this.findMatchesIn1DSpectra(spectrum, 0, tolDim1);
-        final ArrayList<Integer> matchesQueryIn1DSpectrumDim2 = this.findMatchesIn1DSpectra(spectrum, 1, tolDim2);        
-        final ArrayList<Integer> matches1DInAtomContainerDim1 = this.getAssignedAtomIndices(this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_" + spectrum.getNuclei()[0]), 0); 
-        final ArrayList<Integer> matches1DInAtomContainerDim2 = this.getAssignedAtomIndices(this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_" + spectrum.getNuclei()[1]), 0); 
-                
+        final ArrayList<Integer> matchesQueryIn1DSpectrumDim2 = this.findMatchesIn1DSpectra(spectrum, 1, tolDim2);
+        final ArrayList<Integer> matches1DInAtomContainerDim1 = this.getAssignedAtomIndices(this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_" + spectrum.getNuclei()[0]), 0);
+        final ArrayList<Integer> matches1DInAtomContainerDim2 = this.getAssignedAtomIndices(this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_" + spectrum.getNuclei()[1]), 0);
+
         final Assignment assignment = new Assignment(spectrum);
         for (int i = 0; i < matchesQueryIn1DSpectrumDim1.size(); i++) {
             if((matches1DInAtomContainerDim1 != null) && (matchesQueryIn1DSpectrumDim1.get(i) >= 0)){
@@ -549,29 +415,29 @@ public class ParseRawData {
                 assignment.setAssignment(1, i, matches1DInAtomContainerDim2.get(matchesQueryIn1DSpectrumDim2.get(i)));
             }
         }
-        
+
         this.spectra.put(spectrum.getSpecType() + "_" + Utils.getSpectrumNucleiAsString(spectrum), spectrum);
         this.assignments.put(spectrum.getSpecType() + "_" + Utils.getSpectrumNucleiAsString(spectrum), assignment);
     }
-    
-    
+
+
     private ArrayList<Integer> findMatchesIn1DSpectra(final Spectrum spectrum, final int dim, final double tol){
-        
+
         ArrayList<Integer> matchesQueryInOrigin1DSpectrum = new ArrayList<>();
-        final ArrayList<Double> shiftsQuery = spectrum.getShifts(dim);
-        if(this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_" + spectrum.getNuclei()[dim]) != null){
-            final ArrayList<Double> shiftsOrigin1DSpectrum = this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_" + spectrum.getNuclei()[dim]).getShifts(0);
-            matchesQueryInOrigin1DSpectrum = Utils.findShiftMatches(shiftsOrigin1DSpectrum, shiftsQuery, tol);
-            matchesQueryInOrigin1DSpectrum = Utils.correctShiftMatches(shiftsOrigin1DSpectrum, shiftsQuery, matchesQueryInOrigin1DSpectrum, tol);
-        } else {
-            for (int i = 0; i < spectrum.getSignalCount(); i++) {
-                matchesQueryInOrigin1DSpectrum.add(-1);
-            }
-        }
-        
-        return matchesQueryInOrigin1DSpectrum;        
+//        final ArrayList<Double> shiftsQuery = spectrum.getShifts(dim);
+//        if(this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_" + spectrum.getNuclei()[dim]) != null){
+//            final ArrayList<Double> shiftsOrigin1DSpectrum = this.getSpectra().get(CDKConstants.NMRSPECTYPE_1D + "_" + spectrum.getNuclei()[dim]).getShifts(0);
+//            matchesQueryInOrigin1DSpectrum = Utils.findShiftMatches(shiftsOrigin1DSpectrum, shiftsQuery, tol);
+//            matchesQueryInOrigin1DSpectrum = Utils.correctShiftMatches(shiftsOrigin1DSpectrum, shiftsQuery, matchesQueryInOrigin1DSpectrum, tol);
+//        } else {
+//            for (int i = 0; i < spectrum.getSignalCount(); i++) {
+//                matchesQueryInOrigin1DSpectrum.add(-1);
+//            }
+//        }
+
+        return matchesQueryInOrigin1DSpectrum;
     }
-    
+
     /**
      * Returns the indices of atoms within the class atom container which match
      * to the shifts of given spectrum and dimension.
@@ -592,48 +458,12 @@ public class ParseRawData {
             return atomIndices;
         }
         
-        return Utils.ArrayToArrayList(this.getAssignment(spectrum).getAtomIndices(dim));
-    }            
-    
-
-    /**
-     * Creates a Spectrum class object from given H,H-COSY input file in CSV format.
-     *
-     * @param pathToCSV path to H,H-COSY peak table (Bruker's TopSpin csv
-     * file
-     * format)
-     * @return
-     * @throws IOException
-     */
-    public static final Spectrum parseHHCOSYviaCSV(final String pathToCSV) throws IOException {
-        final Spectrum spectrum = Utils.CSVtoSpectrum(pathToCSV, new int[]{5, 6}, new String[]{"H", "H"}, 9);
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_2D_HHCOSY);
-        
-        return spectrum;
+        return new ArrayList<>(this.getAssignment(spectrum).getAtomIndices(dim));
     }
 
-    /**
-     * Creates a Spectrum class object from given H,H-COSY input file in XML format.
-     *
-     * @param pathToXML path to H,H-COSY peak XML file (Bruker's TopSpin XML
-     * file format)
-     * @return
-     * @throws IOException
-     * @throws javax.xml.parsers.ParserConfigurationException
-     * @throws org.xml.sax.SAXException
-     */
-    public static final Spectrum parseHHCOSYviaXML(final String pathToXML) throws IOException, ParserConfigurationException, SAXException {
-        final Spectrum spectrum = Utils.XMLtoSpectrum(pathToXML, 2, new int[]{2, 1}, new String[]{"H", "H"});
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_2D_HHCOSY);
-        
-        return spectrum;
-    }
 
-    
     /**
-     * Sets links between two heavy atoms of H,H-COSY signals. The property
-     * is then set to {@link #CONST_PROP_HHCOSY} in 
-     * {@link IAtomContainer#setProperty(java.lang.Object, java.lang.Object)}
+     * Sets links between two heavy atoms of H,H-COSY signals.
      *
      * @param spectrum Spectrum class object containing the 2D spectrum proton shift information
      * @param tolProton tolerance value [ppm] for matching belonging protons 
@@ -653,44 +483,9 @@ public class ParseRawData {
         return true;
     }
 
-    
-    /**
-     * Creates a Spectrum class object from given INADEQUATE input file in CSV format.
-     *
-     * @param pathToCSV path to INADEQUATE peak table (Bruker's TopSpin csv
-     * file format)
-     * @return
-     * @throws IOException
-     */
-    public static final Spectrum parseINADEQUATEviaCSV(final String pathToCSV) throws IOException {
-        final Spectrum spectrum = Utils.CSVtoSpectrum(pathToCSV, new int[]{5, 6}, new String[]{"C", "C"}, 9);
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_2D_INADEQUATE);
-        
-        return spectrum;
-    }
 
-    /**
-     * Creates a Spectrum class object from given INADEQUATE input file in XML format.
-     *
-     * @param pathToXML path to INADEQUATE peak XML file (Bruker's TopSpin XML
-     * file format)
-     * @return
-     * @throws IOException
-     * @throws javax.xml.parsers.ParserConfigurationException
-     * @throws org.xml.sax.SAXException
-     */
-    public static final Spectrum parseINADEQUATEviaXML(final String pathToXML) throws IOException, ParserConfigurationException, SAXException {
-        final Spectrum spectrum = Utils.XMLtoSpectrum(pathToXML, 2, new int[]{2, 1}, new String[]{"C", "C"});
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_2D_INADEQUATE);
-        
-        return spectrum;
-    }
-
-    
     /**
      * Sets links between two carbon atoms in an INADEQUATE signal relationship.
-     * The property is then set to {@link #CONST_PROP_INADEQUATE} in 
-     * {@link IAtomContainer#setProperty(java.lang.Object, java.lang.Object)}.
      * Returns true if all signals are bidirectional, so that atom A has a
      * signal according to atom B and vice versa.
      * 
@@ -727,51 +522,11 @@ public class ParseRawData {
         }
         this.mol.addBond(index1, index2, IBond.Order.UNSET);
     }
-    
-    
-    /**
-     * Creates a Spectrum class object from given HMBC input file in CSV format.
-     *
-     * @param pathToCSV path to HMBC peak table (Bruker's TopSpin csv
-     * file format)
-     * @param heavyAtomType Element name (e.g. "C") which also occurrs in
-     * {@link Utils#getNMRShiftConstant(java.lang.String)}
-     * @return 
-     * @throws IOException
-     */
-    public static final Spectrum parseHMBCviaCSV(final String pathToCSV, final String heavyAtomType) throws IOException {
-        final Spectrum spectrum = Utils.CSVtoSpectrum(pathToCSV, new int[]{5, 6}, new String[]{"H", heavyAtomType}, 9);
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_2D_HMBC);
-        
-        return spectrum;
-    }
 
-    
-    /**
-     * Creates a Spectrum class object from given HMBC input file in XML format.
-     * 
-     * @param pathToXML path to HMBC peak XML file (Bruker's TopSpin XML file
-     * format)
-     * @param heavyAtomType Element name (e.g. "C") which also occurrs in
-     * {@link Utils#getNMRShiftConstant(java.lang.String)}
-     * @return 
-     * @throws IOException
-     * @throws javax.xml.parsers.ParserConfigurationException
-     * @throws org.xml.sax.SAXException
-     */
-    public static final Spectrum parseHMBCviaXML(final String pathToXML, final String heavyAtomType) throws IOException, ParserConfigurationException, SAXException {
-        final Spectrum spectrum = Utils.XMLtoSpectrum(pathToXML, 2, new int[]{2, 1}, new String[]{"H", heavyAtomType});
-        spectrum.setSpecType(CDKConstants.NMRSPECTYPE_2D_HMBC);
-        
-        return spectrum;
-    }
-    
-    
+
     /**
      * Sets links between heavy atoms which are in HMBC signal relationship.
-     * The property is then set to {@link #CONST_PROP_HMBC} in 
-     * {@link IAtomContainer#setProperty(java.lang.Object, java.lang.Object)}.
-     * 
+     *
      * @param spectrum Spectrum class object consisting of Signal class objects 
      * where the proton shift values is given first and the heavy atom shifts as the second.
      * @param tolProton tolerance value [ppm] for hydrogen shift matching

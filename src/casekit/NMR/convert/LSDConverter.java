@@ -11,24 +11,15 @@
  */
 package casekit.NMR.convert;
 
-import casekit.NMR.ParseData;
 import casekit.NMR.Utils;
-import casekit.NMR.dbservice.NMRShiftDB;
 import casekit.NMR.model.Spectrum;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.openscience.cdk.CDKConstants;
-import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.formula.MolecularFormula;
 import org.openscience.cdk.interfaces.IAtomContainer;
-import org.openscience.cdk.interfaces.IAtomContainerSet;
 import org.openscience.cdk.interfaces.IBond;
-import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 
 /**

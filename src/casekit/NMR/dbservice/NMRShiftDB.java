@@ -62,7 +62,7 @@ public class NMRShiftDB {
 
     /**
      * Returns all spectra for each molecule and a given nucleus which exist as
-     * property in a NMRSHiftDB SDF.
+     * property in a NMRShiftDB SDF.
      *
      * @param pathToNMRShiftDB path to NMRShiftDB file
      * @param nucleus nucleus of requested spectra
@@ -108,7 +108,7 @@ public class NMRShiftDB {
                     continue;
                 }
 
-                spectra.add(new Object[]{spectrum, NMRShiftDBSpectrumToAssignment(spectraStrings.get(spectrumPropertyString), nucleus)});
+                spectra.add(new Object[]{spectrum, NMRShiftDB.NMRShiftDBSpectrumToAssignment(spectraStrings.get(spectrumPropertyString), nucleus)});
             }
             spectraSet.add(spectra);
         }

@@ -23,28 +23,30 @@
  */
 package casekit.NMR.model;
 
+import casekit.NMR.model.dimensional.DimensionalNMR;
+import org.apache.commons.lang3.ArrayUtils;
+
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Assignment implements Cloneable {
+public class Assignment extends DimensionalNMR implements Cloneable {
     
-    final int nDim;
-    final String[] nuclei;
     int[][] assignments;
 
     public Assignment(final Spectrum spectrum) {
-        this.nuclei = spectrum.getNuclei();
-        this.nDim = this.nuclei.length;
-        this.assignments = this.initAssignments(this.nDim, spectrum.getSignalCount());
+        super(spectrum.getNuclei());
+        this.assignments = this.initAssignments(this.getNDim(), spectrum.getSignalCount());
     }
     
-    private int[][] initAssignments(final int nDim, final int nSignal){
-        final int[][] temp = new int[nDim][nSignal];
+    private int[][] initAssignments(final int nDim, final int nSignals){
+        final int[][] temp = new int[nDim][nSignals];
         for (int i = 0; i < nDim; i++) {
-            for (int j = 0; j < nSignal; j++) {
+            for (int j = 0; j < nSignals; j++) {
                 temp[i][j] = -1;
             }
         }
@@ -61,7 +63,7 @@ public class Assignment implements Cloneable {
      * @return
      */
     public boolean setAssignment(final int dim, final int indexInSpectrum, final int indexInAtomContainer){
-        if(!this.checkDimension(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
+        if(!this.containsDim(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
             return false;
         }
         this.assignments[dim][indexInSpectrum] = indexInAtomContainer;
@@ -69,8 +71,8 @@ public class Assignment implements Cloneable {
         return true;
     }
     
-    public boolean setAssignments(final int dim, final ArrayList<Integer> indicesInAtomContainer){
-        if(!this.checkDimension(dim) || !this.checkInputListSize(indicesInAtomContainer.size())){
+    public boolean setAssignments(final int dim, final List<Integer> indicesInAtomContainer){
+        if(!this.containsDim(dim) || !this.checkInputListSize(indicesInAtomContainer.size())){
             return false;
         }
         for (int i = 0; i < this.getAssignmentsCount(); i++) {
@@ -81,7 +83,7 @@ public class Assignment implements Cloneable {
     }
     
     public Integer getAtomIndex(final int dim, final int indexInSpectrum){
-        if(!this.checkDimension(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
+        if(!this.containsDim(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
             return null;
         }
 
@@ -89,7 +91,7 @@ public class Assignment implements Cloneable {
     }
     
     public Integer getSignalIndex(final int dim, final int atomIndexInStructure){
-        if(!this.checkDimension(dim)){
+        if(!this.containsDim(dim)){
             return null;
         }
         for (int signalIndex = 0; signalIndex < this.assignments[dim].length; signalIndex++) {
@@ -101,20 +103,16 @@ public class Assignment implements Cloneable {
         return -1;
     }
     
-    public int[] getAtomIndices(final int dim){
-        if(!this.checkDimension(dim)){
+    public List<Integer> getAtomIndices(final int dim){
+        if(!this.containsDim(dim)){
             return null;
         }
 
-        return this.assignments[dim];
-    }
-    
-    public int getDimCount(){
-        return this.nDim;
+        return Arrays.asList(ArrayUtils.toObject(this.assignments[dim]));
     }
     
     public int getAssignmentsCount(){
-        if(this.getDimCount() > 0){
+        if(this.getNDim() > 0){
             return this.assignments[0].length;
         }
         return 0;
@@ -122,7 +120,7 @@ public class Assignment implements Cloneable {
     
     public int getSetAssignmentsCount(final int dim){
         int setAssignmentsCounter = 0;
-        if((this.getDimCount() > 0) && (this.checkDimension(dim))){
+        if(this.containsDim(dim)){
             for (int j = 0; j < this.assignments[dim].length; j++) {
                 if(this.assignments[dim][j] != -1){
                     setAssignmentsCounter++;
@@ -133,7 +131,7 @@ public class Assignment implements Cloneable {
     }
     
     public Boolean isFullyAssigned(final int dim){
-        if(!this.checkDimension(dim)){
+        if(!this.containsDim(dim)){
             return null;
         }
         
@@ -148,11 +146,11 @@ public class Assignment implements Cloneable {
      * @return
      */
     public boolean addAssignment(final int[] atomIndicesInStructure){
-        if(atomIndicesInStructure.length != this.nDim){
+        if(atomIndicesInStructure.length != this.getNDim()){
             return false;
         }
-        final int[][] extendedAssignments = new int[this.nDim][this.getAssignmentsCount()+1];
-        for (int dim = 0; dim < this.nDim; dim++) {
+        final int[][] extendedAssignments = new int[this.getNDim()][this.getAssignmentsCount()+1];
+        for (int dim = 0; dim < this.getNDim(); dim++) {
             for (int i = 0; i < this.getAssignmentsCount(); i++) {
                 extendedAssignments[dim][i] = this.getAtomIndex(dim, i);
             }
@@ -161,12 +159,8 @@ public class Assignment implements Cloneable {
         this.assignments = extendedAssignments;
         
         return true;
-    }    
-    
-    public boolean checkDimension(final int dim){
-       return (dim >= 0) && (dim < this.nDim);
     }
-    
+
     private boolean checkSpectrumIndex(final int dim, final int indexInSpectrum){
        return (indexInSpectrum >= 0) && (indexInSpectrum < this.assignments[dim].length);
     }

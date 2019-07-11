@@ -103,6 +103,9 @@ public class LSDConverter {
             BOND += "BOND " + (bond.getAtom(0).getIndex()+1) + " " + (bond.getAtom(1).getIndex()+1) + ";\t" + ac.getAtom(bond.getAtom(0).getIndex()).getSymbol() + "H" + ac.getAtom(bond.getAtom(0).getIndex()).getImplicitHydrogenCount() + " - " + ac.getAtom(bond.getAtom(1).getIndex()).getSymbol() + "H" + ac.getAtom(bond.getAtom(1).getIndex()).getImplicitHydrogenCount() + "\n";
         }
         wholeContent += BOND + "\n";
+
+
+        // @TODO repair HMBC and COSY information output
              
 //        // set HMBC information to LSD input file
 //        ArrayList<Integer> indicesInAtomContainerDim1;

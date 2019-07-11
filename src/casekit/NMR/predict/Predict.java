@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import hose.HOSECodeBuilder;
-import hose.model.ConnectionTree;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;

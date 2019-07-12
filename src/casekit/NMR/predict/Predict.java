@@ -23,16 +23,17 @@
  */
 package casekit.NMR.predict;
 
+
 import casekit.NMR.Utils;
 import casekit.NMR.model.Signal;
 import casekit.NMR.model.Spectrum;
-import java.util.ArrayList;
-import java.util.HashMap;
-
 import hose.HOSECodeBuilder;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  *

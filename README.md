@@ -13,9 +13,7 @@ Please refer to these pages for updated information and the latest version of th
 
 ## Download Source code
 
-This assumes that you have git working on your system and you have initialised your local repository.
-The packages HOSECodeBuilder (https://github.com/michaelwenk/HOSECodeBuilder) has to be installed on the local machine. 
-It is a dependency in casekit's pom.xml and has to ready to use, e.g. in Maven's .m2 folder. 
+This assumes that you have git working on your system and you have initialised your local repository. 
 
 Then, downloading casekit is just a matter of
 
@@ -24,6 +22,12 @@ $ git clone https://github.com/michaelwenk/casekit
 ```
 
 ## Compiling
+
+The package HOSECodeBuilder (https://github.com/michaelwenk/HOSECodeBuilder) has to be installed on the local machine. 
+It is a dependency in casekit's pom.xml and has to ready to use, e.g. installed in Maven's .m2 folder. <br>
+This can be done something like:
+
+    mvn install:install-file -Dfile=PATH/TO/HOSECodeBuilder-1.0-SNAPSHOT-jar-with-dependencies.jar -DgroupId=org.openscience -DartifactId=HOSECodeBuilder -Dversion=1.0 -Dpackaging=jar
 
 Compiling the library is performed with Apache Maven and requires Java 1.7 or later:
 

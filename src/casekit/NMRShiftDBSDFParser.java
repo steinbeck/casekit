@@ -81,8 +81,8 @@ public class NMRShiftDBSDFParser {
 		while (iterator.hasNext()) 
 		{
 			ac = iterator.next();
-			carbonNMR = (String)ac.getProperty("Spectrum 13C 0");
-			hydrogenNMR = (String)ac.getProperty("Spectrum 1H 0");			
+			carbonNMR = ac.getProperty("Spectrum 13C 0");
+			hydrogenNMR = ac.getProperty("Spectrum 1H 0");
 			if (carbonNMR != null) 
 			{
 				carbonNMRCount++;
@@ -220,6 +220,13 @@ public class NMRShiftDBSDFParser {
 			     .desc("filename of generated HOSE code table (required)")
 			     .build();
 		options.addOption(outfile);
+		Option maxspheres = Option.builder("m")
+				.required(true)
+				.hasArg()
+				.longOpt("maxspheres")
+				.desc("maximum sphere size up to which to generate HOSE codes (required)")
+				.build();
+		options.addOption(maxspheres);
 		Option verbose = Option.builder("v")
 			     .required(false)
 			     .longOpt("verbose")
@@ -233,13 +240,7 @@ public class NMRShiftDBSDFParser {
 			     .desc("store pictures in given directory")
 			     .build();
 		options.addOption(picdir);
-		Option maxspheres = Option.builder("m")
-			     .required(false)
-			     .hasArg()
-			     .longOpt("maxspheres")
-			     .desc("maximum sphere size up to which to generate HOSE codes")
-			     .build();
-		options.addOption(maxspheres);
+
 		return options;
 	}
 	

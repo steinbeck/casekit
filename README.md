@@ -11,11 +11,13 @@ This project hosts various Java classes for teaching and research dealing with s
 This project depends on the Chemistry Development Project (CDK), hosted under http://cdk.github.io/
 Please refer to these pages for updated information and the latest version of the CDK. CDK's API documentation is available though our [Github site](http://cdk.github.io/cdk/).
 
-## Download Spectra Source code
+## Download Source code
 
-This assumes that you have git working on your system and you have initialised your local repository. Refer to https://help.github.com/articles/set-up-git/ for more
+This assumes that you have git working on your system and you have initialised your local repository.
+The packages HOSECodeBuilder (https://github.com/michaelwenk/HOSECodeBuilder) has to be installed on the local machine. 
+It is a dependency in casekit's pom.xml and has to ready to use, e.g. in Maven's .m2 folder. 
 
-Then, downloading spectra is just a matter of
+Then, downloading casekit is just a matter of
 
 ```bash
 $ git clone https://github.com/michaelwenk/casekit
@@ -39,7 +41,7 @@ The following classes are to demonstrate the prediction of Carbon-13 NMR spectra
 
 #### NMRShiftDBSDFParser
 
-Takes the NMRShiftDB SDF with assigned spectra (download from help section of NMRShiftDB.org) and produces a Tab-separated file with HOSE codes and assigned shift values. This file can then be read by HOSECodePredictor and SimilarityRanker. 
+Takes the NMRShiftDB SDF with assigned spectra (download from help section of NMRShiftDB.org) and produces a Tab-separated file with HOSE codes and assigned shift values. This file can then be read by HOSECodePredictor. 
 
 ```bash
 usage: java -jar casekit.jar casekit.NMRShiftDBSDFParser -i <arg> -o <arg>

@@ -11,10 +11,6 @@ This project hosts various Java classes for teaching and research dealing with s
 This project depends on the Chemistry Development Project (CDK), hosted under http://cdk.github.io/
 Please refer to these pages for updated information and the latest version of the CDK. CDK's API documentation is available though our [Github site](http://cdk.github.io/cdk/).
 
-## Releases
-
-Latest release of casekit is at https://github.com/steinbeck/casekit/releases/latest
-
 ## Download Spectra Source code
 
 This assumes that you have git working on your system and you have initialised your local repository. Refer to https://help.github.com/articles/set-up-git/ for more
@@ -22,7 +18,7 @@ This assumes that you have git working on your system and you have initialised y
 Then, downloading spectra is just a matter of
 
 ```bash
-$ git clone https://github.com/steinbeck/casedk.git
+$ git clone https://github.com/michaelwenk/casekit
 ```
 
 ## Compiling
@@ -30,7 +26,8 @@ $ git clone https://github.com/steinbeck/casedk.git
 Compiling the library is performed with Apache Maven and requires Java 1.7 or later:
 
 ```bash
-spectra/$ mvn package
+cd casekit
+mvn clean package
 ```
 will create an all-in-one-jar under ./target
 

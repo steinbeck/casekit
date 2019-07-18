@@ -246,7 +246,7 @@ public class HOSECodePredictor {
 		ArrayList<Double> list = hoseLookup.get(hose);
 		for (int f = 0; f < list.size(); f++)
 		{
-			shiftvalue = shiftvalue + ((Double) list.get(f)).doubleValue();
+			shiftvalue = shiftvalue + list.get(f).doubleValue();
 		}
 		shiftvalue = shiftvalue / list.size();
 		if (verbose) System.out.println("Predicted HOSE code from " + list.size() + " values");
@@ -322,29 +322,29 @@ public class HOSECodePredictor {
 			     .required(true)
 			     .hasArg()
 			     .longOpt("infile")
-			     .desc("filename of with SDF/MOL file of structures to be predicted (required)")
+			     .desc("filename of with SDF/MOL file of a structure to be predicted (required)")
 			     .build();
 		options.addOption(infile);
-		Option verbose = Option.builder("v")
-			     .required(false)
-			     .longOpt("verbose")
-			     .desc("generate messages about progress of operation")
-			     .build();
-		options.addOption(verbose);	
 		Option picdir = Option.builder("d")
-			     .required(false)
+			     .required(true)
 			     .hasArg()
 			     .longOpt("picdir")
-			     .desc("store pictures of structures with assigned shifts in given directory")
+			     .desc("store picture of structure with assigned shifts in given directory (required)")
 			     .build();
 		options.addOption(picdir);
 		Option maxspheres = Option.builder("m")
-			     .required(false)
+			     .required(true)
 			     .hasArg()
 			     .longOpt("maxspheres")
-			     .desc("maximum sphere size up to which to generate HOSE codes. Default is 6 spheres if this option is ommitted.")
+			     .desc("maximum sphere size up to which to generate HOSE codes (required)")
 			     .build();
 		options.addOption(maxspheres);
+		Option verbose = Option.builder("v")
+				.required(false)
+				.longOpt("verbose")
+				.desc("generate messages about progress of operation")
+				.build();
+		options.addOption(verbose);
 		return options;
 	}
         

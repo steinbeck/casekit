@@ -49,25 +49,25 @@
         <dependency>
             <groupId>org.openscience.cdk</groupId>
             <artifactId>cdk-core</artifactId>
-            <version>2.2-SNAPSHOT</version>
+            <version>2.2</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.openscience.cdk</groupId>
             <artifactId>cdk-legacy</artifactId>
-            <version>2.2-SNAPSHOT</version>
+            <version>2.2</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.openscience.cdk</groupId>
             <artifactId>cdk-depict</artifactId>
-            <version>2.2-SNAPSHOT</version>
+            <version>2.2</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.openscience.cdk</groupId>
             <artifactId>cdk-qsaratomic</artifactId>
-            <version>2.2-SNAPSHOT</version>
+            <version>2.2</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -79,18 +79,18 @@
         <dependency>
             <groupId>org.openscience.cdk</groupId>
             <artifactId>cdk-fingerprint</artifactId>
-            <version>2.2-SNAPSHOT</version>
+            <version>2.2</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.openscience.cdk</groupId>
             <artifactId>cdk-silent</artifactId>
-            <version>2.2-SNAPSHOT</version>
+            <version>2.2</version>
         </dependency>
         <dependency>
             <groupId>org.openscience.cdk</groupId>
             <artifactId>cdk-standard</artifactId>
-            <version>2.2-SNAPSHOT</version>
+            <version>2.2</version>
             <type>jar</type>
         </dependency>
         <dependency>

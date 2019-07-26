@@ -20,9 +20,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.similarity.Tanimoto;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 
 public class Matcher {
@@ -37,7 +35,7 @@ public class Matcher {
      * @param dim2 dimension to select in second spectrum
      * @return true if both spectra contain the selected dimension
      */
-    public static boolean checkDimensions(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1, final int dim2){
+    private static boolean checkDimensions(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1, final int dim2){
         return spectrum1.containsDim(dim1) && spectrum2.containsDim(dim2);
     }
 
@@ -117,10 +115,10 @@ public class Matcher {
         final Assignment matchAssignments = Matcher.matchSpectra(spectrum1, spectrum2, dim1, dim2, shiftTol);
         Signal matchedSignalInSpectrum2;
         for (int i = 0; i < spectrum1.getSignalCount(); i++) {
-            if (matchAssignments.getAtomIndex(0, i) == -1) {
+            if (matchAssignments.getAssignment(0, i) == -1) {
                 deviations[i] = null;
             } else {
-                matchedSignalInSpectrum2 = spectrum2.getSignal(matchAssignments.getAtomIndex(0, i));
+                matchedSignalInSpectrum2 = spectrum2.getSignal(matchAssignments.getAssignment(0, i));
                 deviations[i] = Math.abs(spectrum1.getSignal(i).getShift(dim1) - matchedSignalInSpectrum2.getShift(dim2));
             }
         }
@@ -274,7 +272,7 @@ public class Matcher {
         }
         final Assignment matchAssignment = new Assignment(spectrum1);
         for (int dim = 0; dim < spectrum1.getNDim(); dim++) {
-            matchAssignment.setAssignments(dim, Matcher.matchSpectra(spectrum1, spectrum2, dim, dim, shiftTols[dim]).getAtomIndices(0));
+            matchAssignment.setAssignments(dim, Matcher.matchSpectra(spectrum1, spectrum2, dim, dim, shiftTols[dim]).getAssignments(0));
         }
 
         return matchAssignment;

@@ -240,12 +240,12 @@ public class NMRShiftDB {
                 } else if (signalCount != spectrum.getSignalCount()) {
                     continue;
                 }
-                for (final int atomIndex : assignment.getAtomIndices(0)) {
+                for (final int atomIndex : assignment.getAssignments(0)) {
                     if (!shiftsPerAtom.containsKey(atomIndex)) {
                         shiftsPerAtom.put(atomIndex, new ArrayList<>());
                         solventsPerAtom.put(atomIndex, new ArrayList<>());
                     }
-                    shiftsPerAtom.get(atomIndex).add(spectrum.getSignal(assignment.getSignalIndex(0, atomIndex)).getShift(0));
+                    shiftsPerAtom.get(atomIndex).add(spectrum.getSignal(assignment.getIndex(0, atomIndex)).getShift(0));
                     solventsPerAtom.get(atomIndex).add(spectrum.getSolvent());
                 }
             }
@@ -352,7 +352,7 @@ public class NMRShiftDB {
      * @param NMRShiftDBSpectrum Property string of spectrum in NMRShiftDB format.
      * @return
      *
-     * @see MongoDB#parseNMRShiftDBSpectrum(String)
+     * @see #parseNMRShiftDBSpectrum(String)
      * @see Utils#getHydrogenCountFromMultiplicity(String)
      * @deprecated
      */

@@ -26,7 +26,6 @@ package casekit.NMR.model;
 import casekit.NMR.model.dimensional.DimensionalNMR;
 import org.apache.commons.lang3.ArrayUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -55,55 +54,55 @@ public class Assignment extends DimensionalNMR implements Cloneable {
     }
  
     /**
-     * Sets an assignment as atom index for a signal position.
+     * Sets an assignment with value for an index position.
      *
      * @param dim
-     * @param indexInSpectrum
-     * @param indexInAtomContainer
+     * @param index
+     * @param assignment
      * @return
      */
-    public boolean setAssignment(final int dim, final int indexInSpectrum, final int indexInAtomContainer){
-        if(!this.containsDim(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
+    public boolean setAssignment(final int dim, final int index, final int assignment){
+        if(!this.containsDim(dim) || !this.checkSpectrumIndex(dim, index)){
             return false;
         }
-        this.assignments[dim][indexInSpectrum] = indexInAtomContainer;
+        this.assignments[dim][index] = assignment;
         
         return true;
     }
     
-    public boolean setAssignments(final int dim, final List<Integer> indicesInAtomContainer){
-        if(!this.containsDim(dim) || !this.checkInputListSize(indicesInAtomContainer.size())){
+    public boolean setAssignments(final int dim, final List<Integer> assignments){
+        if(!this.containsDim(dim) || !this.checkInputListSize(assignments.size())){
             return false;
         }
         for (int i = 0; i < this.getAssignmentsCount(); i++) {
-            this.setAssignment(dim, i, indicesInAtomContainer.get(i));
+            this.setAssignment(dim, i, assignments.get(i));
         }
         
         return true;
     }
     
-    public Integer getAtomIndex(final int dim, final int indexInSpectrum){
-        if(!this.containsDim(dim) || !this.checkSpectrumIndex(dim, indexInSpectrum)){
+    public Integer getAssignment(final int dim, final int index){
+        if(!this.containsDim(dim) || !this.checkSpectrumIndex(dim, index)){
             return null;
         }
 
-        return this.assignments[dim][indexInSpectrum];
+        return this.assignments[dim][index];
     }
     
-    public Integer getSignalIndex(final int dim, final int atomIndexInStructure){
+    public Integer getIndex(final int dim, final int assignment){
         if(!this.containsDim(dim)){
             return null;
         }
-        for (int signalIndex = 0; signalIndex < this.assignments[dim].length; signalIndex++) {
-            if(this.getAtomIndex(dim, signalIndex) == atomIndexInStructure){
-                return signalIndex;
+        for (int index = 0; index < this.assignments[dim].length; index++) {
+            if(this.getAssignment(dim, index) == assignment){
+                return index;
             }
         }
         
         return -1;
     }
     
-    public List<Integer> getAtomIndices(final int dim){
+    public List<Integer> getAssignments(final int dim){
         if(!this.containsDim(dim)){
             return null;
         }
@@ -139,30 +138,30 @@ public class Assignment extends DimensionalNMR implements Cloneable {
     }
     
     /**
-     * Adds a new assignment entry for a further signal. The given atom indices 
-     * will be stored as atom index for each dimension of the signal/spectrum. 
+     * Adds a new assignment entry for a further signal. The given query spectrum signal indices
+     * will be stored for each dimension of the signal/spectrum.
      *
-     * @param atomIndicesInStructure
+     * @param indicesInQuerySpectra
      * @return
      */
-    public boolean addAssignment(final int[] atomIndicesInStructure){
-        if(atomIndicesInStructure.length != this.getNDim()){
+    public boolean addAssignment(final int[] indicesInQuerySpectra){
+        if(!this.compareNDim(indicesInQuerySpectra.length)){
             return false;
         }
         final int[][] extendedAssignments = new int[this.getNDim()][this.getAssignmentsCount()+1];
         for (int dim = 0; dim < this.getNDim(); dim++) {
             for (int i = 0; i < this.getAssignmentsCount(); i++) {
-                extendedAssignments[dim][i] = this.getAtomIndex(dim, i);
+                extendedAssignments[dim][i] = this.getAssignment(dim, i);
             }
-            extendedAssignments[dim][this.getAssignmentsCount()] = atomIndicesInStructure[dim];
+            extendedAssignments[dim][this.getAssignmentsCount()] = indicesInQuerySpectra[dim];
         }
         this.assignments = extendedAssignments;
         
         return true;
     }
 
-    private boolean checkSpectrumIndex(final int dim, final int indexInSpectrum){
-       return (indexInSpectrum >= 0) && (indexInSpectrum < this.assignments[dim].length);
+    private boolean checkSpectrumIndex(final int dim, final int indexInTargetSpectrum){
+       return (indexInTargetSpectrum >= 0) && (indexInTargetSpectrum < this.assignments[dim].length);
     }
     
     private boolean checkInputListSize(final int size){

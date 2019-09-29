@@ -138,22 +138,23 @@ public class Assignment extends DimensionalNMR implements Cloneable {
     }
     
     /**
-     * Adds a new assignment entry for a further signal. The given query spectrum signal indices
-     * will be stored for each dimension of the signal/spectrum.
+     * Adds a new assignment entry (index), e.g. for a new signal. The given assignment indices
+     * will be stored for each dimension of the new assignment entry (index).
      *
-     * @param indicesInQuerySpectra
+     * @param assignments assignment indices to store in each dimension of new assignment entry
+     *
      * @return
      */
-    public boolean addAssignment(final int[] indicesInQuerySpectra){
-        if(!this.compareNDim(indicesInQuerySpectra.length)){
+    public boolean addAssignment(final int[] assignments){
+        if(!this.compareNDim(assignments.length)){
             return false;
         }
-        final int[][] extendedAssignments = new int[this.getNDim()][this.getAssignmentsCount()+1];
+        final int[][] extendedAssignments = new int[this.getNDim()][this.getAssignmentsCount() + 1];
         for (int dim = 0; dim < this.getNDim(); dim++) {
             for (int i = 0; i < this.getAssignmentsCount(); i++) {
                 extendedAssignments[dim][i] = this.getAssignment(dim, i);
             }
-            extendedAssignments[dim][this.getAssignmentsCount()] = indicesInQuerySpectra[dim];
+            extendedAssignments[dim][this.getAssignmentsCount()] = assignments[dim];
         }
         this.assignments = extendedAssignments;
         

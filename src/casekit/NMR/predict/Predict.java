@@ -43,7 +43,7 @@ public class Predict {
     
     /**
      * Predicts a shift value for a central atom based on its HOSE code and a 
-     * given HOSE code lookup table. The prediction is done by using the mean
+     * given HOSE code lookup table. The prediction is done by using the median
      * of all occurring shifts in lookup table for the given HOSE code. <br>
      * Specified for carbons (13C) only -> {@link casekit.NMR.Utils#getMultiplicityFromHydrogenCount(int)}.
      *
@@ -52,12 +52,13 @@ public class Predict {
      * @param HOSECode specific HOSE code to use for shift prediction
      * @return null if HOSE code does not exist in lookup table
      *
-     * @see casekit.NMR.Utils#getRMS(ArrayList)
+     * @see casekit.NMR.Utils#getMedian(ArrayList)
      *
      */
     public static Double predictShift(final HashMap<String, ArrayList<Double>> HOSECodeLookupTable, final String HOSECode) {
         if (HOSECodeLookupTable.containsKey(HOSECode)) {
-            return Utils.getMean(HOSECodeLookupTable.get(HOSECode));
+            return Utils.getMedian(HOSECodeLookupTable.get(HOSECode));
+//            return Utils.getMean(HOSECodeLookupTable.get(HOSECode));
         }
 
         return null;
@@ -73,7 +74,7 @@ public class Predict {
      *                            of occurring central atoms as values
      * @param ac structure to predict from
      * @param atomIndex index of central atom in structure for HOSE code generation
-     * @param maxSphere maximum sphere to use for HOSE code generation
+     * @param maxSphere maximum sphere to use for HOSE code generation or null for unlimited
      * @param nucleus nucleus (e.g. "13C") for signal creation
      *
      * @return null if HOSE code of selected atom does not exist in lookup table
@@ -108,7 +109,7 @@ public class Predict {
      * @param HOSECodeLookupTable HashMap containing HOSE codes as keys and a list of chemical shifts
      *                            of occurring central atoms as values
      * @param ac structure to predict from
-     * @param maxSphere maximum sphere to use for HOSE code generation
+     * @param maxSphere maximum sphere to use for HOSE code generation or null for unlimited
      * @param nucleus nucleus (e.g. "13C") for signal creation
      * @return null if a HOSE code of one atom does not exist in lookup table
      * 
@@ -124,7 +125,8 @@ public class Predict {
             if (atom.getSymbol().equals(Utils.getAtomTypeFromSpectrum(predictedSpectrum, 0))) {
                 signal = Predict.predictSignal(HOSECodeLookupTable, ac, atom.getIndex(), maxSphere, nucleus);
                 if(signal == null){
-                    return null;
+                    continue;
+//                    return null;
                 }
                 predictedSpectrum.addSignal(signal);
             }

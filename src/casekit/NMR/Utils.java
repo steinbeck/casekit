@@ -13,11 +13,11 @@ package casekit.NMR;
 
 
 import casekit.NMR.model.Spectrum;
-import casekit.NMR.parse.Parser;
 import org.apache.commons.lang3.StringUtils;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
+import org.openscience.cdk.aromaticity.Kekulization;
 import org.openscience.cdk.atomtype.CDKAtomTypeMatcher;
 import org.openscience.cdk.depict.DepictionGenerator;
 import org.openscience.cdk.exception.CDKException;
@@ -31,9 +31,7 @@ import org.openscience.cdk.tools.CDKHydrogenAdder;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 import org.openscience.cdk.tools.manipulator.AtomTypeManipulator;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -938,12 +936,17 @@ public class Utils {
     }
     
     
-    public static void setAromaticitiesInAtomContainer(final IAtomContainer ac) throws CDKException {
+    public static void setAromaticity(final IAtomContainer ac) throws CDKException {
         AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(ac);
         final ElectronDonation model = ElectronDonation.cdkAllowingExocyclic();
         final CycleFinder cycles = Cycles.all(ac.getAtomCount());
         final Aromaticity aromaticity = new Aromaticity(model, cycles);
         aromaticity.apply(ac);
+    }
+
+    public static void setAromaticityAndKekulize(final IAtomContainer ac) throws CDKException {
+        Utils.setAromaticity(ac);
+        Kekulization.kekulize(ac);
     }
     
     
@@ -958,7 +961,7 @@ public class Utils {
 
         final ArrayList<IAtom> toRemoveList = new ArrayList<>();
         for (IAtom atomA : ac.atoms()) {
-            if (atomA.getSymbol().equals(atomType)) {// detect wether the current atom A is a from the given atom type 
+            if (atomA.getSymbol().equals(atomType)) {// detect whether the current atom A is a from the given atom type
                 toRemoveList.add(atomA);
             }
         }

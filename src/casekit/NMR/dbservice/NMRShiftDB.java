@@ -32,7 +32,7 @@ public class NMRShiftDB {
      * Returns the molecules of a given MOL/SDF file.
      * This function sets the molecule aromaticity (with allowed exocyclic pi
      * bonds) by using the
-     * {@link Utils#setAromaticitiesInAtomContainer(org.openscience.cdk.interfaces.IAtomContainer)}
+     * {@link Utils#setAromaticityAndKekulize(IAtomContainer)}
      * function.
      *
      * @param pathToNMRShiftDB path to NMRShiftDB file
@@ -52,7 +52,7 @@ public class NMRShiftDB {
         while (iterator.hasNext()) {
             ac = iterator.next();
             if(setAromaticity){
-                Utils.setAromaticitiesInAtomContainer(ac);
+                Utils.setAromaticityAndKekulize(ac);
             }
             acSet.addAtomContainer(ac);
         }
@@ -193,7 +193,9 @@ public class NMRShiftDB {
                 structureSetWithSpectra.put(structureSetWithSpectra.size(), new Object[]{ac, spectrum, assignment});
 //            }
 
-            Utils.setAromaticitiesInAtomContainer(ac);
+            // set aromaticities
+//            Utils.setAromaticitiesInAtomContainer(ac);
+            // add Kekulization?
         }
 
         return structureSetWithSpectra;

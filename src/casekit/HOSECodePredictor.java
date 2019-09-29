@@ -8,22 +8,7 @@
 package casekit;
 
 import casekit.NMR.Utils;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.StringTokenizer;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.depict.DepictionGenerator;
 import org.openscience.cdk.exception.CDKException;
@@ -32,6 +17,15 @@ import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.HOSECodeGenerator;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.StringTokenizer;
 
 
 /**
@@ -272,9 +266,8 @@ public class HOSECodePredictor {
 	/**
 	 * This predictor cannot handle explicit hydrogens. Where therefore convert them to implicit first
 	 */
-	void fixExplicitHydrogens(IAtomContainer ac)
-	{
-                Utils.convertExplicitToImplicitHydrogens(ac);
+	private void fixExplicitHydrogens(IAtomContainer ac) {
+		Utils.convertExplicitToImplicitHydrogens(ac);
 	}
 	
 	private void parseArgs(String[] args) throws ParseException

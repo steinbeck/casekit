@@ -502,59 +502,56 @@ public class Utils {
         final DepictionGenerator dg = new DepictionGenerator().withSize(1200, 1200).withAtomColors().withFillToFit().withAtomNumbers();
         dg.depict(ac).writeTo(path);
     }
-    
-    
+
+
+    /**
+     * Detects outliers in given array list of input values and removes them. <br>
+     * Here, outliers are those which are outside of a calculated lower and upper bound (whisker).
+     * The interquartile range (IQR) of the input values is therefore multiplied with a given value
+     * for whisker creation.
+     *
+     * @param input list of values to process
+     * @param multiplierIQR multiplier for IQR to use for lower and upper bound creation
+     * @return new array list without values outside the generated boundaries
+     */
+    public static ArrayList<Double> removeOutliers(final ArrayList<Double> input, final double multiplierIQR){
+        final ArrayList<Double> inputWithoutOutliers = new ArrayList<>(input);
+        inputWithoutOutliers.removeAll(Utils.getOutliers(inputWithoutOutliers, multiplierIQR));
+
+        return inputWithoutOutliers;
+    }
+
     /**
      *
      * @param input
      * @return
      */
-    public static ArrayList<Integer> getOutliers(ArrayList<Integer> input) {
-        final ArrayList<Integer> outliers = new ArrayList<>();
+    public static ArrayList<Double> getOutliers(final ArrayList<Double> input, final double multiplierIQR) {
+        final ArrayList<Double> outliers = new ArrayList<>();
         if(input.size() <= 1){
             return outliers;
         }
         Collections.sort(input);
-        final List<Integer> data1 = input.subList(0, input.size() / 2);
-        final List<Integer> data2;
+        final ArrayList<Double> data1 = new ArrayList<>(input.subList(0, input.size() / 2));
+        final ArrayList<Double> data2;
         if (input.size() % 2 == 0) {
-            data2 = input.subList(input.size() / 2, input.size());
+            data2 = new ArrayList<>(input.subList(input.size() / 2, input.size()));
         } else {
-            data2 = input.subList(input.size() / 2 + 1, input.size());
+            data2 = new ArrayList<>(input.subList(input.size() / 2 + 1, input.size()));
         }
-        final double q1 = getMedian(data1);
-        final double q3 = getMedian(data2);
+        final double q1 = getMedian(new ArrayList<>(data1));
+        final double q3 = getMedian(new ArrayList<>(data2));
         final double iqr = q3 - q1;
-        final double lowerFence = q1 - 1.5 * iqr;
-        final double upperFence = q3 + 1.5 * iqr;
+        final double lowerBound = q1 - multiplierIQR * iqr;
+        final double upperBound = q3 + multiplierIQR * iqr;
         for (int i = 0; i < input.size(); i++) {
-            if ((input.get(i) < lowerFence) || (input.get(i) > upperFence)) {
+            if ((input.get(i) < lowerBound) || (input.get(i) > upperBound)) {
                 outliers.add(input.get(i));
             }
         }
 //        System.out.println("input size: " + input.size());
 //        System.out.println("output size: " + outliers.size());
         return outliers;
-    }
-
-    /**
-     *
-     * @param data
-     * @return
-     */
-    public static Double getMedian(final List<Integer> data) {
-        if((data == null) || data.isEmpty()){
-            return null;
-        }
-        if(data.size() == 1){
-            return data.get(0).doubleValue();
-        }
-        Collections.sort(data);
-        if (data.size() % 2 == 1) {
-            return data.get(data.size() / 2).doubleValue();
-        } else {
-            return (data.get(data.size() / 2 - 1) + data.get(data.size() / 2)) / 2.0;
-        }
     }
     
     
@@ -653,6 +650,31 @@ public class Utils {
             }
         }
         return ((data.length - nullCounter) != 0) ? (sum / (data.length - nullCounter)) : null;
+    }
+
+    public static HashMap<String, Double> getMean(final HashMap<String, ArrayList<Double>> lookup) {
+
+        final HashMap<String, Double> means = new HashMap<>();
+        Double meanInList;
+        for (final String key : lookup.keySet()) {
+            meanInList = Utils.getMean(lookup.get(key));
+            if (meanInList != null) {
+                means.put(key, meanInList);
+            }
+        }
+
+        return means;
+    }
+
+    public static boolean isValidBondAddition(final IAtomContainer ac, final int atomIndex, final IBond bondToAdd){
+
+        if(ac.getAtom(atomIndex).isAromatic()){
+            System.out.println(atomIndex + " --> (" + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd) + " - 1) = " + (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd) - 1) + " <= " + ac.getAtom(atomIndex).getValency() + " ? -> " + ((Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd) - 1) <= ac.getAtom(atomIndex).getValency()));
+            return ((Utils.getBondOrderSum(ac, atomIndex, true) - 1) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency();
+        }
+
+        System.out.println(atomIndex + " --> " + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd) + " = " + (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) + " <= " + ac.getAtom(atomIndex).getValency() + " ? -> " + ((Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency()));
+        return (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency();
     }
     
     
@@ -812,7 +834,6 @@ public class Utils {
      * @param lookup
      * @return
      * 
-     * @deprecated 
      */
     public static HashMap<String, Double> getMedian(final HashMap<String, ArrayList<Double>> lookup) {
 

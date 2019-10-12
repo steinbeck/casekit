@@ -489,27 +489,32 @@ public class Spectrum extends DimensionalNMR {
    
 
    /**
-    * Returns the signal index closest to the given shift. If no Signal is found within the interval
-    * defined by pickprecision, -1 is returned.
+    * Returns the signal index (or indices) closest to the given shift. If no signal is found within the interval
+    * defined by pickprecision, an empty list is returned.
     * @param shift query shift
     * @param dim dimension in spectrum to look in
     * @param pickPrecision tolerance value for search window
     * @return 
     */
-   public int pickClosestSignal(final double shift, final int dim, final double pickPrecision) {       
-       int matchIndex = -1;
+   public ArrayList<Integer> pickClosestSignals(final double shift, final int dim, final double pickPrecision) {
+       final ArrayList<Integer> matchIndices = new ArrayList<>();
        if(!this.containsDim(dim)){
-           return matchIndex;
+           return matchIndices;
        }
-       double diff = pickPrecision;
+       double minDiff = pickPrecision;
+       // detect the minimal difference between a signal shift to the given query shift
        for (int s = 0; s < this.getSignalCount(); s++) {
-           if (Math.abs(this.getShift(s, dim) - shift) < diff) {
-               diff = Math.abs(this.getShift(s, dim) - shift);
-               matchIndex = s;
+           if (Math.abs(this.getShift(s, dim) - shift) < minDiff) {
+               minDiff = Math.abs(this.getShift(s, dim) - shift);
            }
-       }       
+       }
+       for (int s = 0; s < this.getSignalCount(); s++) {
+           if (Math.abs(this.getShift(s, dim) - shift) == minDiff) {
+               matchIndices.add(s);
+           }
+       }
        
-       return matchIndex;
+       return matchIndices;
    }
 
    /**

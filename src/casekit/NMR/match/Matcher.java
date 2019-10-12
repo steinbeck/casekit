@@ -20,6 +20,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.similarity.Tanimoto;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -184,35 +185,69 @@ public class Matcher {
         }
         final Assignment matchAssignments = new Assignment(spectrum1);
         final HashSet<Integer> pickedSignalIndices = new HashSet<>();
+        ArrayList<Integer> pickedSignalIndicesSpectrum2;
         int pickedSignalIndexSpectrum2;
         int pickedSignalIndexSpectrum2Prev;
         for (int i = 0; i < spectrum1.getSignalCount(); i++) {
             if (spectrum1.getShift(i, dim1) == null) {
                 pickedSignalIndexSpectrum2 = -1;
             } else {
-                pickedSignalIndexSpectrum2 = spectrum2.pickClosestSignal(spectrum1.getShift(i, dim1), dim2, shiftTol);
-                // if matched signal is already assigned, then consider symmetries (equiv. signals)
-                if (pickedSignalIndices.contains(pickedSignalIndexSpectrum2)) {
-                    // symmetry exists
-                    if (spectrum2.hasEquivalences(pickedSignalIndexSpectrum2)) {
-                        pickedSignalIndexSpectrum2Prev = pickedSignalIndexSpectrum2;
-                        // assign the next signal in equivalence list
-                        for (final int equivalentSignalIndexSpectrum2 : spectrum2.getEquivalentSignals(pickedSignalIndexSpectrum2)) {
-                            if (!pickedSignalIndices.contains(equivalentSignalIndexSpectrum2)) {
-                                pickedSignalIndexSpectrum2 = equivalentSignalIndexSpectrum2;
-                                break;
+//                pickedSignalIndexSpectrum2 = spectrum2.pickClosestSignal(spectrum1.getShift(i, dim1), dim2, shiftTol);
+//                // if matched signal is already assigned, then consider symmetries (equiv. signals)
+//                if (pickedSignalIndices.contains(pickedSignalIndexSpectrum2)) {
+//                    // symmetry exists
+//                    if (spectrum2.hasEquivalences(pickedSignalIndexSpectrum2)) {
+//                        pickedSignalIndexSpectrum2Prev = pickedSignalIndexSpectrum2;
+//                        // assign the next signal in equivalence list
+//                        for (final int equivalentSignalIndexSpectrum2 : spectrum2.getEquivalentSignals(pickedSignalIndexSpectrum2)) {
+//                            if (!pickedSignalIndices.contains(equivalentSignalIndexSpectrum2)) {
+//                                pickedSignalIndexSpectrum2 = equivalentSignalIndexSpectrum2;
+//                                break;
+//                            }
+//                        }
+//                        // if no further equivalent signal exists then that match is not valid
+//                        if (pickedSignalIndexSpectrum2 == pickedSignalIndexSpectrum2Prev) {
+//                            pickedSignalIndexSpectrum2 = -1;
+//                        }
+//                    } else {
+//                        // not symmetric signals but the same (predicted) or very similar shifts and multiple assignments to catch
+//                        // -> still open
+//                        pickedSignalIndexSpectrum2 = -1;
+//                    }
+//                }
+
+
+                pickedSignalIndexSpectrum2 = -1;
+                pickedSignalIndicesSpectrum2 = spectrum2.pickClosestSignals(spectrum1.getShift(i, dim1), dim2, shiftTol);
+                for (int j = 0; j < pickedSignalIndicesSpectrum2.size(); j++) {
+                    pickedSignalIndexSpectrum2 = pickedSignalIndicesSpectrum2.get(j);
+                    // if matched signal is already assigned, then consider symmetries (equiv. signals)
+                    if (pickedSignalIndices.contains(pickedSignalIndexSpectrum2)) {
+                        // symmetry exists
+                        if (spectrum2.hasEquivalences(pickedSignalIndexSpectrum2)) {
+                            pickedSignalIndexSpectrum2Prev = pickedSignalIndexSpectrum2;
+                            // assign the next signal in equivalence list
+                            for (final int equivalentSignalIndexSpectrum2 : spectrum2.getEquivalentSignals(pickedSignalIndexSpectrum2)) {
+                                if (!pickedSignalIndices.contains(equivalentSignalIndexSpectrum2)) {
+                                    pickedSignalIndexSpectrum2 = equivalentSignalIndexSpectrum2;
+                                    break;
+                                }
                             }
-                        }
-                        // if no further equivalent signal exists then that match is not valid
-                        if (pickedSignalIndexSpectrum2 == pickedSignalIndexSpectrum2Prev) {
+                            // if no further equivalent signal exists then that match is not valid
+                            if (pickedSignalIndexSpectrum2 == pickedSignalIndexSpectrum2Prev) {
+                                pickedSignalIndexSpectrum2 = -1;
+                            }
+                        } else {
+                            // not symmetric signals but the same (predicted) or very similar shifts and multiple assignments to catch
+                            // -> still open
                             pickedSignalIndexSpectrum2 = -1;
                         }
-                    } else {
-                        // not symmetric signals but the same (predicted) or very similar shifts and multiple assignments to catch
-                        // -> still open
-                        pickedSignalIndexSpectrum2 = -1;
+                    }
+                    if(pickedSignalIndexSpectrum2 != -1){
+                        break;
                     }
                 }
+
                 // check multiplicity
                 if ((spectrum1.getMultiplicity(i) == null) || (spectrum2.getMultiplicity(pickedSignalIndexSpectrum2) == null) || !spectrum1.getMultiplicity(i).equals(spectrum2.getMultiplicity(pickedSignalIndexSpectrum2))) {
                     pickedSignalIndexSpectrum2 = -1;

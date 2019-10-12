@@ -238,8 +238,7 @@ public class Matcher {
                                 pickedSignalIndexSpectrum2 = -1;
                             }
                         } else {
-                            // not symmetric signals but the same (predicted) or very similar shifts and multiple assignments to catch
-                            // -> still open
+                            // @TODO not symmetric signals but the same (predicted) or very similar shifts and multiple assignments to catch
                             pickedSignalIndexSpectrum2 = -1;
                         }
                     }

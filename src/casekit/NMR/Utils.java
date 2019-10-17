@@ -669,11 +669,11 @@ public class Utils {
     public static boolean isValidBondAddition(final IAtomContainer ac, final int atomIndex, final IBond bondToAdd){
 
         if(ac.getAtom(atomIndex).isAromatic()){
-            System.out.println(atomIndex + " --> (" + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd) + " - 1) = " + (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd) - 1) + " <= " + ac.getAtom(atomIndex).getValency() + " ? -> " + ((Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd) - 1) <= ac.getAtom(atomIndex).getValency()));
+//            System.out.println(atomIndex + " --> (" + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd) + " - 1) = " + (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd) - 1) + " <= " + ac.getAtom(atomIndex).getValency() + " ? -> " + ((Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd) - 1) <= ac.getAtom(atomIndex).getValency()));
             return ((Utils.getBondOrderSum(ac, atomIndex, true) - 1) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency();
         }
 
-        System.out.println(atomIndex + " --> " + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd) + " = " + (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) + " <= " + ac.getAtom(atomIndex).getValency() + " ? -> " + ((Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency()));
+//        System.out.println(atomIndex + " --> " + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd) + " = " + (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) + " <= " + ac.getAtom(atomIndex).getValency() + " ? -> " + ((Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency()));
         return (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency();
     }
     
@@ -787,7 +787,10 @@ public class Utils {
         return rms;
     }
     
-    public static boolean isSaturated(final IAtomContainer ac, final int atomIndex)  {
+    public static Boolean isSaturated(final IAtomContainer ac, final int atomIndex)  {
+        if(!Utils.checkIndexInAtomContainer(ac, atomIndex)){
+            return null;
+        }
         return Utils.getBondOrderSum(ac, atomIndex, true).intValue() >= ac.getAtom(atomIndex).getValency();
     }
     
@@ -1073,7 +1076,7 @@ public class Utils {
         return bondOrderAsNumeric;
     }
     
-    public static Float getBondOrderSum(final IAtomContainer ac, final int atomIndex, final boolean includeImplicitHydrogenCount) {        
+    public static Float getBondOrderSum(final IAtomContainer ac, final int atomIndex, final boolean includeImplicitHydrogenCount) {
         if(!Utils.checkIndexInAtomContainer(ac, atomIndex)){
             return null;
         }

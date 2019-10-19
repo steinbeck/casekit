@@ -62,7 +62,7 @@ public class Assignment extends DimensionalNMR implements Cloneable {
      * @return
      */
     public boolean setAssignment(final int dim, final int index, final int assignment){
-        if(!this.containsDim(dim) || !this.checkSpectrumIndex(dim, index)){
+        if(!this.containsDim(dim) || !this.checkIndex(dim, index)){
             return false;
         }
         this.assignments[dim][index] = assignment;
@@ -82,7 +82,7 @@ public class Assignment extends DimensionalNMR implements Cloneable {
     }
     
     public Integer getAssignment(final int dim, final int index){
-        if(!this.containsDim(dim) || !this.checkSpectrumIndex(dim, index)){
+        if(!this.containsDim(dim) || !this.checkIndex(dim, index)){
             return null;
         }
 
@@ -141,11 +141,11 @@ public class Assignment extends DimensionalNMR implements Cloneable {
      * Adds a new assignment entry (index), e.g. for a new signal. The given assignment indices
      * will be stored for each dimension of the new assignment entry (index).
      *
-     * @param assignments assignment indices to store in each dimension of new assignment entry
+     * @param assignment assignment indices to store in each dimension of new assignment entry
      *
      * @return
      */
-    public boolean addAssignment(final int[] assignments){
+    public boolean addAssignment(final int[] assignment){
         if(!this.compareNDim(assignments.length)){
             return false;
         }
@@ -154,15 +154,35 @@ public class Assignment extends DimensionalNMR implements Cloneable {
             for (int i = 0; i < this.getAssignmentsCount(); i++) {
                 extendedAssignments[dim][i] = this.getAssignment(dim, i);
             }
-            extendedAssignments[dim][this.getAssignmentsCount()] = assignments[dim];
+            extendedAssignments[dim][this.getAssignmentsCount()] = assignment[dim];
         }
         this.assignments = extendedAssignments;
         
         return true;
     }
 
-    private boolean checkSpectrumIndex(final int dim, final int indexInTargetSpectrum){
-       return (indexInTargetSpectrum >= 0) && (indexInTargetSpectrum < this.assignments[dim].length);
+    public boolean removeAssignment(final int index){
+        if(!this.checkIndex(0, index)){
+            return false;
+        }
+        final int[][] reducedAssignments = new int[this.getNDim()][this.getAssignmentsCount() - 1];
+        int nextIndexToInsertCounter = 0;
+        for (int i = 0; i < this.getAssignmentsCount(); i++) {
+            if(i == index){
+                continue;
+            }
+            for (int dim = 0; dim < this.getNDim(); dim++) {
+                reducedAssignments[dim][nextIndexToInsertCounter] = this.getAssignment(dim, i);
+            }
+            nextIndexToInsertCounter++;
+        }
+        this.assignments = reducedAssignments;
+
+        return true;
+    }
+
+    private boolean checkIndex(final int dim, final int index){
+       return (index >= 0) && (index < this.assignments[dim].length);
     }
     
     private boolean checkInputListSize(final int size){

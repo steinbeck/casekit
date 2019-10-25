@@ -667,14 +667,20 @@ public class Utils {
     }
 
     public static boolean isValidBondAddition(final IAtomContainer ac, final int atomIndex, final IBond bondToAdd){
+        float bondOrderSum = Utils.getBondOrderSum(ac, atomIndex, true);
+        bondOrderSum += Utils.getBondOrderAsNumeric(bondToAdd);
 
-        if(ac.getAtom(atomIndex).isAromatic()){
-//            System.out.println(atomIndex + " --> (" + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd) + " - 1) = " + (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd) - 1) + " <= " + ac.getAtom(atomIndex).getValency() + " ? -> " + ((Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd) - 1) <= ac.getAtom(atomIndex).getValency()));
-            return ((Utils.getBondOrderSum(ac, atomIndex, true) - 1) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency();
+//        System.out.print(atomIndex + " --> " + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd));
+        final IAtom atom = ac.getAtom(atomIndex);
+        // -1 for cases with heterocyclic aromatics, like the N in the small aromatic ring in coffein if we want to add the bond to the CH3 group
+        if(atom.isAromatic() && (!atom.getSymbol().equals("C"))){
+            System.out.print("[ -1 ]");
+            bondOrderSum -= 1;
         }
+//        System.out.print(" = " + bondOrderSum + " <= " + atom.getValency() + " ? -> " + (bondOrderSum <= atom.getValency()) + "\n");
 
-//        System.out.println(atomIndex + " --> " + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd) + " = " + (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) + " <= " + ac.getAtom(atomIndex).getValency() + " ? -> " + ((Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency()));
-        return (Utils.getBondOrderSum(ac, atomIndex, true) + Utils.getBondOrderAsNumeric(bondToAdd)) <= ac.getAtom(atomIndex).getValency();
+        // @TODO including charges
+        return bondOrderSum <= atom.getValency();
     }
     
     

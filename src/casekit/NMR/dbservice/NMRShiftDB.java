@@ -156,27 +156,27 @@ public class NMRShiftDB {
                 new FileReader(pathToNMRShiftDB),
                 SilentChemObjectBuilder.getInstance()
         );
-        IAtomContainer ac;
+        IAtomContainer structure;
         Spectrum spectrum;
         Assignment assignment;
         final String nucleus = getNucleusFromNMRShiftDBSpectrumProperty(NMRShiftDBSpectrumProperty);
         final String spectrumIndexInRecord = NMRShiftDBSpectrumProperty.split("\\s")[NMRShiftDBSpectrumProperty.split("\\s").length - 1];
         while (iterator.hasNext()) {
-            ac = iterator.next();
+            structure = iterator.next();
             // skip molecules which not contain any of requested spectrum information
-            if(ac.getProperty(NMRShiftDBSpectrumProperty) == null){
+            if(structure.getProperty(NMRShiftDBSpectrumProperty) == null){
                 continue;
             }
-            spectrum = NMRShiftDBSpectrumToSpectrum(ac.getProperty(NMRShiftDBSpectrumProperty), nucleus);
+            spectrum = NMRShiftDBSpectrumToSpectrum(structure.getProperty(NMRShiftDBSpectrumProperty), nucleus);
             // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
-            if((spectrum == null) || Utils.getAtomTypeIndicesByElement(ac, nucleus.replaceAll("\\d", "")).size() != spectrum.getSignalCount()){
+            if((spectrum == null) || Utils.getAtomTypeIndicesByElement(structure, nucleus.replaceAll("\\d", "")).size() != spectrum.getSignalCount()){
                 continue;
             }
-            if(ac.getProperty("Solvent") != null){
-                spectrum.setSolvent(getSolvent(ac.getProperty("Solvent"), spectrumIndexInRecord));
+            if(structure.getProperty("Solvent") != null){
+                spectrum.setSolvent(getSolvent(structure.getProperty("Solvent"), spectrumIndexInRecord));
             }
-            if(ac.getProperty("Field Strength [MHz]") != null){
-                for (final String fieldStrength : ac.getProperty("Field Strength [MHz]").toString().split("\\s")) {
+            if(structure.getProperty("Field Strength [MHz]") != null){
+                for (final String fieldStrength : structure.getProperty("Field Strength [MHz]").toString().split("\\s")) {
                     if (fieldStrength.startsWith(spectrumIndexInRecord + ":")) {
                         try {
                             spectrum.setSpectrometerFrequency(Double.parseDouble(fieldStrength.split(spectrumIndexInRecord + ":")[1]));
@@ -188,14 +188,8 @@ public class NMRShiftDB {
                 }
             }
 
-            assignment = NMRShiftDBSpectrumToAssignment(ac.getProperty(NMRShiftDBSpectrumProperty), nucleus);
-//            if ((ac != null) && (spectrum != null)) {
-                structureSetWithSpectra.put(structureSetWithSpectra.size(), new Object[]{ac, spectrum, assignment});
-//            }
-
-            // set aromaticities
-//            Utils.setAromaticitiesInAtomContainer(ac);
-            // add Kekulization?
+            assignment = NMRShiftDBSpectrumToAssignment(structure.getProperty(NMRShiftDBSpectrumProperty), nucleus);
+            structureSetWithSpectra.put(structureSetWithSpectra.size(), new Object[]{structure, spectrum, assignment});
         }
 
         return structureSetWithSpectra;

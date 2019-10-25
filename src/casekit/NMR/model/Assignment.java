@@ -26,6 +26,7 @@ package casekit.NMR.model;
 import casekit.NMR.model.dimensional.DimensionalNMR;
 import org.apache.commons.lang3.ArrayUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -102,12 +103,12 @@ public class Assignment extends DimensionalNMR implements Cloneable {
         return -1;
     }
     
-    public List<Integer> getAssignments(final int dim){
+    public ArrayList<Integer> getAssignments(final int dim){
         if(!this.containsDim(dim)){
             return null;
         }
 
-        return Arrays.asList(ArrayUtils.toObject(this.assignments[dim]));
+        return new ArrayList<>(Arrays.asList(ArrayUtils.toObject(this.assignments[dim])));
     }
     
     public int getAssignmentsCount(){

@@ -31,7 +31,6 @@ package casekit.NMR.model;
 import casekit.NMR.model.dimensional.DimensionalNMR;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -490,7 +489,7 @@ public class Spectrum extends DimensionalNMR {
 
    /**
     * Returns the signal index (or indices) closest to the given shift. If no signal is found within the interval
-    * defined by pickprecision, an empty list is returned.
+    * defined by {@code pickPrecision}, an empty list is returned.
     * @param shift query shift
     * @param dim dimension in spectrum to look in
     * @param pickPrecision tolerance value for search window
@@ -537,12 +536,7 @@ public class Spectrum extends DimensionalNMR {
            }
        }
        // sort signal indices by distance to query shift
-       pickedSignals.sort(new Comparator<Integer>() {
-           @Override
-           public int compare(final Integer pickedSignalIndex1, final Integer pickedSignalIndex2) {
-               return Double.compare(Math.abs(shift - getShift(pickedSignalIndex1, dim)), Math.abs(shift - getShift(pickedSignalIndex2, dim)));
-           }
-       });
+       pickedSignals.sort((pickedSignalIndex1, pickedSignalIndex2) -> Double.compare(Math.abs(shift - getShift(pickedSignalIndex1, dim)), Math.abs(shift - getShift(pickedSignalIndex2, dim))));
 
        return pickedSignals;
    }

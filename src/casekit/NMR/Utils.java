@@ -674,7 +674,7 @@ public class Utils {
         final IAtom atom = ac.getAtom(atomIndex);
         // -1 for cases with heterocyclic aromatics, like the N in the small aromatic ring in coffein if we want to add the bond to the CH3 group
         if(atom.isAromatic() && (!atom.getSymbol().equals("C"))){
-            System.out.print("[ -1 ]");
+//            System.out.print("[ -1 ]");
             bondOrderSum -= 1;
         }
 //        System.out.print(" = " + bondOrderSum + " <= " + atom.getValency() + " ? -> " + (bondOrderSum <= atom.getValency()) + "\n");

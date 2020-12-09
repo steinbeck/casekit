@@ -7,7 +7,7 @@
 
 package casekit;
 
-import casekit.NMR.Utils;
+import casekit.nmr.Utils;
 import org.apache.commons.cli.*;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.depict.DepictionGenerator;
@@ -44,6 +44,8 @@ import java.util.StringTokenizer;
  * @author Christoph Steinbeck
  * 
  */
+
+@Deprecated
 public class HOSECodePredictor {
 
 	HashMap<String,ArrayList<Double>> hoseLookup;
@@ -165,7 +167,7 @@ public class HOSECodePredictor {
         }
 	
 	/**
-	 * Predicts NMR chemical shifts based on a given HOSE code table read by the 
+	 * Predicts casekit.nmr chemical shifts based on a given HOSE code table read by the
 	 * Constructor of this class. 
 	 * The predicted chemical shifts are assigned to each atom by
 	 * as a property of type <code>CDKConstants.NMRSHIFT_CARBON</code>.
@@ -294,7 +296,7 @@ public class HOSECodePredictor {
 			// TODO Auto-generated catch block
 			HelpFormatter formatter = new HelpFormatter();
 			formatter.setOptionComparator(null);
-			 String header = "Predict NMR chemical shifts for a given molecule based on table of HOSE codes and assigned shifts.\n\n";
+			 String header = "Predict casekit.nmr chemical shifts for a given molecule based on table of HOSE codes and assigned shifts.\n\n";
 			 String footer = "\nPlease report issues at https://github.com/steinbeck/spectra";
 			formatter.printHelp( "java -jar casekit.jar casekit.HOSECodePredictor", header, options, footer, true );
 			throw new ParseException("Problem parsing command line");

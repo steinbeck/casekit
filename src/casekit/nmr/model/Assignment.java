@@ -21,9 +21,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package casekit.NMR.model;
+package casekit.nmr.model;
 
-import casekit.NMR.model.dimensional.DimensionalNMR;
+import casekit.nmr.model.dimensional.Dimensional;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.ArrayList;
@@ -34,9 +34,18 @@ import java.util.List;
  *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Assignment extends DimensionalNMR implements Cloneable {
+public class Assignment extends Dimensional implements Cloneable {
     
-    int[][] assignments;
+    private int[][] assignments;
+
+
+    public Assignment() {
+    }
+
+    public Assignment(final String[] nuclei, final int[][] assignments) {
+        super(nuclei);
+        this.assignments = assignments;
+    }
 
     public Assignment(final Spectrum spectrum) {
         super(spectrum.getNuclei());
@@ -137,6 +146,14 @@ public class Assignment extends DimensionalNMR implements Cloneable {
         
         return this.getSetAssignmentsCount(dim) == this.getAssignmentsCount();
     }
+
+    public Boolean isAssigned(final int dim, final int index){
+        if(!this.containsDim(dim)){
+            return null;
+        }
+
+        return this.getAssignment(dim, index) != -1;
+    }
     
     /**
      * Adds a new assignment entry (index), e.g. for a new signal. The given assignment indices
@@ -193,5 +210,21 @@ public class Assignment extends DimensionalNMR implements Cloneable {
     @Override
     public Assignment clone() throws CloneNotSupportedException{
         return (Assignment) super.clone();
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("Assignments:\n");
+
+        for (int i = 0; i < this.getNDim(); i++) {
+            stringBuilder.append(Arrays.toString(this.assignments[i])).append("\n");
+        }
+
+    return stringBuilder.toString();
+    }
+
+    public int[][] getAssignments() {
+        return assignments;
     }
 }

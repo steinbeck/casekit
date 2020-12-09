@@ -9,6 +9,7 @@ package casekit;
 
 import org.openscience.cdk.interfaces.IAtomContainer;
 
+@Deprecated
 public class Result {
 	public IAtomContainer ac;
 	public double score;

@@ -9,7 +9,8 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package casekit.NMR.dbservice;
+package casekit.nmr.dbservice;
+
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -18,7 +19,6 @@ import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
-import org.openscience.cdk.exception.CDKException;
 
 /**
  *
@@ -27,10 +27,10 @@ import org.openscience.cdk.exception.CDKException;
 public class MongoDB {
 
 
-    public static MongoClient login(final String mongoUser, final String mongoPassword, final String mongoAuthDB) throws CDKException {
+    public static MongoClient login(final String mongoUser, final String mongoPassword, final String mongoAuthDB) {
         MongoClient mongo;
         try {
-            // Creating a Mongo client   
+            // Creating a Mongo client
             mongo = new MongoClient(
                     new ServerAddress("127.0.0.1", 27017),
                     MongoCredential.createCredential(
@@ -39,7 +39,7 @@ public class MongoDB {
                             mongoPassword.toCharArray()),
                     MongoClientOptions.builder().build());
             System.out.println("Login to MongoDB was successfull");
-            // Accessing the database             
+            // Accessing the database
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println(Thread.currentThread().getStackTrace()[1].getMethodName() + ": could not connect to MongoDB!");
@@ -53,12 +53,12 @@ public class MongoDB {
     public static MongoDatabase getDatabase(final MongoClient mongo, final String mongoDBName){
         return mongo.getDatabase(mongoDBName);
     }
-    
+
     public static MongoCollection<Document> getCollection(final MongoClient mongo, final String mongoDBName, final String mongoDBCollection) {
         final MongoDatabase database = MongoDB.getDatabase(mongo, mongoDBName);
-        if (database == null) {
-            return null;
-        }
+//        if (database == null) {
+//            return null;
+//        }
         System.out.println("Access to database \"" + mongoDBName + "\" was successfull");
         // Retrieving a collection
         final MongoCollection<Document> collection = database.getCollection(mongoDBCollection);

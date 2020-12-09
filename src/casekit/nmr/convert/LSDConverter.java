@@ -9,18 +9,18 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package casekit.NMR.convert;
+package casekit.nmr.convert;
 
-import casekit.NMR.Utils;
-import casekit.NMR.model.Spectrum;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-
+import casekit.nmr.Utils;
+import casekit.nmr.model.Spectrum;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.silent.MolecularFormula;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
 
 /**
  *
@@ -202,7 +202,7 @@ public class LSDConverter {
 //                if (shiftsDB == null) {
 //                    continue;
 //                }
-//                String[][] shiftsDBvalues = casekit.NMR.dbservice.NMRShiftDB.parseNMRShiftDBSpectrum(shiftsDB);
+//                String[][] shiftsDBvalues = casekit.casekit.nmr.dbservice.NMRShiftDB.parseNMRShiftDBSpectrum(shiftsDB);
 //                for (String[] shiftsDBvalue : shiftsDBvalues) {
 //                    atomIndexDB = Integer.parseInt(shiftsDBvalue[2]);
 //                    // sometimes the MongoDB atom index is wrong and out of array range
@@ -223,7 +223,7 @@ public class LSDConverter {
 //                    neighborhoodCountsMatrix[shiftDBInt - minShift][5] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 2)) ? 1 : 0; // CH2 count or equivalents, e.g. NH2
 //                    neighborhoodCountsMatrix[shiftDBInt - minShift][6] += ((acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() != null) && (acDB.getAtom(atomIndexDB).getImplicitHydrogenCount() == 3)) ? 1 : 0; // CH3 count or equivalents, e.g. NH3
 //                    // add counts for a specific atom to matrix m
-//                    int[] counts = casekit.NMR.Utils.getNeighborhoodBondsCount(acDB, atomIndexDB, bondsSet, neighborElems);
+//                    int[] counts = casekit.casekit.nmr.Utils.getNeighborhoodBondsCount(acDB, atomIndexDB, bondsSet, neighborElems);
 //                    for (int i = 0; i < counts.length; i++) {
 //                        neighborhoodCountsMatrix[shiftDBInt - minShift][3 + 4 + i] += counts[i];
 //                    }

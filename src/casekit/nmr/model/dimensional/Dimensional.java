@@ -10,48 +10,33 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package casekit.model;
+package casekit.nmr.model.dimensional;
 
 import java.util.Arrays;
 
 public class Dimensional {
 
-    private final int nDim;
-    private final String[] dimNames;
+    private String[] nuclei;
+    private int nDim;
 
-    /**
-     * Creates a new object of that class by given dimension names.
-     *
-     * @param dimNames names for all dimensions to store.
-     * @throws IndexOutOfBoundsException
-     */
-    protected Dimensional(final String[] dimNames) throws IndexOutOfBoundsException {
-        if(dimNames.length == 0){
-            throw new IndexOutOfBoundsException("Number of given dimensions (" + dimNames.length + ") is not valid: must be >= 1");
-        }
-
-        this.dimNames = dimNames;
-        this.nDim = dimNames.length;
+    protected Dimensional() {
     }
 
-    /**
-     * Returns the dimension names.
-     *
-     * @return
-     */
-    protected final String[] getDimNames() {
-        return dimNames;
+    protected Dimensional(final String[] nuclei) {
+        this.nuclei = nuclei;
+        this.nDim = nuclei.length;
     }
 
-    /**
-     * Checks whether the input dimension names are equal to the dimension names of
-     * this object and in same order.
-     *
-     * @param dimNames names of dimensions to check
-     * @return
-     */
-    protected final boolean compareDimNames(final String[] dimNames){
-        return Arrays.equals(this.getDimNames(), dimNames);
+    public final String[] getNuclei(){
+        return this.nuclei;
+    }
+
+    public void setNuclei(String[] nuclei) {
+        this.nuclei = nuclei;
+    }
+
+    public boolean compareNuclei(final String[] nuclei){
+        return Arrays.equals(this.getNuclei(), nuclei);
     }
 
     /**
@@ -61,6 +46,10 @@ public class Dimensional {
      */
     public final int getNDim() {
         return this.nDim;
+    }
+
+    public void setNDim(int nDim) {
+        this.nDim = nDim;
     }
 
     /**

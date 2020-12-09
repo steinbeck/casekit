@@ -6,21 +6,7 @@
  */
 package casekit;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.StringTokenizer;
-
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 import org.openscience.cdk.CDKConstants;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.depict.DepictionGenerator;
@@ -32,6 +18,9 @@ import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.HOSECodeGenerator;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
+import java.io.*;
+import java.util.StringTokenizer;
+
 /** 
  * Helper class to parse an NMRShiftDB SDF file with spectra assignments 
  * and convert it to a tab-separated values file with HOSE codes
@@ -42,6 +31,7 @@ import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
  * @author Christoph Steinbeck
  */
 
+@Deprecated
 public class NMRShiftDBSDFParser {
 	BufferedWriter bw;
 	IMolecularFormula formula = null;

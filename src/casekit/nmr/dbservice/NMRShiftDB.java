@@ -27,10 +27,7 @@ import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class NMRShiftDB {
 
@@ -96,12 +93,17 @@ public class NMRShiftDB {
         String[] split;
         String spectrumIndexInRecord;
         IMolecularFormula mf;
+        List<Integer> explicitHydrogenIndices;
 
         while (iterator.hasNext()) {
             structure = iterator.next();
             AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
-            // remove explicit hydrogens
-            Utils.removeAtoms(structure, "H");
+            explicitHydrogenIndices = Utils.getExplicitHydrogenIndices(structure);
+            Collections.sort(explicitHydrogenIndices);
+            if (!explicitHydrogenIndices.isEmpty()) {
+                // remove explicit hydrogens
+                Utils.removeAtoms(structure, "H");
+            }
             hydrogenAdder.addImplicitHydrogens(structure);
             Utils.setAromaticityAndKekulize(structure);
 
@@ -141,6 +143,20 @@ public class NMRShiftDB {
                     }
 
                     assignment = NMRShiftDBSpectrumToAssignment(structure.getProperty(spectrumProperty1D), nucleus);
+                    if (assignment != null && !explicitHydrogenIndices.isEmpty()) {
+                        int hCount;
+                        for (int i = 0; i < assignment.getAssignmentsCount(); i++) {
+                            hCount = 0;
+                            for (int j = 0; j < explicitHydrogenIndices.size(); j++) {
+                                if (explicitHydrogenIndices.get(j) >= assignment.getAssignment(0, i)) {
+                                    break;
+                                }
+                                hCount++;
+                            }
+                            assignment.setAssignment(0, i, assignment.getAssignment(0, i) - hCount);
+                        }
+                    }
+
                     dataSets.add(new DataSet(structure, spectrum, assignment, meta));
                 }
             }

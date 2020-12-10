@@ -940,14 +940,7 @@ public class Utils {
      * @return
      */
     public static boolean containsExplicitHydrogens(final IAtomContainer ac) {
-        for (final IAtom atomA : ac.atoms()) {
-            // check each atom whether it is an hydrogen
-            if (atomA.getSymbol().equals("H")) {
-                return true;
-            }
-        }
-
-        return false;
+        return getExplicitHydrogenCount(ac) > 0;
     }
 
     /**
@@ -998,21 +991,24 @@ public class Utils {
      *
      * @return
      */
-    public static int getExplicitHydrogenCount(final IAtomContainer ac) {
-        final List<IAtom> toRemoveList = new ArrayList<>();
-        IAtom atomB;
-        for (final IAtom atomA : ac.atoms()) {
-            if (atomA.getAtomicNumber() == 1) {
-                atomB = ac.getConnectedAtomsList(atomA).get(0);
-                if (atomB.getImplicitHydrogenCount() == null) {
-                    atomB.setImplicitHydrogenCount(0);
-                }
-                atomB.setImplicitHydrogenCount(atomB.getImplicitHydrogenCount() + 1);
-                toRemoveList.add(atomA);
+    public static List<Integer> getExplicitHydrogenIndices(final IAtomContainer ac) {
+        final List<Integer> explicitHydrogenIndicesList = new ArrayList<>();
+        for (int i = 0; i < ac.getAtomCount(); i++) {
+            if (ac.getAtom(i).getSymbol().equals("H")) {
+                explicitHydrogenIndicesList.add(i);
             }
         }
 
-        return toRemoveList.size();
+        return explicitHydrogenIndicesList;
+    }
+
+    /**
+     * @param ac
+     *
+     * @return
+     */
+    public static int getExplicitHydrogenCount(final IAtomContainer ac) {
+        return getExplicitHydrogenIndices(ac).size();
     }
 
 

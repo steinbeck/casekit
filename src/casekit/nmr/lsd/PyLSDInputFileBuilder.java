@@ -75,14 +75,14 @@ public class PyLSDInputFileBuilder {
     }
 
     private static String buildMULT(final Correlation correlation, final int index, final Map<Integer, Object[]> indicesMap, final Map<Integer, List<Integer>> detectedHybridizations) {
-        final StringBuilder stringBuilder = new StringBuilder();
-        List<Integer> hybridizations;
-        StringBuilder hybridizationStringBuilder;
-        StringBuilder attachedProtonsCountStringBuilder;
         if (correlation.getAtomType().equals("H")) {
             return null;
         }
-        hybridizations = new ArrayList<>();
+        final StringBuilder stringBuilder = new StringBuilder();
+        List<Integer> hybridizations = new ArrayList<>();
+        StringBuilder hybridizationStringBuilder;
+        StringBuilder attachedProtonsCountStringBuilder;
+
         if (correlation.getHybridization() != null && !correlation.getHybridization().isEmpty()) {
             // if hybridization is already given
             if (correlation.getHybridization().equals("SP")) {
@@ -140,10 +140,10 @@ public class PyLSDInputFileBuilder {
     }
 
     private static String buildHSQC(final Correlation correlation, final int index, final Map<Integer, Object[]> indicesMap) {
-        final StringBuilder stringBuilder = new StringBuilder();
         if (correlation.getAtomType().equals("H")) {
             return null;
         }
+        final StringBuilder stringBuilder = new StringBuilder();
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType().equals("hsqc")) {
                 for (final int matchIndex : link.getMatch()) {
@@ -159,11 +159,11 @@ public class PyLSDInputFileBuilder {
     }
 
     private static String buildHMBC(final Correlation correlation, final int index, final Data data, final Map<Integer, Object[]> indicesMap) {
-        final StringBuilder stringBuilder = new StringBuilder();
-        final String defaultBondDistance = "2 4";
         if (correlation.getAtomType().equals("H")) {
             return null;
         }
+        final String defaultBondDistance = "2 4";
+        final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType().equals("hmbc")) {
                 for (final int matchIndex : link.getMatch()) {
@@ -171,7 +171,7 @@ public class PyLSDInputFileBuilder {
                         for (int l = 1; l < indicesMap.get(matchIndex).length; l++) {
                             // only add an HMBC correlation if there is no direct link via HSQC and the equivalence index is not equal
                             if (!(data.getCorrelations().getValues().get(matchIndex).getAttachment().containsKey(correlation.getAtomType()) && data.getCorrelations().getValues().get(matchIndex).getAttachment().get(correlation.getAtomType()).contains(index) && l == k)) {
-                                stringBuilder.append("HMBC ").append(indicesMap.get(index)[k]).append(" ").append(indicesMap.get(matchIndex)[l]).append(" ").append(defaultBondDistance).append("\n");
+                                uniqueSet.add(indicesMap.get(index)[k] + " " + indicesMap.get(matchIndex)[l]);
                             }
                         }
                     }
@@ -179,14 +179,14 @@ public class PyLSDInputFileBuilder {
             }
         }
 
-        return stringBuilder.toString();
+        return uniqueSet.stream().map(str -> "HMBC " + str + " " + defaultBondDistance + "\n").reduce("", (strAll, str) -> strAll + str);
     }
 
     private static String buildCOSY(final Correlation correlation, final int index, final Data data, final Map<Integer, Object[]> indicesMap) {
-        final StringBuilder stringBuilder = new StringBuilder();
         if (!correlation.getAtomType().equals("H")) {
             return null;
         }
+        final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType().equals("cosy")) {
                 for (final int matchIndex : link.getMatch()) {
@@ -194,7 +194,7 @@ public class PyLSDInputFileBuilder {
                     if (!data.getCorrelations().getValues().get(matchIndex).getId().equals(correlation.getId())) {
                         for (int k = 1; k < indicesMap.get(index).length; k++) {
                             for (int l = 1; l < indicesMap.get(matchIndex).length; l++) {
-                                stringBuilder.append("COSY ").append(indicesMap.get(index)[k]).append(" ").append(indicesMap.get(matchIndex)[l]).append("\n");
+                                uniqueSet.add(indicesMap.get(index)[k] + " " + indicesMap.get(matchIndex)[l]);
                             }
                         }
                     }
@@ -202,14 +202,14 @@ public class PyLSDInputFileBuilder {
             }
         }
 
-        return stringBuilder.toString();
+        return uniqueSet.stream().map(str -> "COSY " + str + "\n").reduce("", (strAll, str) -> strAll + str);
     }
 
     private static String buildSHIX(final Correlation correlation, final int index, final Map<Integer, Object[]> indicesMap) {
-        final StringBuilder stringBuilder = new StringBuilder();
         if (correlation.getAtomType().equals("H") || correlation.isPseudo()) {
             return null;
         }
+        final StringBuilder stringBuilder = new StringBuilder();
         for (int k = 1; k < indicesMap.get(index).length; k++) {
             stringBuilder.append("SHIX ").append(indicesMap.get(index)[k]).append(" ").append(correlation.getSignal().getDelta()).append("\n");
         }
@@ -218,10 +218,10 @@ public class PyLSDInputFileBuilder {
     }
 
     private static String buildSHIH(final Correlation correlation, final int index, final Map<Integer, Object[]> indicesMap) {
-        final StringBuilder stringBuilder = new StringBuilder();
         if (!correlation.getAtomType().equals("H") || correlation.isPseudo()) {
             return null;
         }
+        final StringBuilder stringBuilder = new StringBuilder();
         // only consider protons which are attached via HSQC/HMQC (pseudo and real links)
         for (final Link link : correlation.getLink()) {
             if ((link.getExperimentType().equals("hsqc") || link.getExperimentType().equals("hmqc")) && !link.getMatch().isEmpty()) { // && !link.isPseudo()

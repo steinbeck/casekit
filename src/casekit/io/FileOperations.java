@@ -12,27 +12,32 @@
 
 package casekit.io;
 
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
 
-public class FileParser {
+public class FileOperations {
 
-    public static BufferedReader parseText(final String pathToTextFile) throws FileNotFoundException {
-        return new BufferedReader(new FileReader(pathToTextFile));
+    public static BufferedReader readFile(final String pathToFile) {
+        try {
+            return new BufferedReader(new FileReader(pathToFile));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
-    public static Document parseXML(final String pathToXML) throws IOException, SAXException, ParserConfigurationException {
-        final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-        final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-        final Document doc = docBuilder.parse(new File(pathToXML));
-        // normalize text representation
-        doc.getDocumentElement().normalize();
+    public static boolean writeFile(final String pathToFile, final String content) {
+        try {
+            final FileWriter fileWriter = new FileWriter(pathToFile);
+            final BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+            bufferedWriter.write(content);
+            bufferedWriter.close();
 
-        return doc;
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 }

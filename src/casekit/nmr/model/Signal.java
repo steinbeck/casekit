@@ -41,27 +41,24 @@ public class Signal extends Dimensional {
     private Double intensity;
     private String kind;
     private int equivalencesCount;
-
-    ////    private Integer phase;
-    ////    public final static int PHASE_NONE = 0, PHASE_POSITIVE = 1, PHASE_NEGATIVE = 2;
-    ////    public final static String[] PHASENAMES = {"NONE", "POSITIVE", "NEGATIVE"};
-    //
+    private int phase;
 
 
     public Signal() {
     }
 
     public Signal(final String[] nuclei) {
-        this(nuclei, null, null, null, null, 0);
+        this(nuclei, null, null, null, null, 0, 0);
     }
 
-    public Signal(final String[] nuclei, final Double[] shifts, final String multiplicity, final String kind, final Double intensity, final int equivalencesCount) {
+    public Signal(final String[] nuclei, final Double[] shifts, final String multiplicity, final String kind, final Double intensity, final int equivalencesCount, final int phase) {
         super(nuclei);
         this.shifts = shifts; // this.initShifts(shifts, this.getNDim());
         this.multiplicity = multiplicity;
         this.kind = kind;
         this.intensity = intensity;
         this.equivalencesCount = equivalencesCount;
+        this.phase = phase;
     }
 
     //    private Double[] initShifts(final Double[] shifts, final int nDim) {
@@ -126,12 +123,12 @@ public class Signal extends Dimensional {
 
 
     public Signal buildClone() {
-        return new Signal(this.getNuclei(), this.shifts, this.multiplicity, this.kind, this.intensity, equivalencesCount);
+        return new Signal(this.getNuclei(), this.shifts, this.multiplicity, this.kind, this.intensity, this.equivalencesCount, this.phase);
     }
 
     @Override
     public String toString() {
-        return "Signal{" + "shifts=" + Arrays.toString(shifts) + ", multiplicity='" + multiplicity + '\'' + ", intensity=" + intensity + ", kind='" + kind + '\'' + ", equivalencesCount=" + equivalencesCount + '}';
+        return "Signal{" + "shifts=" + Arrays.toString(shifts) + ", multiplicity='" + multiplicity + '\'' + ", intensity=" + intensity + ", kind='" + kind + '\'' + ", equivalencesCount=" + equivalencesCount + ", phase=" + phase + '}';
     }
 
     public Double[] getShifts() {
@@ -144,5 +141,13 @@ public class Signal extends Dimensional {
 
     public void setEquivalencesCount(final int equivalencesCount) {
         this.equivalencesCount = equivalencesCount;
+    }
+
+    public int getPhase() {
+        return phase;
+    }
+
+    public void setPhase(final int phase) {
+        this.phase = phase;
     }
 }

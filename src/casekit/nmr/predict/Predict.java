@@ -34,6 +34,7 @@ import org.openscience.cdk.interfaces.IAtomContainer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
@@ -44,7 +45,7 @@ public class Predict {
      * Predicts a shift value for a central atom based on its HOSE code and a
      * given HOSE code lookup table. The prediction is done by using the median
      * of all occurring shifts in lookup table for the given HOSE code. <br>
-     * Specified for carbons (13C) only -> {@link casekit.nmr.Utils#getMultiplicityFromHydrogenCount(int)}.
+     * Specified for carbons (13C) only -> {@link casekit.nmr.Utils#getMultiplicityFromProtonsCount(int)}.
      *
      * @param HOSECodeLookupTable HashMap containing HOSE codes as keys and a list of chemical shifts
      *                            of occurring central atoms as values
@@ -54,7 +55,7 @@ public class Predict {
      *
      * @see casekit.nmr.Utils#getMedian(ArrayList)
      */
-    public static Double predictShift(final HashMap<String, ArrayList<Double>> HOSECodeLookupTable, final String HOSECode) {
+    public static Double predictShift(final Map<String, ArrayList<Double>> HOSECodeLookupTable, final String HOSECode) {
         if (HOSECodeLookupTable.containsKey(HOSECode)) {
             return Utils.getMedian(HOSECodeLookupTable.get(HOSECode));
             //            return Utils.getMean(HOSECodeLookupTable.get(HOSECode));
@@ -67,7 +68,7 @@ public class Predict {
      * Predicts a signal for a central atom based on its HOSE code and a
      * given HOSE code lookup table. The prediction is done by using the mean
      * of all occurring shifts in lookup table for the given HOSE code. <br>
-     * Specified for carbons (13C) only -> {@link casekit.nmr.Utils#getMultiplicityFromHydrogenCount(int)}.
+     * Specified for carbons (13C) only -> {@link casekit.nmr.Utils#getMultiplicityFromProtonsCount(int)}.
      *
      * @param HOSECodeLookupTable HashMap containing HOSE codes as keys and a list of chemical shifts
      *                            of occurring central atoms as values
@@ -81,7 +82,7 @@ public class Predict {
      * @throws CDKException
      * @see #predictShift(HashMap, String)
      */
-    public static Signal predictSignal(final HashMap<String, ArrayList<Double>> HOSECodeLookupTable, final IAtomContainer ac, final int atomIndex, final Integer maxSphere, final String nucleus) throws Exception {
+    public static Signal predictSignal(final Map<String, ArrayList<Double>> HOSECodeLookupTable, final IAtomContainer ac, final int atomIndex, final Integer maxSphere, final String nucleus) throws Exception {
         if (!Utils.checkIndexInAtomContainer(ac, atomIndex)) {
             return null;
         }
@@ -90,13 +91,13 @@ public class Predict {
         if (predictedShift == null) {
             return null;
         }
-        return new Signal(new String[]{nucleus}, new Double[]{predictedShift}, Utils.getMultiplicityFromHydrogenCount(ac.getAtom(atomIndex).getImplicitHydrogenCount()), "signal", null, 1);
+        return new Signal(new String[]{nucleus}, new Double[]{predictedShift}, Utils.getMultiplicityFromProtonsCount(ac.getAtom(atomIndex).getImplicitHydrogenCount()), "signal", null, 0, 0);
     }
 
     /**
      * Predicts a spectrum for a given structure based on HOSE code of atoms with specified nucleus and a
      * given HOSE code lookup table. <br>
-     * Specified for carbons (13C) only -> {@link casekit.nmr.Utils#getMultiplicityFromHydrogenCount(int)}.
+     * Specified for carbons (13C) only -> {@link casekit.nmr.Utils#getMultiplicityFromProtonsCount(int)}.
      *
      * @param HOSECodeLookupTable HashMap containing HOSE codes as keys and a list of chemical shifts
      *                            of occurring central atoms as values
@@ -113,7 +114,7 @@ public class Predict {
         final Spectrum predictedSpectrum = new Spectrum(new String[]{nucleus});
         Signal signal;
         for (final IAtom atom : ac.atoms()) {
-            if (atom.getSymbol().equals(Utils.getAtomTypeFromSpectrum(predictedSpectrum, 0))) {
+            if (atom.getSymbol().equals(casekit.nmr.utils.Utils.getAtomTypeFromSpectrum(predictedSpectrum, 0))) {
                 signal = Predict.predictSignal(HOSECodeLookupTable, ac, atom.getIndex(), maxSphere, nucleus);
                 if (signal == null) {
                     continue;

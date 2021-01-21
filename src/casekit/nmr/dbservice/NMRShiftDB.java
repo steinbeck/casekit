@@ -299,6 +299,7 @@ public class NMRShiftDB {
         return values;
     }
 
+    @Deprecated
     public static String NMRShiftDBSpectrumToBasicTextSpectrum(final String NMRShiftDBSpectrum, final String nucleus, final String description) {
         if ((NMRShiftDBSpectrum == null) || NMRShiftDBSpectrum.trim().isEmpty()) {
             return null;
@@ -341,7 +342,7 @@ public class NMRShiftDB {
                 shift = Double.parseDouble(spectrumStringArray[i][0]);
                 intensity = Double.parseDouble(spectrumStringArray[i][1]);
                 multiplicity = spectrumStringArray[i][2];
-                spectrum.addSignal(new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 0));
+                spectrum.addSignal(new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 0, 0));
             }
         } catch (Exception e) {
             return null;
@@ -363,76 +364,4 @@ public class NMRShiftDB {
 
         return assignment;
     }
-
-    //    public static Map<String, Map<String, Map<String, ArrayList<Double>>>> buildHybridizationDistributions(final String pathToDB) {
-    //        // for atom type -> hybridization -> multiplicity -> shift list
-    //        final Map<String, Map<String, Map<String, ArrayList<Double>>>> hybridizationDistributions = new HashMap<>();
-    //
-    //        try (final IteratingSDFReader iterator = new IteratingSDFReader(new FileReader(pathToDB), SilentChemObjectBuilder.getInstance())) {
-    //            IAtom atom;
-    //            String nucleus;
-    //            IAtomContainer structure;
-    //            List<String> spectraProperties13C, spectraProperties1H, spectraProperties15N, spectraProperties1D;
-    //            Spectrum spectrum;
-    //            Assignment assignment;
-    //            Signal signal;
-    //            while (iterator.hasNext()) {
-    //                structure = iterator.next();
-    //                AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
-    //                Utils.setAromaticity(structure);
-    //
-    //                spectraProperties13C = getSpectraProperties1D(structure, "13C");
-    //                spectraProperties1H = getSpectraProperties1D(structure, "1H");
-    //                spectraProperties15N = getSpectraProperties1D(structure, "15N");
-    //
-    //                for (int i = 0; i < structure.getAtomCount(); i++) {
-    //                    atom = structure.getAtom(i);
-    //                    if (!hybridizationDistributions.containsKey(atom.getSymbol())) {
-    //                        hybridizationDistributions.put(atom.getSymbol(), new HashMap<>());
-    //                    }
-    //                    if (!hybridizationDistributions.get(atom.getSymbol()).containsKey(atom.getHybridization().name())) {
-    //                        hybridizationDistributions.get(atom.getSymbol()).put(atom.getHybridization().name(), new HashMap<>());
-    //                    }
-    //
-    //                    switch (atom.getSymbol()) {
-    //                        case "C":
-    //                            spectraProperties1D = spectraProperties13C;
-    //                            nucleus = "13C";
-    //                            break;
-    //                        case "H":
-    //                            spectraProperties1D = spectraProperties1H;
-    //                            nucleus = "1H";
-    //                            break;
-    //                        case "N":
-    //                            spectraProperties1D = spectraProperties15N;
-    //                            nucleus = "15N";
-    //                            break;
-    //                        default:
-    //                            spectraProperties1D = new ArrayList<>();
-    //                            nucleus = "";
-    //                            break;
-    //                    }
-    //
-    //                    for (final String spectrumProperty1D : spectraProperties1D) {
-    //                        spectrum = NMRShiftDBSpectrumToSpectrum(structure.getProperty(spectrumProperty1D), nucleus);
-    //                        assignment = NMRShiftDBSpectrumToAssignment(structure.getProperty(spectrumProperty1D), nucleus);
-    //                        signal = spectrum.getSignal(assignment.getIndex(0, i));
-    //
-    //                        if (signal != null && signal.getMultiplicity() != null) {
-    //                            if (!hybridizationDistributions.get(atom.getSymbol()).get(atom.getHybridization().name()).containsKey(signal.getMultiplicity())) {
-    //                                hybridizationDistributions.get(atom.getSymbol()).get(atom.getHybridization().name()).put(signal.getMultiplicity(), new ArrayList<>());
-    //                            }
-    //                            hybridizationDistributions.get(atom.getSymbol()).get(atom.getHybridization().name()).get(signal.getMultiplicity()).add(signal.getShift(0));
-    //                        }
-    //                    }
-    //                }
-    //            }
-    //        } catch (IOException | CDKException e) {
-    //            e.printStackTrace();
-    //        }
-    //
-    //        System.out.println(hybridizationDistributions);
-    //
-    //        return hybridizationDistributions;
-    //    }
 }

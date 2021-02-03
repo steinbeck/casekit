@@ -1,6 +1,6 @@
 package casekit.nmr.lsd;
 
-import casekit.io.FileOperations;
+import casekit.io.FileSystem;
 import casekit.nmr.model.nmrdisplayer.Correlation;
 import casekit.nmr.model.nmrdisplayer.Data;
 import casekit.nmr.model.nmrdisplayer.Link;
@@ -13,9 +13,10 @@ import java.util.*;
 
 public class PyLSDInputFileBuilder {
 
-    private static String buildHeader() {
+    private static String buildHeader(final String uuid) {
         final StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("; PyLSD input file created by webCASE\n");
+        stringBuilder.append("; ").append(uuid).append("\n");
         final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
         final Date date = new Date(System.currentTimeMillis());
         stringBuilder.append("; ").append(formatter.format(date));
@@ -51,7 +52,7 @@ public class PyLSDInputFileBuilder {
             if (correlation.getAtomType().equals("H")) {
                 protonsToInsert = 1;
                 for (final Link link : correlation.getLink()) {
-                    if (link.getExperimentType().equals("hsqc")) {
+                    if (link.getExperimentType().equals("hsqc") || link.getExperimentType().equals("hmqc")) {
                         protonsToInsert += data.getCorrelations().getValues().get(link.getMatch().get(0)).getEquivalence();
                     }
                 }
@@ -133,7 +134,11 @@ public class PyLSDInputFileBuilder {
             attachedProtonsCountStringBuilder.append(Constants.defaultProtonsCountPerValencyMap.get(Constants.defaultAtomLabelMap.get(correlation.getAtomType())));
         }
         for (int j = 1; j < indicesMap.get(index).length; j++) {
-            stringBuilder.append("MULT ").append(indicesMap.get(index)[j]).append(" ").append(correlation.getAtomType()).append(" ").append(hybridizationStringBuilder.toString()).append(" ").append(attachedProtonsCountStringBuilder.toString()).append("\n");
+            stringBuilder.append("MULT ").append(indicesMap.get(index)[j]).append(" ").append(correlation.getAtomType()).append(" ").append(hybridizationStringBuilder.toString()).append(" ").append(attachedProtonsCountStringBuilder.toString());
+            if (j >= 2) {
+                stringBuilder.append("; equivalent to ").append(indicesMap.get(index)[1]);
+            }
+            stringBuilder.append("\n");
         }
 
         return stringBuilder.toString();
@@ -145,7 +150,7 @@ public class PyLSDInputFileBuilder {
         }
         final StringBuilder stringBuilder = new StringBuilder();
         for (final Link link : correlation.getLink()) {
-            if (link.getExperimentType().equals("hsqc")) {
+            if (link.getExperimentType().equals("hsqc") || link.getExperimentType().equals("hmqc")) {
                 for (final int matchIndex : link.getMatch()) {
                     // for each equivalence of heavy atom and attached equivalent proton
                     for (int k = 1; k < indicesMap.get(index).length; k++) {
@@ -186,6 +191,7 @@ public class PyLSDInputFileBuilder {
         if (!correlation.getAtomType().equals("H")) {
             return null;
         }
+        final String defaultBondDistance = "3 4";
         final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType().equals("cosy")) {
@@ -193,8 +199,13 @@ public class PyLSDInputFileBuilder {
                     // only add an COSY correlation if the two signals there is not equivalent
                     if (!data.getCorrelations().getValues().get(matchIndex).getId().equals(correlation.getId())) {
                         for (int k = 1; k < indicesMap.get(index).length; k++) {
-                            for (int l = 1; l < indicesMap.get(matchIndex).length; l++) {
-                                uniqueSet.add(indicesMap.get(index)[k] + " " + indicesMap.get(matchIndex)[l]);
+                            //                            for (int l = 1; l < indicesMap.get(matchIndex).length; l++) {
+                            //                                uniqueSet.add(indicesMap.get(index)[k] + " " + indicesMap.get(matchIndex)[l]);
+                            //                            }
+
+                            // only allow COSY values between possible equivalent protons and only one another non-equivalent proton
+                            if (indicesMap.get(matchIndex).length == 2) {
+                                uniqueSet.add(indicesMap.get(index)[k] + " " + indicesMap.get(matchIndex)[1]);
                             }
                         }
                     }
@@ -202,7 +213,7 @@ public class PyLSDInputFileBuilder {
             }
         }
 
-        return uniqueSet.stream().map(str -> "COSY " + str + "\n").reduce("", (strAll, str) -> strAll + str);
+        return uniqueSet.stream().map(str -> "COSY " + str + " " + defaultBondDistance + "\n").reduce("", (strAll, str) -> strAll + str);
     }
 
     private static String buildSHIX(final Correlation correlation, final int index, final Map<Integer, Object[]> indicesMap) {
@@ -253,7 +264,7 @@ public class PyLSDInputFileBuilder {
         final Map<String, String> filters = new LinkedHashMap<>();
         int counter = 1;
         try {
-            final BufferedReader bufferedReader = FileOperations.readFile(pathToLSDFilterList);
+            final BufferedReader bufferedReader = FileSystem.readFile(pathToLSDFilterList);
             if (bufferedReader != null) {
                 String line;
                 while ((line = bufferedReader.readLine()) != null) {
@@ -284,14 +295,14 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    public static String buildPyLSDFileContent(final Data data, final String mf, final Map<Integer, List<Integer>> detectedHybridizations, final boolean allowHeteroHeteroBonds, final String pathToLSDFilterList) {
+    public static String buildPyLSDFileContent(final Data data, final String mf, final Map<Integer, List<Integer>> detectedHybridizations, final boolean allowHeteroHeteroBonds, final String pathToLSDFilterList, final String uuid) {
         final HashMap<String, HashMap<String, Object>> state = data.getCorrelations().getState();
         boolean hasErrors = state.keySet().stream().anyMatch(s -> state.get(s).containsKey("error"));
         if (mf != null && !hasErrors) {
             final Map<String, Integer> elementCounts = new LinkedHashMap<>(Utils.getMolecularFormulaElementCounts(mf));
             final StringBuilder stringBuilder = new StringBuilder();
             // create header
-            stringBuilder.append(buildHeader()).append("\n\n");
+            stringBuilder.append(buildHeader(uuid)).append("\n\n");
             // FORM
             stringBuilder.append(buildFORM(mf, elementCounts)).append("\n\n");
             // PIEC

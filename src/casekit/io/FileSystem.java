@@ -14,7 +14,7 @@ package casekit.io;
 
 import java.io.*;
 
-public class FileOperations {
+public class FileSystem {
 
     public static BufferedReader readFile(final String pathToFile) {
         try {

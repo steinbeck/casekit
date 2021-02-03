@@ -11,7 +11,7 @@ public class Constants {
     public static final Map<String, String> defaultHybridizationMap = createDefaultHybridizationMap();
     public static final Map<String, String> defaultProtonsCountPerValencyMap = createDefaultProtonsCountPerValencyMap();
     public static final Map<String, String> defaultAtomLabelMap = createDefaultAtomLabelMap();
-    public static final Map<String, Map<String, Integer>> hybridizationConversionMap = createHybridizationConversionMapMap();
+    public static final Map<String, Map<String, Integer>> hybridizationConversionMap = createHybridizationConversionMap();
 
     private static Map<String, String> createNucleiMap() {
         final Map<String, String> nuclei = new HashMap<>();
@@ -28,6 +28,7 @@ public class Constants {
         defaultHybridization.put("N", "(1 2 3)");
         defaultHybridization.put("O", "(2 3)");
         defaultHybridization.put("S", "(1 2 3)");
+        defaultHybridization.put("I", "3");
 
         return Collections.unmodifiableMap(defaultHybridization);
     }
@@ -43,6 +44,7 @@ public class Constants {
         defaultProtonsCountPerValency.put("S6", "(0 1 2 3)");
         defaultProtonsCountPerValency.put("S246", "(0 1 2 3)");
         defaultProtonsCountPerValency.put("O", "(0 1)");
+        defaultProtonsCountPerValency.put("I", "(0 1)");
 
         return defaultProtonsCountPerValency;
     }
@@ -53,11 +55,12 @@ public class Constants {
         defaultAtomLabel.put("N", "N35");
         defaultAtomLabel.put("O", "O");
         defaultAtomLabel.put("S", "S246");
+        defaultAtomLabel.put("I", "I");
 
         return Collections.unmodifiableMap(defaultAtomLabel);
     }
 
-    private static Map<String, Map<String, Integer>> createHybridizationConversionMapMap() {
+    private static Map<String, Map<String, Integer>> createHybridizationConversionMap() {
         // @TODO access this information from MongoDB and store it instead of hard coding it
         // possible command in MongoDB: db.hybridizations.aggregate([{$match: {nucleus: "15N"}}, {$group: {_id: null, set: {$addToSet: "$hybridization"}}}])
         // nucleus -> hybridization string -> number

@@ -12,62 +12,53 @@
 package casekit.nmr.dbservice;
 
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoCredential;
-import com.mongodb.ServerAddress;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
-
 /**
- *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
 public class MongoDB {
 
 
-    public static MongoClient login(final String mongoUser, final String mongoPassword, final String mongoAuthDB) {
-        MongoClient mongo;
-        try {
-            // Creating a Mongo client
-            mongo = new MongoClient(
-                    new ServerAddress("127.0.0.1", 27017),
-                    MongoCredential.createCredential(
-                            mongoUser,
-                            mongoAuthDB,
-                            mongoPassword.toCharArray()),
-                    MongoClientOptions.builder().build());
-            System.out.println("Login to MongoDB was successfull");
-            // Accessing the database
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.err.println(Thread.currentThread().getStackTrace()[1].getMethodName() + ": could not connect to MongoDB!");
-
-            return null;
-        }
-
-        return mongo;
-    }
-
-    public static MongoDatabase getDatabase(final MongoClient mongo, final String mongoDBName){
-        return mongo.getDatabase(mongoDBName);
-    }
-
-    public static MongoCollection<Document> getCollection(final MongoClient mongo, final String mongoDBName, final String mongoDBCollection) {
-        final MongoDatabase database = MongoDB.getDatabase(mongo, mongoDBName);
-//        if (database == null) {
-//            return null;
-//        }
-        System.out.println("Access to database \"" + mongoDBName + "\" was successfull");
-        // Retrieving a collection
-        final MongoCollection<Document> collection = database.getCollection(mongoDBCollection);
-        System.out.println("Retrieval of collection \"" + mongoDBCollection + "\" was successfull -> size: " + collection.countDocuments());
-
-        return collection;
-    }
-
-    public static void logout(final MongoClient mongo) {
-        mongo.close();
-    }
+    //    public static MongoClient login(final String mongoUser, final String mongoPassword, final String mongoAuthDB) {
+    //        MongoClient mongo;
+    //        try {
+    //            // Creating a Mongo client
+    //            mongo = new MongoClient(
+    //                    new ServerAddress("127.0.0.1", 27017),
+    //                    MongoCredential.createCredential(
+    //                            mongoUser,
+    //                            mongoAuthDB,
+    //                            mongoPassword.toCharArray()),
+    //                    MongoClientOptions.builder().build());
+    //            System.out.println("Login to MongoDB was successfull");
+    //            // Accessing the database
+    //        } catch (Exception e) {
+    //            e.printStackTrace();
+    //            System.err.println(Thread.currentThread().getStackTrace()[1].getMethodName() + ": could not connect to MongoDB!");
+    //
+    //            return null;
+    //        }
+    //
+    //        return mongo;
+    //    }
+    //
+    //    public static MongoDatabase getDatabase(final MongoClient mongo, final String mongoDBName){
+    //        return mongo.getDatabase(mongoDBName);
+    //    }
+    //
+    //    public static MongoCollection<Document> getCollection(final MongoClient mongo, final String mongoDBName, final String mongoDBCollection) {
+    //        final MongoDatabase database = MongoDB.getDatabase(mongo, mongoDBName);
+    ////        if (database == null) {
+    ////            return null;
+    ////        }
+    //        System.out.println("Access to database \"" + mongoDBName + "\" was successfull");
+    //        // Retrieving a collection
+    //        final MongoCollection<Document> collection = database.getCollection(mongoDBCollection);
+    //        System.out.println("Retrieval of collection \"" + mongoDBCollection + "\" was successfull -> size: " + collection.countDocuments());
+    //
+    //        return collection;
+    //    }
+    //
+    //    public static void logout(final MongoClient mongo) {
+    //        mongo.close();
+    //    }
 }

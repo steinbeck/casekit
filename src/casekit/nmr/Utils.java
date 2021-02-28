@@ -74,8 +74,11 @@ public class Utils {
     public static List<Integer> getAtomTypeIndicesByElement(final IAtomContainer ac, final String atomType) {
 
         final ArrayList<Integer> indices = new ArrayList<>();
-        for (int i = 0; i < ac.getAtomCount(); i++) {
-            if (ac.getAtom(i).getSymbol().equals(atomType)) {
+        for (int i = 0; i
+                < ac.getAtomCount(); i++) {
+            if (ac.getAtom(i)
+                  .getSymbol()
+                  .equals(atomType)) {
                 indices.add(i);
             }
         }
@@ -88,21 +91,30 @@ public class Utils {
         return MolecularFormulaManipulator.getMolecularFormula(ac);
     }
 
-   
+
     public static String molecularFormularToString(final IMolecularFormula molecularFormula) {
         return MolecularFormulaManipulator.getString(molecularFormula);
     }
 
-    public static int getDifferenceSpectrumSizeAndMolecularFormulaCount(final Spectrum spectrum, final IMolecularFormula molFormula, final int dim) throws CDKException {
+    public static int getDifferenceSpectrumSizeAndMolecularFormulaCount(final Spectrum spectrum,
+                                                                        final IMolecularFormula molFormula,
+                                                                        final int dim) throws CDKException {
         if (!spectrum.containsDim(dim)) {
-            throw new CDKException(Thread.currentThread().getStackTrace()[2].getClassName() + "." + Thread.currentThread().getStackTrace()[2].getMethodName() + ": invalid dimension in spectrum given");
+            throw new CDKException(Thread.currentThread()
+                                         .getStackTrace()[2].getClassName()
+                                           + "."
+                                           + Thread.currentThread()
+                                                   .getStackTrace()[2].getMethodName()
+                                           + ": invalid dimension in spectrum given");
         }
         final String atomType = casekit.nmr.utils.Utils.getAtomTypeFromSpectrum(spectrum, dim);
         int atomsInMolFormula = 0;
-        if (molFormula != null) {
+        if (molFormula
+                != null) {
             atomsInMolFormula = MolecularFormulaManipulator.getElementCount(molFormula, atomType);
         }
-        return atomsInMolFormula - spectrum.getSignalCountWithEquivalences();
+        return atomsInMolFormula
+                - spectrum.getSignalCountWithEquivalences();
     }
 
     /**
@@ -198,24 +210,40 @@ public class Utils {
      */
     public static List<Double> getOutliers(final List<Double> input, final double multiplierIQR) {
         final ArrayList<Double> outliers = new ArrayList<>();
-        if (input.size() <= 1) {
+        if (input.size()
+                <= 1) {
             return outliers;
         }
         Collections.sort(input);
-        final ArrayList<Double> data1 = new ArrayList<>(input.subList(0, input.size() / 2));
+        final ArrayList<Double> data1 = new ArrayList<>(input.subList(0, input.size()
+                / 2));
         final ArrayList<Double> data2;
-        if (input.size() % 2 == 0) {
-            data2 = new ArrayList<>(input.subList(input.size() / 2, input.size()));
+        if (input.size()
+                % 2
+                == 0) {
+            data2 = new ArrayList<>(input.subList(input.size()
+                                                          / 2, input.size()));
         } else {
-            data2 = new ArrayList<>(input.subList(input.size() / 2 + 1, input.size()));
+            data2 = new ArrayList<>(input.subList(input.size()
+                                                          / 2
+                                                          + 1, input.size()));
         }
         final double q1 = getMedian(new ArrayList<>(data1));
         final double q3 = getMedian(new ArrayList<>(data2));
-        final double iqr = q3 - q1;
-        final double lowerBound = q1 - multiplierIQR * iqr;
-        final double upperBound = q3 + multiplierIQR * iqr;
-        for (int i = 0; i < input.size(); i++) {
-            if ((input.get(i) < lowerBound) || (input.get(i) > upperBound)) {
+        final double iqr = q3
+                - q1;
+        final double lowerBound = q1
+                - multiplierIQR
+                * iqr;
+        final double upperBound = q3
+                + multiplierIQR
+                * iqr;
+        for (int i = 0; i
+                < input.size(); i++) {
+            if ((input.get(i)
+                    < lowerBound)
+                    || (input.get(i)
+                    > upperBound)) {
                 outliers.add(input.get(i));
             }
         }
@@ -231,17 +259,28 @@ public class Utils {
      * @return
      */
     public static Double getMedian(final List<Double> data) {
-        if ((data == null) || data.isEmpty()) {
+        if ((data
+                == null)
+                || data.isEmpty()) {
             return null;
         }
-        if (data.size() == 1) {
+        if (data.size()
+                == 1) {
             return data.get(0);
         }
         Collections.sort(data);
-        if (data.size() % 2 == 1) {
-            return data.get(data.size() / 2);
+        if (data.size()
+                % 2
+                == 1) {
+            return data.get(data.size()
+                                    / 2);
         } else {
-            return (data.get(data.size() / 2 - 1) + data.get(data.size() / 2)) / 2.0;
+            return (data.get(data.size()
+                                     / 2
+                                     - 1)
+                    + data.get(data.size()
+                                       / 2))
+                    / 2.0;
         }
     }
 
@@ -252,19 +291,28 @@ public class Utils {
      * @return
      */
     public static Double getMean(final Collection<Double> data) {
-        if ((data == null) || data.isEmpty()) {
+        if ((data
+                == null)
+                || data.isEmpty()) {
             return null;
         }
         double sum = 0;
         int nullCounter = 0;
         for (final Double d : data) {
-            if (d != null) {
+            if (d
+                    != null) {
                 sum += d;
             } else {
                 nullCounter++;
             }
         }
-        return ((data.size() - nullCounter) != 0) ? (sum / (data.size() - nullCounter)) : null;
+        return ((data.size()
+                - nullCounter)
+                != 0)
+               ? (sum
+                / (data.size()
+                - nullCounter))
+               : null;
     }
 
     /**
@@ -273,31 +321,47 @@ public class Utils {
      * @return
      */
     public static Double getStandardDeviation(final List<Double> data) {
-        if ((data == null) || data.isEmpty()) {
+        if ((data
+                == null)
+                || data.isEmpty()) {
             return null;
         }
         final Double variance = Utils.getVariance(data);
 
-        return (variance != null) ? Math.sqrt(variance) : null;
+        return (variance
+                != null)
+               ? Math.sqrt(variance)
+               : null;
     }
 
     public static Double getVariance(final Collection<Double> data) {
-        if ((data == null) || data.isEmpty()) {
+        if ((data
+                == null)
+                || data.isEmpty()) {
             return null;
         }
         final int nullCounter = Collections.frequency(data, null);
         double quadrSum = 0.0;
         final Double mean = Utils.getMean(data);
-        if (mean == null) {
+        if (mean
+                == null) {
             return null;
         }
         for (final Double d : data) {
-            if (d != null) {
-                quadrSum += Math.pow(d - mean, 2);
+            if (d
+                    != null) {
+                quadrSum += Math.pow(d
+                                             - mean, 2);
             }
         }
 
-        return ((data.size() - nullCounter) != 0) ? (quadrSum / (data.size() - nullCounter)) : null;
+        return ((data.size()
+                - nullCounter)
+                != 0)
+               ? (quadrSum
+                / (data.size()
+                - nullCounter))
+               : null;
     }
 
 
@@ -307,19 +371,29 @@ public class Utils {
      * @return
      */
     public static Double getMean(final Double[] data) {
-        if ((data == null) || (data.length == 0)) {
+        if ((data
+                == null)
+                || (data.length
+                == 0)) {
             return null;
         }
         double sum = 0;
         int nullCounter = 0;
         for (final Double d : data) {
-            if (d != null) {
+            if (d
+                    != null) {
                 sum += d;
             } else {
                 nullCounter++;
             }
         }
-        return ((data.length - nullCounter) != 0) ? (sum / (data.length - nullCounter)) : null;
+        return ((data.length
+                - nullCounter)
+                != 0)
+               ? (sum
+                / (data.length
+                - nullCounter))
+               : null;
     }
 
     public static Map<String, Double> getMean(final Map<String, ArrayList<Double>> lookup) {
@@ -328,7 +402,8 @@ public class Utils {
         Double meanInList;
         for (final String key : lookup.keySet()) {
             meanInList = Utils.getMean(lookup.get(key));
-            if (meanInList != null) {
+            if (meanInList
+                    != null) {
                 means.put(key, meanInList);
             }
         }
@@ -343,14 +418,17 @@ public class Utils {
         //        System.out.print(atomIndex + " --> " + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd));
         final IAtom atom = ac.getAtom(atomIndex);
         // -1 for cases with heterocyclic aromatics, like the N in the small aromatic ring in coffein if we want to add the bond to the CH3 group
-        if (atom.isAromatic() && (!atom.getSymbol().equals("C"))) {
+        if (atom.isAromatic()
+                && (!atom.getSymbol()
+                         .equals("C"))) {
             //            System.out.print("[ -1 ]");
             bondOrderSum -= 1;
         }
         //        System.out.print(" = " + bondOrderSum + " <= " + atom.getValency() + " ? -> " + (bondOrderSum <= atom.getValency()) + "\n");
 
         // @TODO including charges
-        return bondOrderSum <= atom.getValency();
+        return bondOrderSum
+                <= atom.getValency();
     }
 
 
@@ -361,12 +439,16 @@ public class Utils {
      */
     public static String getFileFormat(final String pathToFile) {
 
-        if (pathToFile == null || pathToFile.trim().isEmpty()) {
+        if (pathToFile
+                == null
+                || pathToFile.trim()
+                             .isEmpty()) {
             return "";
         }
         final String[] split = pathToFile.split("\\.");
 
-        return split[split.length - 1];
+        return split[split.length
+                - 1];
     }
 
 
@@ -376,23 +458,34 @@ public class Utils {
      * @return
      */
     public static Double getRMS(final ArrayList<Double> data) {
-        if ((data == null) || data.isEmpty()) {
+        if ((data
+                == null)
+                || data.isEmpty()) {
             return null;
         }
-        if (data.size() == 1) {
+        if (data.size()
+                == 1) {
             return data.get(0);
         }
         int nullCounter = 0;
         double qSum = 0;
         for (final Double d : data) {
-            if (d != null) {
-                qSum += d * d;
+            if (d
+                    != null) {
+                qSum += d
+                        * d;
             } else {
                 nullCounter++;
             }
         }
 
-        return ((data.size() - nullCounter) != 0) ? Math.sqrt(qSum / (data.size() - nullCounter)) : null;
+        return ((data.size()
+                - nullCounter)
+                != 0)
+               ? Math.sqrt(qSum
+                                   / (data.size()
+                - nullCounter))
+               : null;
     }
 
 
@@ -406,7 +499,8 @@ public class Utils {
         Double rmsInList;
         for (final String key : lookup.keySet()) {
             rmsInList = Utils.getRMS(lookup.get(key));
-            if (rmsInList != null) {
+            if (rmsInList
+                    != null) {
                 rms.put(key, rmsInList);
             }
         }
@@ -418,7 +512,10 @@ public class Utils {
         if (!Utils.checkIndexInAtomContainer(ac, atomIndex)) {
             return null;
         }
-        return Utils.getBondOrderSum(ac, atomIndex, true).intValue() >= ac.getAtom(atomIndex).getValency();
+        return Utils.getBondOrderSum(ac, atomIndex, true)
+                    .intValue()
+                >= ac.getAtom(atomIndex)
+                     .getValency();
     }
 
     public static void addImplicitHydrogens(final IAtomContainer ac) throws CDKException {
@@ -443,7 +540,8 @@ public class Utils {
         Double medianInList;
         for (final String key : lookup.keySet()) {
             medianInList = Utils.getMedian(lookup.get(key));
-            if (medianInList != null) {
+            if (medianInList
+                    != null) {
                 medians.put(key, medianInList);
             }
         }
@@ -457,22 +555,27 @@ public class Utils {
      *
      * @deprecated
      */
-    public static void combineHashMaps(final Map<String, List<Double>> hoseLookupToExtend, final Map<String, List<Double>> hoseLookup) {
+    public static void combineHashMaps(final Map<String, List<Double>> hoseLookupToExtend,
+                                       final Map<String, List<Double>> hoseLookup) {
         for (final String hose : hoseLookup.keySet()) {
             if (!hoseLookupToExtend.containsKey(hose)) {
                 hoseLookupToExtend.put(hose, new ArrayList<>());
             }
-            hoseLookupToExtend.get(hose).addAll(hoseLookup.get(hose));
+            hoseLookupToExtend.get(hose)
+                              .addAll(hoseLookup.get(hose));
         }
     }
 
     public static Double roundDouble(final Double value, final int decimalPlaces) {
-        if (value == null) {
+        if (value
+                == null) {
             return null;
         }
         final int decimalFactor = (int) (Math.pow(10, decimalPlaces));
 
-        return (Math.round(value * decimalFactor) / (double) decimalFactor);
+        return (Math.round(value
+                                   * decimalFactor)
+                / (double) decimalFactor);
     }
 
     /**
@@ -483,7 +586,8 @@ public class Utils {
      * @return
      */
     public static boolean containsExplicitHydrogens(final IAtomContainer ac) {
-        return getExplicitHydrogenCount(ac) > 0;
+        return getExplicitHydrogenCount(ac)
+                > 0;
     }
 
     /**
@@ -508,12 +612,16 @@ public class Utils {
             // check each atom whether it is an hydrogen;
             // if yes then store (increase) the number of implicit hydrogens 
             // for its bonded heavy atom
-            if (atomA.getSymbol().equals("H")) {
-                atomB = ac.getConnectedAtomsList(atomA).get(0);
-                if (atomB.getImplicitHydrogenCount() == null) {
+            if (atomA.getSymbol()
+                     .equals("H")) {
+                atomB = ac.getConnectedAtomsList(atomA)
+                          .get(0);
+                if (atomB.getImplicitHydrogenCount()
+                        == null) {
                     atomB.setImplicitHydrogenCount(0);
                 }
-                atomB.setImplicitHydrogenCount(atomB.getImplicitHydrogenCount() + 1);
+                atomB.setImplicitHydrogenCount(atomB.getImplicitHydrogenCount()
+                                                       + 1);
                 toRemoveList.add(atomA);
             } else {
                 // store all non-hydrogen atoms and their indices
@@ -536,8 +644,11 @@ public class Utils {
      */
     public static List<Integer> getExplicitHydrogenIndices(final IAtomContainer ac) {
         final List<Integer> explicitHydrogenIndicesList = new ArrayList<>();
-        for (int i = 0; i < ac.getAtomCount(); i++) {
-            if (ac.getAtom(i).getSymbol().equals("H")) {
+        for (int i = 0; i
+                < ac.getAtomCount(); i++) {
+            if (ac.getAtom(i)
+                  .getSymbol()
+                  .equals("H")) {
                 explicitHydrogenIndicesList.add(i);
             }
         }
@@ -581,7 +692,8 @@ public class Utils {
 
         final ArrayList<IAtom> toRemoveList = new ArrayList<>();
         for (IAtom atomA : ac.atoms()) {
-            if (atomA.getSymbol().equals(atomType)) {// detect whether the current atom A is a from the given atom type
+            if (atomA.getSymbol()
+                     .equals(atomType)) {// detect whether the current atom A is a from the given atom type
                 toRemoveList.add(atomA);
             }
         }
@@ -605,7 +717,10 @@ public class Utils {
     //    }
 
     public static boolean checkIndexInAtomContainer(final IAtomContainer ac, final int atomIndex) {
-        return ((atomIndex >= 0) && atomIndex < ac.getAtomCount());
+        return ((atomIndex
+                >= 0)
+                && atomIndex
+                < ac.getAtomCount());
     }
 
     public static ExecutorService initExecuter(final int nThreads) {
@@ -634,7 +749,8 @@ public class Utils {
      */
     public static IBond.Order getBondOrder(final int orderAsNumeric) {
         for (IBond.Order order : IBond.Order.values()) {
-            if (order.numeric() == orderAsNumeric) {
+            if (order.numeric()
+                    == orderAsNumeric) {
                 return order;
             }
         }
@@ -643,20 +759,23 @@ public class Utils {
     }
 
     public static Float getBondOrderAsNumeric(final IBond bond) {
-        if (bond == null) {
+        if (bond
+                == null) {
             return null;
         }
         float bondOrderAsNumeric;
         if (bond.isAromatic()) {
             bondOrderAsNumeric = (float) 1.5;
         } else {
-            bondOrderAsNumeric = bond.getOrder().numeric();
+            bondOrderAsNumeric = bond.getOrder()
+                                     .numeric();
         }
 
         return bondOrderAsNumeric;
     }
 
-    public static Float getBondOrderSum(final IAtomContainer ac, final int atomIndex, final boolean includeImplicitHydrogenCount) {
+    public static Float getBondOrderSum(final IAtomContainer ac, final int atomIndex,
+                                        final boolean includeImplicitHydrogenCount) {
         if (!Utils.checkIndexInAtomContainer(ac, atomIndex)) {
             return null;
         }
@@ -665,7 +784,9 @@ public class Utils {
         for (final IBond bond : ac.getConnectedBondsList(atom)) {
             bondsOrderSum += Utils.getBondOrderAsNumeric(bond);
         }
-        if (includeImplicitHydrogenCount && (atom.getImplicitHydrogenCount() != null)) {
+        if (includeImplicitHydrogenCount
+                && (atom.getImplicitHydrogenCount()
+                != null)) {
             bondsOrderSum += atom.getImplicitHydrogenCount();
         }
 

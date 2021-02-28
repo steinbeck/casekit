@@ -2,8 +2,12 @@ package casekit.nmr.utils;
 
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrdisplayer.Correlation;
+import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
+import org.openscience.cdk.smiles.SmiFlavor;
+import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 
 import java.util.ArrayList;
@@ -16,8 +20,13 @@ import java.util.regex.Pattern;
 public class Utils {
 
     public static String getMultiplicityFromProtonsCount(final Correlation correlation) {
-        if (correlation.getAtomType().equals("C") && correlation.getProtonsCount().size() == 1) {
-            switch (correlation.getProtonsCount().get(0)) {
+        if (correlation.getAtomType()
+                       .equals("C")
+                && correlation.getProtonsCount()
+                              .size()
+                == 1) {
+            switch (correlation.getProtonsCount()
+                               .get(0)) {
                 case 0:
                     return "s";
                 case 1:
@@ -43,14 +52,16 @@ public class Utils {
 
     public static String getAtomTypeFromNucleus(final String nucleus) {
         final String[] nucleusSplit = nucleus.split("\\d");
-        return nucleusSplit[nucleusSplit.length - 1];
+        return nucleusSplit[nucleusSplit.length
+                - 1];
     }
 
     public static Map<String, Integer> getMolecularFormulaElementCounts(final String mf) {
         final LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
         final IMolecularFormula iMolecularFormula = Utils.getMolecularFormulaFromString(mf);
         final List<String> elements = new ArrayList<>();
-        final Matcher matcher = Pattern.compile("([A-Z][a-z]*)").matcher(mf);
+        final Matcher matcher = Pattern.compile("([A-Z][a-z]*)")
+                                       .matcher(mf);
 
         while (matcher.find()) {
             elements.add(matcher.group(1));
@@ -65,6 +76,11 @@ public class Utils {
     public static IMolecularFormula getMolecularFormulaFromString(final String mf) {
         return MolecularFormulaManipulator.getMolecularFormula(mf, SilentChemObjectBuilder.getInstance());
     }
-    
+
+    public static String getSmilesFromAtomContainer(final IAtomContainer ac) throws CDKException {
+        final SmilesGenerator smilesGenerator = new SmilesGenerator(SmiFlavor.Absolute);
+
+        return smilesGenerator.create(ac);
+    }
 
 }

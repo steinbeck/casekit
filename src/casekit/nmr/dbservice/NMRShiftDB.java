@@ -27,21 +27,32 @@ import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 public class NMRShiftDB {
 
     public static String getSolvent(final String solventPropertyString, final String spectrumIndexInRecord) {
         final String[] solventPropertyStringSplit = solventPropertyString.split(":");
         String solvent;
-        for (int i = 0; i < solventPropertyStringSplit.length; i++) {
+        for (int i = 0; i
+                < solventPropertyStringSplit.length; i++) {
             if (solventPropertyStringSplit[i].endsWith(spectrumIndexInRecord)) {
-                solvent = solventPropertyStringSplit[i + 1];
-                if (solvent.substring(solvent.length() - 1).matches("\\d")) {
-                    solvent = solvent.substring(0, solvent.length() - 1);
+                solvent = solventPropertyStringSplit[i
+                        + 1];
+                if (solvent.substring(solvent.length()
+                                              - 1)
+                           .matches("\\d")) {
+                    solvent = solvent.substring(0, solvent.length()
+                            - 1);
                 }
-                if (solvent.substring(solvent.length() - 1).matches("\\d")) {
-                    solvent = solvent.substring(0, solvent.length() - 1);
+                if (solvent.substring(solvent.length()
+                                              - 1)
+                           .matches("\\d")) {
+                    solvent = solvent.substring(0, solvent.length()
+                            - 1);
                 }
                 //                solvent = solvent.substring(0, solvent.length() - 1);
                 solvent = solvent.trim();
@@ -55,8 +66,11 @@ public class NMRShiftDB {
 
     public static List<String> getSpectraProperties1D(final IAtomContainer ac, final String nucleus) {
         final List<String> spectraProperties1D = new ArrayList<>();
-        for (final Object obj : ac.getProperties().keySet()) {
-            if (obj instanceof String && ((String) obj).startsWith("Spectrum " + nucleus)) {
+        for (final Object obj : ac.getProperties()
+                                  .keySet()) {
+            if (obj instanceof String
+                    && ((String) obj).startsWith("Spectrum "
+                                                         + nucleus)) {
                 spectraProperties1D.add((String) obj);
             }
         }
@@ -80,9 +94,11 @@ public class NMRShiftDB {
      * @throws CDKException
      * @see DataSet
      */
-    public static Collection<DataSet> getDataSetsFromNMRShiftDB(final String pathToNMRShiftDB, final String[] nuclei) throws FileNotFoundException, CDKException {
-        final Collection<DataSet> dataSets = new ArrayList<>();
-        final IteratingSDFReader iterator = new IteratingSDFReader(new FileReader(pathToNMRShiftDB), SilentChemObjectBuilder.getInstance());
+    public static List<DataSet> getDataSetsFromNMRShiftDB(final String pathToNMRShiftDB,
+                                                          final String[] nuclei) throws FileNotFoundException, CDKException {
+        final List<DataSet> dataSets = new ArrayList<>();
+        final IteratingSDFReader iterator = new IteratingSDFReader(new FileReader(pathToNMRShiftDB),
+                                                                   SilentChemObjectBuilder.getInstance());
         IAtomContainer structure;
         Spectrum spectrum;
         Assignment assignment;
@@ -112,28 +128,46 @@ public class NMRShiftDB {
             meta.put("id", structure.getProperty("nmrshiftdb2 ID"));
             mf = Utils.getMolecularFormulaFromAtomContainer(structure);
             meta.put("mf", Utils.molecularFormularToString(mf));
+            try {
+                final String smiles = casekit.nmr.utils.Utils.getSmilesFromAtomContainer(structure);
+                meta.put("smiles", smiles);
+            } catch (final CDKException e) {
+                e.printStackTrace();
+            }
+
 
             for (final String nucleus : nuclei) {
                 spectraProperties1D = getSpectraProperties1D(structure, nucleus);
                 for (final String spectrumProperty1D : spectraProperties1D) {
 
                     split = spectrumProperty1D.split("\\s");
-                    spectrumIndexInRecord = split[split.length - 1];
+                    spectrumIndexInRecord = split[split.length
+                            - 1];
 
                     // skip molecules which do not contain any of requested spectrum information
                     spectrum = NMRShiftDBSpectrumToSpectrum(structure.getProperty(spectrumProperty1D), nucleus);
                     // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
-                    if ((spectrum == null) || Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, mf, 0) != 0) {
+                    if ((spectrum
+                            == null)
+                            || Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, mf, 0)
+                            != 0) {
                         continue;
                     }
-                    if (structure.getProperty("Solvent") != null) {
+                    if (structure.getProperty("Solvent")
+                            != null) {
                         spectrum.setSolvent(getSolvent(structure.getProperty("Solvent"), spectrumIndexInRecord));
                     }
-                    if (structure.getProperty("Field Strength [MHz]") != null) {
-                        for (final String fieldStrength : structure.getProperty("Field Strength [MHz]").toString().split("\\s")) {
-                            if (fieldStrength.startsWith(spectrumIndexInRecord + ":")) {
+                    if (structure.getProperty("Field Strength [MHz]")
+                            != null) {
+                        for (final String fieldStrength : structure.getProperty("Field Strength [MHz]")
+                                                                   .toString()
+                                                                   .split("\\s")) {
+                            if (fieldStrength.startsWith(spectrumIndexInRecord
+                                                                 + ":")) {
                                 try {
-                                    spectrum.setSpectrometerFrequency(Double.parseDouble(fieldStrength.split(spectrumIndexInRecord + ":")[1]));
+                                    spectrum.setSpectrometerFrequency(Double.parseDouble(fieldStrength.split(
+                                            spectrumIndexInRecord
+                                                    + ":")[1]));
                                 } catch (NumberFormatException e) {
                                     //                                    e.printStackTrace();
                                 }
@@ -143,17 +177,23 @@ public class NMRShiftDB {
                     }
 
                     assignment = NMRShiftDBSpectrumToAssignment(structure.getProperty(spectrumProperty1D), nucleus);
-                    if (assignment != null && !explicitHydrogenIndices.isEmpty()) {
+                    if (assignment
+                            != null
+                            && !explicitHydrogenIndices.isEmpty()) {
                         int hCount;
-                        for (int i = 0; i < assignment.getAssignmentsCount(); i++) {
+                        for (int i = 0; i
+                                < assignment.getAssignmentsCount(); i++) {
                             hCount = 0;
-                            for (int j = 0; j < explicitHydrogenIndices.size(); j++) {
-                                if (explicitHydrogenIndices.get(j) >= assignment.getAssignment(0, i)) {
+                            for (int j = 0; j
+                                    < explicitHydrogenIndices.size(); j++) {
+                                if (explicitHydrogenIndices.get(j)
+                                        >= assignment.getAssignment(0, i)) {
                                     break;
                                 }
                                 hCount++;
                             }
-                            assignment.setAssignment(0, i, assignment.getAssignment(0, i) - hCount);
+                            assignment.setAssignment(0, i, assignment.getAssignment(0, i)
+                                    - hCount);
                         }
                     }
 
@@ -282,17 +322,23 @@ public class NMRShiftDB {
      * signal multiplicity (column 3), atom index in structure (column 4)
      */
     public static String[][] parseNMRShiftDBSpectrum(final String NMRShiftDBSpectrum) {
-        if (NMRShiftDBSpectrum.trim().isEmpty()) {
+        if (NMRShiftDBSpectrum.trim()
+                              .isEmpty()) {
             return new String[][]{};
         }
         String[] signalSplit;
         final String[] shiftsSplit = NMRShiftDBSpectrum.split("\\|");
         final String[][] values = new String[shiftsSplit.length][4];
-        for (int i = 0; i < shiftsSplit.length; i++) {
+        for (int i = 0; i
+                < shiftsSplit.length; i++) {
             signalSplit = shiftsSplit[i].split(";");
             values[i][0] = signalSplit[0]; // shift value
-            values[i][1] = signalSplit[1].toLowerCase().split("[a-z]")[0]; // intensity
-            values[i][2] = signalSplit[1].split("\\d+\\.\\d+").length > 0 ? signalSplit[1].split("\\d+\\.\\d+")[1].toLowerCase() : ""; // multiplicity
+            values[i][1] = signalSplit[1].toLowerCase()
+                                         .split("[a-z]")[0]; // intensity
+            values[i][2] = signalSplit[1].split("\\d+\\.\\d+").length
+                                   > 0
+                           ? signalSplit[1].split("\\d+\\.\\d+")[1].toLowerCase()
+                           : ""; // multiplicity
             values[i][3] = signalSplit[2]; // atom index
         }
 
@@ -300,27 +346,38 @@ public class NMRShiftDB {
     }
 
     @Deprecated
-    public static String NMRShiftDBSpectrumToBasicTextSpectrum(final String NMRShiftDBSpectrum, final String nucleus, final String description) {
-        if ((NMRShiftDBSpectrum == null) || NMRShiftDBSpectrum.trim().isEmpty()) {
+    public static String NMRShiftDBSpectrumToBasicTextSpectrum(final String NMRShiftDBSpectrum, final String nucleus,
+                                                               final String description) {
+        if ((NMRShiftDBSpectrum
+                == null)
+                || NMRShiftDBSpectrum.trim()
+                                     .isEmpty()) {
             return null;
         }
         final StringBuilder basicSpectrum = new StringBuilder();
         // append description
-        if (!description.trim().startsWith("//")) {
+        if (!description.trim()
+                        .startsWith("//")) {
             basicSpectrum.append("// ");
         }
-        basicSpectrum.append(description).append("\n");
+        basicSpectrum.append(description)
+                     .append("\n");
         final String[][] spectrumStringArray = NMRShiftDB.parseNMRShiftDBSpectrum(NMRShiftDBSpectrum);
         try {
-            for (int i = 0; i < spectrumStringArray.length; i++) {
+            for (int i = 0; i
+                    < spectrumStringArray.length; i++) {
                 // append nucleus
-                basicSpectrum.append(nucleus).append(", ");
+                basicSpectrum.append(nucleus)
+                             .append(", ");
                 // append chemical shift
-                basicSpectrum.append(Double.parseDouble(spectrumStringArray[i][0])).append(", ");
+                basicSpectrum.append(Double.parseDouble(spectrumStringArray[i][0]))
+                             .append(", ");
                 // append multiplicity
-                basicSpectrum.append(spectrumStringArray[i][2]).append(", ");
+                basicSpectrum.append(spectrumStringArray[i][2])
+                             .append(", ");
                 // append intensity
-                basicSpectrum.append(Double.parseDouble(spectrumStringArray[i][1])).append("\n");
+                basicSpectrum.append(Double.parseDouble(spectrumStringArray[i][1]))
+                             .append("\n");
             }
         } catch (Exception e) {
             return null;
@@ -330,7 +387,10 @@ public class NMRShiftDB {
     }
 
     public static Spectrum NMRShiftDBSpectrumToSpectrum(final String NMRShiftDBSpectrum, final String nucleus) {
-        if ((NMRShiftDBSpectrum == null) || NMRShiftDBSpectrum.trim().isEmpty()) {
+        if ((NMRShiftDBSpectrum
+                == null)
+                || NMRShiftDBSpectrum.trim()
+                                     .isEmpty()) {
             return null;
         }
         final String[][] spectrumStringArray = parseNMRShiftDBSpectrum(NMRShiftDBSpectrum);
@@ -338,11 +398,14 @@ public class NMRShiftDB {
         String multiplicity;
         Double shift, intensity;
         try {
-            for (int i = 0; i < spectrumStringArray.length; i++) {
+            for (int i = 0; i
+                    < spectrumStringArray.length; i++) {
                 shift = Double.parseDouble(spectrumStringArray[i][0]);
                 intensity = Double.parseDouble(spectrumStringArray[i][1]);
                 multiplicity = spectrumStringArray[i][2];
-                spectrum.addSignal(new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 0, 0));
+                spectrum.addSignal(
+                        new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 0,
+                                   0));
             }
         } catch (Exception e) {
             return null;
@@ -352,13 +415,17 @@ public class NMRShiftDB {
     }
 
     public static Assignment NMRShiftDBSpectrumToAssignment(final String NMRShiftDBSpectrum, final String nucleus) {
-        if ((NMRShiftDBSpectrum == null) || NMRShiftDBSpectrum.trim().isEmpty()) {
+        if ((NMRShiftDBSpectrum
+                == null)
+                || NMRShiftDBSpectrum.trim()
+                                     .isEmpty()) {
             return null;
         }
         final String[][] NMRShiftDBSpectrumStringArray = parseNMRShiftDBSpectrum(NMRShiftDBSpectrum);
         final Spectrum spectrum = NMRShiftDBSpectrumToSpectrum(NMRShiftDBSpectrum, nucleus);
         final Assignment assignment = new Assignment(spectrum);
-        for (int i = 0; i < NMRShiftDBSpectrumStringArray.length; i++) {
+        for (int i = 0; i
+                < NMRShiftDBSpectrumStringArray.length; i++) {
             assignment.setAssignment(0, i, new Integer(NMRShiftDBSpectrumStringArray[i][3]));
         }
 

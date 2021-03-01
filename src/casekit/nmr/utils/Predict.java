@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package casekit.nmr.predict;
+package casekit.nmr.utils;
 
 
 import casekit.nmr.Utils;
@@ -82,16 +82,21 @@ public class Predict {
      * @throws CDKException
      * @see #predictShift(HashMap, String)
      */
-    public static Signal predictSignal(final Map<String, ArrayList<Double>> HOSECodeLookupTable, final IAtomContainer ac, final int atomIndex, final Integer maxSphere, final String nucleus) throws Exception {
+    public static Signal predictSignal(final Map<String, ArrayList<Double>> HOSECodeLookupTable,
+                                       final IAtomContainer ac, final int atomIndex, final Integer maxSphere,
+                                       final String nucleus) throws Exception {
         if (!Utils.checkIndexInAtomContainer(ac, atomIndex)) {
             return null;
         }
         final String HOSECode = HOSECodeBuilder.buildHOSECode(ac, atomIndex, maxSphere, false);
         final Double predictedShift = Predict.predictShift(HOSECodeLookupTable, HOSECode);
-        if (predictedShift == null) {
+        if (predictedShift
+                == null) {
             return null;
         }
-        return new Signal(new String[]{nucleus}, new Double[]{predictedShift}, Utils.getMultiplicityFromProtonsCount(ac.getAtom(atomIndex).getImplicitHydrogenCount()), "signal", null, 0, 0);
+        return new Signal(new String[]{nucleus}, new Double[]{predictedShift}, Utils.getMultiplicityFromProtonsCount(
+                ac.getAtom(atomIndex)
+                  .getImplicitHydrogenCount()), "signal", null, 1, 0);
     }
 
     /**
@@ -110,13 +115,17 @@ public class Predict {
      * @throws org.openscience.cdk.exception.CDKException
      * @see #predictSignal(HashMap, IAtomContainer, int, Integer, String)
      */
-    public static Spectrum predictSpectrum(final HashMap<String, ArrayList<Double>> HOSECodeLookupTable, final IAtomContainer ac, final Integer maxSphere, final String nucleus) throws Exception {
+    public static Spectrum predictSpectrum(final HashMap<String, ArrayList<Double>> HOSECodeLookupTable,
+                                           final IAtomContainer ac, final Integer maxSphere,
+                                           final String nucleus) throws Exception {
         final Spectrum predictedSpectrum = new Spectrum(new String[]{nucleus});
         Signal signal;
         for (final IAtom atom : ac.atoms()) {
-            if (atom.getSymbol().equals(casekit.nmr.utils.Utils.getAtomTypeFromSpectrum(predictedSpectrum, 0))) {
+            if (atom.getSymbol()
+                    .equals(casekit.nmr.utils.Utils.getAtomTypeFromSpectrum(predictedSpectrum, 0))) {
                 signal = Predict.predictSignal(HOSECodeLookupTable, ac, atom.getIndex(), maxSphere, nucleus);
-                if (signal == null) {
+                if (signal
+                        == null) {
                     continue;
                     //                    return null;
                 }

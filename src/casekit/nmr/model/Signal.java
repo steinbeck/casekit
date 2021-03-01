@@ -48,7 +48,7 @@ public class Signal extends Dimensional {
     }
 
     public Signal(final String[] nuclei) {
-        this(nuclei, null, null, null, null, 0, 0);
+        this(nuclei, null, null, null, null, 1, 0);
     }
 
     public Signal(final String[] nuclei, final Double[] shifts, final String multiplicity, final String kind, final Double intensity, final int equivalencesCount, final int phase) {

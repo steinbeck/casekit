@@ -10,7 +10,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package casekit.nmr.match;
+package casekit.nmr.utils;
 
 import casekit.nmr.Utils;
 import casekit.nmr.model.Assignment;
@@ -22,7 +22,7 @@ import org.openscience.cdk.similarity.Tanimoto;
 
 import java.util.*;
 
-public class Matcher {
+public class Match {
 
 
     /**
@@ -35,8 +35,10 @@ public class Matcher {
      *
      * @return true if both spectra contain the selected dimension
      */
-    private static boolean checkDimensions(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1, final int dim2) {
-        return spectrum1.containsDim(dim1) && spectrum2.containsDim(dim2);
+    private static boolean checkDimensions(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                           final int dim2) {
+        return spectrum1.containsDim(dim1)
+                && spectrum2.containsDim(dim2);
     }
 
     /**
@@ -53,8 +55,9 @@ public class Matcher {
      *
      * @return null if one spectrum does not contain the selected dimension
      */
-    public static Spectrum combineSpectra(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1, final int dim2, final double pickPrecision) throws Exception {
-        if (!Matcher.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
+    public static Spectrum combineSpectra(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                          final int dim2, final double pickPrecision) throws Exception {
+        if (!Match.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
             return null;
         }
         // create new spectra which is to fill with signals of both spectra
@@ -79,13 +82,18 @@ public class Matcher {
      *
      * @throws CDKException
      */
-    public static Float calculateTanimotoCoefficient(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1, final int dim2) throws CDKException {
-        if (!Matcher.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
+    public static Float calculateTanimotoCoefficient(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                                     final int dim2) throws CDKException {
+        if (!Match.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
             return null;
         }
-        final double[] shiftsSpectrum1 = ArrayUtils.toPrimitive(spectrum1.getShifts(dim1).toArray(new Double[spectrum1.getSignalCount()]));
+        final double[] shiftsSpectrum1 = ArrayUtils.toPrimitive(spectrum1.getShifts(dim1)
+                                                                         .toArray(
+                                                                                 new Double[spectrum1.getSignalCount()]));
         Arrays.parallelSort(shiftsSpectrum1);
-        final double[] shiftsSpectrum2 = ArrayUtils.toPrimitive(spectrum2.getShifts(dim2).toArray(new Double[spectrum2.getSignalCount()]));
+        final double[] shiftsSpectrum2 = ArrayUtils.toPrimitive(spectrum2.getShifts(dim2)
+                                                                         .toArray(
+                                                                                 new Double[spectrum2.getSignalCount()]));
         Arrays.parallelSort(shiftsSpectrum2);
 
         return Tanimoto.calculate(shiftsSpectrum1, shiftsSpectrum2);
@@ -105,16 +113,21 @@ public class Matcher {
      *
      * @see #matchSpectra(Spectrum, Spectrum, int, int, double)
      */
-    public static Double[] getDeviations(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1, final int dim2, final double shiftTol) {
+    public static Double[] getDeviations(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                         final int dim2, final double shiftTol) {
         final Double[] deviations = new Double[spectrum1.getSignalCount()];
-        final Assignment matchAssignments = Matcher.matchSpectra(spectrum1, spectrum2, dim1, dim2, shiftTol);
+        final Assignment matchAssignments = Match.matchSpectra(spectrum1, spectrum2, dim1, dim2, shiftTol);
         Signal matchedSignalInSpectrum2;
-        for (int i = 0; i < spectrum1.getSignalCount(); i++) {
-            if (matchAssignments.getAssignment(0, i) == -1) {
+        for (int i = 0; i
+                < spectrum1.getSignalCount(); i++) {
+            if (matchAssignments.getAssignment(0, i)
+                    == -1) {
                 deviations[i] = null;
             } else {
                 matchedSignalInSpectrum2 = spectrum2.getSignal(matchAssignments.getAssignment(0, i));
-                deviations[i] = Math.abs(spectrum1.getSignal(i).getShift(dim1) - matchedSignalInSpectrum2.getShift(dim2));
+                deviations[i] = Math.abs(spectrum1.getSignal(i)
+                                                  .getShift(dim1)
+                                                 - matchedSignalInSpectrum2.getShift(dim2));
             }
         }
         return deviations;
@@ -130,7 +143,8 @@ public class Matcher {
     public static Double calculateAverageDeviation(final Double[] deviations) {
         // every signal has to have a match
         for (final Double deviation : deviations) {
-            if (deviation == null) {
+            if (deviation
+                    == null) {
                 return null;
             }
         }
@@ -154,8 +168,9 @@ public class Matcher {
      * @see #getDeviations(Spectrum, Spectrum, int, int, double)
      * @see #calculateAverageDeviation(Double[])
      */
-    public static Double calculateAverageDeviation(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1, final int dim2, final double shiftTol) {
-        return Matcher.calculateAverageDeviation(Matcher.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol));
+    public static Double calculateAverageDeviation(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                                   final int dim2, final double shiftTol) {
+        return Match.calculateAverageDeviation(Match.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol));
     }
 
     /**
@@ -174,23 +189,31 @@ public class Matcher {
      * in query spectrum; null if one of the spectra does not
      * contain the selected dimension
      */
-    public static Assignment matchSpectra(final Spectrum spectrum, final Spectrum querySpectrum, final int dim1, final int dim2, final double shiftTol) {
-        if (!Matcher.checkDimensions(spectrum, querySpectrum, dim1, dim2)) {
+    public static Assignment matchSpectra(final Spectrum spectrum, final Spectrum querySpectrum, final int dim1,
+                                          final int dim2, final double shiftTol) {
+        if (!Match.checkDimensions(spectrum, querySpectrum, dim1, dim2)) {
             return null;
         }
         final Assignment matchAssignments = new Assignment(spectrum);
         final Set<Integer> assigned = new HashSet<>();
         List<Integer> pickedSignalIndicesSpectrum2;
 
-        for (int i = 0; i < spectrum.getSignalCount(); i++) {
-            if (spectrum.getShift(i, dim1) == null)
+        for (int i = 0; i
+                < spectrum.getSignalCount(); i++) {
+            if (spectrum.getShift(i, dim1)
+                    == null) {
                 continue;
+            }
 
             // @TODO add solvent deviation value for picking closest signal(s)
             pickedSignalIndicesSpectrum2 = new ArrayList<>();
-            for (final int pickedSignalIndexSpectrum2 : querySpectrum.pickClosestSignal(spectrum.getShift(i, dim1), dim2, shiftTol)) {
+            for (final int pickedSignalIndexSpectrum2 : querySpectrum.pickClosestSignal(spectrum.getShift(i, dim1),
+                                                                                        dim2, shiftTol)) {
                 // @TODO maybe consider further parameters to check ? e.g. intensity
-                if (querySpectrum.getMultiplicity(pickedSignalIndexSpectrum2).equals(spectrum.getMultiplicity(i)) && querySpectrum.getEquivalencesCount(pickedSignalIndexSpectrum2) <= spectrum.getEquivalencesCount(i)) {
+                if (querySpectrum.getMultiplicity(pickedSignalIndexSpectrum2)
+                                 .equals(spectrum.getMultiplicity(i))
+                        && querySpectrum.getEquivalencesCount(pickedSignalIndexSpectrum2)
+                        <= spectrum.getEquivalencesCount(i)) {
                     pickedSignalIndicesSpectrum2.add(pickedSignalIndexSpectrum2);
                 }
             }
@@ -227,13 +250,19 @@ public class Matcher {
      *
      * @see #matchSpectra(Spectrum, Spectrum, int, int, double)
      */
-    public static Assignment matchSpectra(final Spectrum spectrum1, final Spectrum spectrum2, final double[] shiftTols) {
-        if ((spectrum1.getNDim() != spectrum2.getNDim()) || (spectrum1.getNDim() != shiftTols.length)) {
+    public static Assignment matchSpectra(final Spectrum spectrum1, final Spectrum spectrum2,
+                                          final double[] shiftTols) {
+        if ((spectrum1.getNDim()
+                != spectrum2.getNDim())
+                || (spectrum1.getNDim()
+                != shiftTols.length)) {
             return null;
         }
         final Assignment matchAssignment = new Assignment(spectrum1);
-        for (int dim = 0; dim < spectrum1.getNDim(); dim++) {
-            matchAssignment.setAssignments(dim, Matcher.matchSpectra(spectrum1, spectrum2, dim, dim, shiftTols[dim]).getAssignments(0));
+        for (int dim = 0; dim
+                < spectrum1.getNDim(); dim++) {
+            matchAssignment.setAssignments(dim, Match.matchSpectra(spectrum1, spectrum2, dim, dim, shiftTols[dim])
+                                                     .getAssignments(0));
         }
 
         return matchAssignment;
@@ -253,7 +282,7 @@ public class Matcher {
     //     *
     //     * @param shiftList1 Shift value list to search in
     //     * @param shiftList2 Shift value list to match in shiftList1
-    //     * @param matchesInShiftList1 Matcher list to correct
+    //     * @param matchesInShiftList1 Match list to correct
     //     * @param tol Tolerance value
     //     * @return
     //     */

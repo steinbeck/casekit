@@ -38,7 +38,8 @@ import java.util.stream.Collectors;
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Spectrum extends Dimensional {
+public class Spectrum
+        extends Dimensional {
 
     /**
      * An arbitrary name or description that can be assigned to this spectrum for identification purposes.
@@ -68,7 +69,8 @@ public class Spectrum extends Dimensional {
         this.signalCount = 0;
     }
 
-    public Spectrum(String[] nuclei, String description, String specType, Double spectrometerFrequency, String solvent, String standard, List<Signal> signals, int signalCount, List<Integer> equivalences) {
+    public Spectrum(String[] nuclei, String description, String specType, Double spectrometerFrequency, String solvent,
+                    String standard, List<Signal> signals, int signalCount) {
         super(nuclei);
         this.description = description;
         this.specType = specType;
@@ -102,7 +104,7 @@ public class Spectrum extends Dimensional {
     public int getSignalCountWithEquivalences() {
         int sum = 0;
         for (final Signal signal : this.getSignals()) {
-            sum += 1 + signal.getEquivalencesCount();
+            sum += signal.getEquivalencesCount();
         }
         return sum;
     }
@@ -127,13 +129,16 @@ public class Spectrum extends Dimensional {
      * @return
      */
     public boolean addSignal(final Signal signal, final double pickPrecision) {
-        if ((signal == null) || !this.compareNuclei(signal.getNuclei())) {
+        if ((signal
+                == null)
+                || !this.compareNuclei(signal.getNuclei())) {
             return false;
         }
 
         // check for equivalent signals in all dimensions
         final List<Integer> closestSignalList = this.pickClosestSignal(signal.getShift(0), 0, pickPrecision);
-        for (int dim = 1; dim < this.getNDim(); dim++) {
+        for (int dim = 1; dim
+                < this.getNDim(); dim++) {
             closestSignalList.retainAll(this.pickClosestSignal(signal.getShift(dim), dim, pickPrecision));
         }
 
@@ -145,8 +150,10 @@ public class Spectrum extends Dimensional {
             Signal closestSignal;
             for (final Integer closestSignalIndex : closestSignalList) {
                 closestSignal = this.getSignal(closestSignalIndex);
-                if (closestSignal.getMultiplicity().equals(signal.getMultiplicity())) {
-                    closestSignal.setEquivalencesCount(closestSignal.getEquivalencesCount() + 1);
+                if (closestSignal.getMultiplicity()
+                                 .equals(signal.getMultiplicity())) {
+                    closestSignal.setEquivalencesCount(closestSignal.getEquivalencesCount()
+                                                               + 1);
                 }
             }
         }
@@ -163,7 +170,8 @@ public class Spectrum extends Dimensional {
         if (!this.checkSignalIndex(signalIndex)) {
             return false;
         }
-        if (this.signals.remove(signalIndex) != null) {
+        if (this.signals.remove(signalIndex)
+                != null) {
             this.signalCount--;
 
             return true;
@@ -173,7 +181,12 @@ public class Spectrum extends Dimensional {
     }
 
     private boolean checkSignalIndex(final Integer signalIndex) {
-        return (signalIndex != null) && (signalIndex >= 0) && (signalIndex < this.getSignalCount());
+        return (signalIndex
+                != null)
+                && (signalIndex
+                >= 0)
+                && (signalIndex
+                < this.getSignalCount());
     }
 
     /**
@@ -200,11 +213,15 @@ public class Spectrum extends Dimensional {
             return null;
         }
 
-        return this.getSignal(signalIndex).getShift(dim);
+        return this.getSignal(signalIndex)
+                   .getShift(dim);
     }
 
     public List<Double> getShifts(final int dim) {
-        return this.getSignals().stream().map(signal -> signal.getShift(dim)).collect(Collectors.toList());
+        return this.getSignals()
+                   .stream()
+                   .map(signal -> signal.getShift(dim))
+                   .collect(Collectors.toList());
     }
 
     public String getMultiplicity(final int signalIndex) {
@@ -212,7 +229,8 @@ public class Spectrum extends Dimensional {
             return null;
         }
 
-        return this.getSignal(signalIndex).getMultiplicity();
+        return this.getSignal(signalIndex)
+                   .getMultiplicity();
     }
 
     public Boolean hasEquivalences(final int signalIndex) {
@@ -220,7 +238,8 @@ public class Spectrum extends Dimensional {
             return null;
         }
 
-        return this.getEquivalencesCount(signalIndex) > 0;
+        return this.getEquivalencesCount(signalIndex)
+                > 1;
     }
 
     public Integer getEquivalencesCount(final int signalIndex) {
@@ -228,11 +247,15 @@ public class Spectrum extends Dimensional {
             return null;
         }
 
-        return this.getSignal(signalIndex).getEquivalencesCount();
+        return this.getSignal(signalIndex)
+                   .getEquivalencesCount();
     }
 
     public List<Integer> getEquivalencesCounts() {
-        return this.getSignals().stream().map(Signal::getEquivalencesCount).collect(Collectors.toList());
+        return this.getSignals()
+                   .stream()
+                   .map(Signal::getEquivalencesCount)
+                   .collect(Collectors.toList());
     }
 
     /**
@@ -243,8 +266,10 @@ public class Spectrum extends Dimensional {
      * @return
      */
     public int getSignalIndex(final Signal signal) {
-        for (int s = 0; s < this.signals.size(); s++) {
-            if (this.signals.get(s) == signal) {
+        for (int s = 0; s
+                < this.signals.size(); s++) {
+            if (this.signals.get(s)
+                    == signal) {
                 return s;
             }
         }
@@ -293,13 +318,20 @@ public class Spectrum extends Dimensional {
         }
         double minDiff = pickPrecision;
         // detect the minimal difference between a signal shift to the given query shift
-        for (int s = 0; s < this.getSignalCount(); s++) {
-            if (Math.abs(this.getShift(s, dim) - shift) < minDiff) {
-                minDiff = Math.abs(this.getShift(s, dim) - shift);
+        for (int s = 0; s
+                < this.getSignalCount(); s++) {
+            if (Math.abs(this.getShift(s, dim)
+                                 - shift)
+                    < minDiff) {
+                minDiff = Math.abs(this.getShift(s, dim)
+                                           - shift);
             }
         }
-        for (int s = 0; s < this.getSignalCount(); s++) {
-            if (Math.abs(this.getShift(s, dim) - shift) == minDiff) {
+        for (int s = 0; s
+                < this.getSignalCount(); s++) {
+            if (Math.abs(this.getShift(s, dim)
+                                 - shift)
+                    == minDiff) {
                 matchIndices.add(s);
             }
         }
@@ -323,21 +355,28 @@ public class Spectrum extends Dimensional {
         if (!this.containsDim(dim)) {
             return pickedSignals;
         }
-        for (int s = 0; s < this.getSignalCount(); s++) {
-            if (Math.abs(this.getShift(s, dim) - shift) <= pickPrecision) {
+        for (int s = 0; s
+                < this.getSignalCount(); s++) {
+            if (Math.abs(this.getShift(s, dim)
+                                 - shift)
+                    <= pickPrecision) {
                 pickedSignals.add(s);
             }
         }
         // sort signal indices by distance to query shift
-        pickedSignals.sort(Comparator.comparingDouble(pickedSignalIndex -> Math.abs(shift - this.getShift(pickedSignalIndex, dim))));
+        pickedSignals.sort(Comparator.comparingDouble(pickedSignalIndex -> Math.abs(shift
+                                                                                            - this.getShift(
+                pickedSignalIndex, dim))));
 
         return pickedSignals;
     }
 
     public Spectrum buildClone() {
         final Spectrum clone = new Spectrum(this.getNuclei());
-        for (int i = 0; i < this.getSignalCount(); i++) {
-            clone.addSignal(this.getSignal(i).buildClone());
+        for (int i = 0; i
+                < this.getSignalCount(); i++) {
+            clone.addSignal(this.getSignal(i)
+                                .buildClone());
         }
         clone.setSpecDescription(this.description);
         clone.setSolvent(this.solvent);
@@ -350,7 +389,26 @@ public class Spectrum extends Dimensional {
 
     @Override
     public String toString() {
-        return "Spectrum{" + "description='" + description + '\'' + ", specType='" + specType + '\'' + ", spectrometerFrequency=" + spectrometerFrequency + ", solvent='" + solvent + '\'' + ", standard='" + standard + '\'' + ", signals=" + signals + ", signalCount=" + signalCount + '}';
+        return "Spectrum{"
+                + "description='"
+                + description
+                + '\''
+                + ", specType='"
+                + specType
+                + '\''
+                + ", spectrometerFrequency="
+                + spectrometerFrequency
+                + ", solvent='"
+                + solvent
+                + '\''
+                + ", standard='"
+                + standard
+                + '\''
+                + ", signals="
+                + signals
+                + ", signalCount="
+                + signalCount
+                + '}';
     }
 
     public String getDescription() {

@@ -404,7 +404,7 @@ public class NMRShiftDB {
                 intensity = Double.parseDouble(spectrumStringArray[i][1]);
                 multiplicity = spectrumStringArray[i][2];
                 spectrum.addSignal(
-                        new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 0,
+                        new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 1,
                                    0));
             }
         } catch (Exception e) {

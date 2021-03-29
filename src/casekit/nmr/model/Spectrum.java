@@ -28,9 +28,8 @@
  */
 package casekit.nmr.model;
 
-import casekit.nmr.model.dimensional.Dimensional;
-
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,9 +37,9 @@ import java.util.stream.Collectors;
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Spectrum
-        extends Dimensional {
+public class Spectrum {
 
+    private String[] nuclei;
     /**
      * An arbitrary name or description that can be assigned to this spectrum for identification purposes.
      */
@@ -64,14 +63,15 @@ public class Spectrum
     }
 
     public Spectrum(final String[] nuclei) {
-        super(nuclei);
+        this.nuclei = nuclei;
         this.signals = new ArrayList<>();
         this.signalCount = 0;
     }
 
-    public Spectrum(String[] nuclei, String description, String specType, Double spectrometerFrequency, String solvent,
-                    String standard, List<Signal> signals, int signalCount) {
-        super(nuclei);
+    public Spectrum(final String[] nuclei, final String description, final String specType,
+                    final Double spectrometerFrequency, final String solvent, final String standard,
+                    final List<Signal> signals, final int signalCount) {
+        this.nuclei = nuclei;
         this.description = description;
         this.specType = specType;
         this.spectrometerFrequency = spectrometerFrequency;
@@ -79,6 +79,29 @@ public class Spectrum
         this.standard = standard;
         this.signals = new ArrayList<>(signals);
         this.signalCount = signalCount;
+    }
+
+    public String[] getNuclei() {
+        return this.nuclei;
+    }
+
+    public void setNuclei(final String[] nuclei) {
+        this.nuclei = nuclei;
+    }
+
+    public int getNDim() {
+        return this.getNuclei().length;
+    }
+
+    public boolean containsDim(final int dim) {
+        return dim
+                >= 0
+                && dim
+                <= this.getNDim();
+    }
+
+    public boolean compareNuclei(final String[] nuclei) {
+        return Arrays.equals(this.getNuclei(), nuclei);
     }
 
     public void setSpecType(final String specType) {

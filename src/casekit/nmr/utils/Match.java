@@ -174,6 +174,46 @@ public class Match {
     }
 
     /**
+     * Returns the average of all deviations within a given input array.
+     *
+     * @param data array of deviations
+     *
+     * @return
+     */
+    public static Double calculateRMSD(final Double[] data) {
+        // every signal has to have a match
+        for (final Double value : data) {
+            if (value
+                    == null) {
+                return null;
+            }
+        }
+
+        return casekit.nmr.utils.Utils.getRMSD(data);
+    }
+
+    /**
+     * Returns the average of all deviations of matched shifts between two
+     * spectra.
+     *
+     * @param spectrum1 first spectrum
+     * @param spectrum2 second spectrum
+     * @param dim1      dimension in first spectrum to take the shifts from
+     * @param dim2      dimension in second spectrum to take the shifts from
+     * @param shiftTol  Tolerance value [ppm] used during peak picking in
+     *                  shift comparison
+     *
+     * @return
+     *
+     * @see #getDeviations(Spectrum, Spectrum, int, int, double)
+     * @see #calculateAverageDeviation(Double[])
+     */
+    public static Double calculateRMSD(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                       final int dim2, final double shiftTol) {
+        return Match.calculateRMSD(Match.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol));
+    }
+
+    /**
      * Returns the closest shift matches between two spectra in selected dimensions
      * as an Assignment object with one set dimension only. <br>
      * Despite intensities are expected, they are still not considered here.

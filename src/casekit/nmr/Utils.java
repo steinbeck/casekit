@@ -177,7 +177,7 @@ public class Utils {
 
     public static Set<String> getAtomTypesInAtomContainer(final IAtomContainer ac) {
         final HashSet<String> atomTypes = new HashSet<>();
-        for (IAtom atom : ac.atoms()) {
+        for (final IAtom atom : ac.atoms()) {
             atomTypes.add(atom.getSymbol());
         }
 
@@ -452,61 +452,24 @@ public class Utils {
     }
 
 
-    /**
-     * @param data
-     *
-     * @return
-     */
-    public static Double getRMS(final ArrayList<Double> data) {
-        if ((data
-                == null)
-                || data.isEmpty()) {
-            return null;
-        }
-        if (data.size()
-                == 1) {
-            return data.get(0);
-        }
-        int nullCounter = 0;
-        double qSum = 0;
-        for (final Double d : data) {
-            if (d
-                    != null) {
-                qSum += d
-                        * d;
-            } else {
-                nullCounter++;
-            }
-        }
-
-        return ((data.size()
-                - nullCounter)
-                != 0)
-               ? Math.sqrt(qSum
-                                   / (data.size()
-                - nullCounter))
-               : null;
-    }
-
-
-    /**
-     * @param lookup
-     *
-     * @return
-     */
-    public static Map<String, Double> getRMS(final Map<String, ArrayList<Double>> lookup) {
-        final HashMap<String, Double> rms = new HashMap<>();
-        Double rmsInList;
-        for (final String key : lookup.keySet()) {
-            rmsInList = Utils.getRMS(lookup.get(key));
-            if (rmsInList
-                    != null) {
-                rms.put(key, rmsInList);
-            }
-        }
-
-        return rms;
-    }
+    //    /**
+    //     * @param lookup
+    //     *
+    //     * @return
+    //     */
+    //    public static Map<String, Double> getRMSD(final Map<String, ArrayList<Double>> lookup) {
+    //        final HashMap<String, Double> rmsd = new HashMap<>();
+    //        Double rmsdInList;
+    //        for (final String key : lookup.keySet()) {
+    //            rmsdInList = casekit.nmr.utils.Utils.getRMSD(lookup.get(key));
+    //            if (rmsdInList
+    //                    != null) {
+    //                rmsd.put(key, rmsdInList);
+    //            }
+    //        }
+    //
+    //        return rmsd;
+    //    }
 
     public static Boolean isSaturated(final IAtomContainer ac, final int atomIndex) {
         if (!Utils.checkIndexInAtomContainer(ac, atomIndex)) {
@@ -521,7 +484,7 @@ public class Utils {
     public static void addImplicitHydrogens(final IAtomContainer ac) throws CDKException {
         final CDKAtomTypeMatcher matcher = CDKAtomTypeMatcher.getInstance(ac.getBuilder());
         IAtomType type;
-        for (IAtom atom : ac.atoms()) {
+        for (final IAtom atom : ac.atoms()) {
             type = matcher.findMatchingAtomType(ac, atom);
             AtomTypeManipulator.configure(atom, type);
         }
@@ -691,13 +654,13 @@ public class Utils {
     public static IAtomContainer removeAtoms(final IAtomContainer ac, final String atomType) {
 
         final ArrayList<IAtom> toRemoveList = new ArrayList<>();
-        for (IAtom atomA : ac.atoms()) {
+        for (final IAtom atomA : ac.atoms()) {
             if (atomA.getSymbol()
                      .equals(atomType)) {// detect whether the current atom A is a from the given atom type
                 toRemoveList.add(atomA);
             }
         }
-        for (IAtom iAtom : toRemoveList) {
+        for (final IAtom iAtom : toRemoveList) {
             ac.removeAtom(iAtom);
         }
 
@@ -734,7 +697,7 @@ public class Utils {
                 System.err.println("killing non-finished tasks!");
                 executor.shutdownNow();
             }
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             System.err.println("killing non-finished tasks!");
             executor.shutdownNow();
         }
@@ -748,7 +711,7 @@ public class Utils {
      * @return
      */
     public static IBond.Order getBondOrder(final int orderAsNumeric) {
-        for (IBond.Order order : IBond.Order.values()) {
+        for (final IBond.Order order : IBond.Order.values()) {
             if (order.numeric()
                     == orderAsNumeric) {
                 return order;
@@ -763,7 +726,7 @@ public class Utils {
                 == null) {
             return null;
         }
-        float bondOrderAsNumeric;
+        final float bondOrderAsNumeric;
         if (bond.isAromatic()) {
             bondOrderAsNumeric = (float) 1.5;
         } else {

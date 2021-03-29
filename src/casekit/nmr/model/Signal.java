@@ -27,15 +27,14 @@
  */
 package casekit.nmr.model;
 
-import casekit.nmr.model.dimensional.Dimensional;
-
 import java.util.Arrays;
 
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Signal extends Dimensional {
+public class Signal {
 
+    private String[] nuclei;
     private Double[] shifts;
     private String multiplicity;
     private Double intensity;
@@ -51,9 +50,10 @@ public class Signal extends Dimensional {
         this(nuclei, null, null, null, null, 1, 0);
     }
 
-    public Signal(final String[] nuclei, final Double[] shifts, final String multiplicity, final String kind, final Double intensity, final int equivalencesCount, final int phase) {
-        super(nuclei);
-        this.shifts = shifts; // this.initShifts(shifts, this.getNDim());
+    public Signal(final String[] nuclei, final Double[] shifts, final String multiplicity, final String kind,
+                  final Double intensity, final int equivalencesCount, final int phase) {
+        this.nuclei = nuclei;
+        this.shifts = shifts;
         this.multiplicity = multiplicity;
         this.kind = kind;
         this.intensity = intensity;
@@ -61,17 +61,28 @@ public class Signal extends Dimensional {
         this.phase = phase;
     }
 
-    //    private Double[] initShifts(final Double[] shifts, final int nDim) {
-    ////        if((shifts == null) || (shifts.length != nDim)){
-    ////            throw new Exception("Number of given nuclei (" + nDim + ") and shifts (" + shifts.length + ") is not the same!!!");
-    ////        }
-    //        final Double[] tempShifts = new Double[nDim];
-    //        for (int d = 0; d < nDim; d++) {
-    //            tempShifts[d] = shifts[d];
-    //        }
-    //
-    //        return tempShifts;
-    //    }
+    public String[] getNuclei() {
+        return this.nuclei;
+    }
+
+    public void setNuclei(final String[] nuclei) {
+        this.nuclei = nuclei;
+    }
+
+    public int getNDim() {
+        return this.getNuclei().length;
+    }
+
+    public boolean containsDim(final int dim) {
+        return dim
+                >= 0
+                && dim
+                <= this.getNDim();
+    }
+
+    public boolean compareNuclei(final String[] nuclei) {
+        return Arrays.equals(this.getNuclei(), nuclei);
+    }
 
     public boolean setShift(final Double shift, final int dim) {
         if (!this.containsDim(dim)) {
@@ -123,12 +134,28 @@ public class Signal extends Dimensional {
 
 
     public Signal buildClone() {
-        return new Signal(this.getNuclei(), this.shifts, this.multiplicity, this.kind, this.intensity, this.equivalencesCount, this.phase);
+        return new Signal(this.getNuclei(), this.shifts, this.multiplicity, this.kind, this.intensity,
+                          this.equivalencesCount, this.phase);
     }
 
     @Override
     public String toString() {
-        return "Signal{" + "shifts=" + Arrays.toString(shifts) + ", multiplicity='" + multiplicity + '\'' + ", intensity=" + intensity + ", kind='" + kind + '\'' + ", equivalencesCount=" + equivalencesCount + ", phase=" + phase + '}';
+        return "Signal{"
+                + "shifts="
+                + Arrays.toString(shifts)
+                + ", multiplicity='"
+                + multiplicity
+                + '\''
+                + ", intensity="
+                + intensity
+                + ", kind='"
+                + kind
+                + '\''
+                + ", equivalencesCount="
+                + equivalencesCount
+                + ", phase="
+                + phase
+                + '}';
     }
 
     public Double[] getShifts() {

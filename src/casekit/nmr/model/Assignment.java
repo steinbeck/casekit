@@ -23,7 +23,6 @@
  */
 package casekit.nmr.model;
 
-import casekit.nmr.model.dimensional.Dimensional;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.ArrayList;
@@ -31,11 +30,12 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- *
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Assignment extends Dimensional implements Cloneable {
-    
+public class Assignment
+        implements Cloneable {
+
+    private String[] nuclei;
     private int[][] assignments;
 
 
@@ -43,118 +43,155 @@ public class Assignment extends Dimensional implements Cloneable {
     }
 
     public Assignment(final String[] nuclei, final int[][] assignments) {
-        super(nuclei);
+        this.nuclei = nuclei;
         this.assignments = assignments;
     }
 
     public Assignment(final Spectrum spectrum) {
-        super(spectrum.getNuclei());
-        this.assignments = this.initAssignments(this.getNDim(), spectrum.getSignalCount());
+        this.nuclei = spectrum.getNuclei();
+        this.assignments = this.initAssignments(this.nuclei.length, spectrum.getSignalCount());
     }
-    
-    private int[][] initAssignments(final int nDim, final int nSignals){
+
+    private int[][] initAssignments(final int nDim, final int nSignals) {
         final int[][] temp = new int[nDim][nSignals];
-        for (int i = 0; i < nDim; i++) {
-            for (int j = 0; j < nSignals; j++) {
+        for (int i = 0; i
+                < nDim; i++) {
+            for (int j = 0; j
+                    < nSignals; j++) {
                 temp[i][j] = -1;
             }
         }
-        
+
         return temp;
     }
- 
+
+    public String[] getNuclei() {
+        return this.nuclei;
+    }
+
+    public void setNuclei(final String[] nuclei) {
+        this.nuclei = nuclei;
+    }
+
+    public int getNDim() {
+        return this.getNuclei().length;
+    }
+
+    public boolean containsDim(final int dim) {
+        return dim
+                >= 0
+                && dim
+                <= this.getNDim();
+    }
+
+    public boolean compareNuclei(final String[] nuclei) {
+        return Arrays.equals(this.getNuclei(), nuclei);
+    }
+
     /**
      * Sets an assignment with value for an index position.
      *
      * @param dim
      * @param index
      * @param assignment
+     *
      * @return
      */
-    public boolean setAssignment(final int dim, final int index, final int assignment){
-        if(!this.containsDim(dim) || !this.checkIndex(dim, index)){
+    public boolean setAssignment(final int dim, final int index, final int assignment) {
+        if (!this.containsDim(dim)
+                || !this.checkIndex(dim, index)) {
             return false;
         }
         this.assignments[dim][index] = assignment;
-        
+
         return true;
     }
-    
-    public boolean setAssignments(final int dim, final List<Integer> assignments){
-        if(!this.containsDim(dim) || !this.checkInputListSize(assignments.size())){
+
+    public boolean setAssignments(final int dim, final List<Integer> assignments) {
+        if (!this.containsDim(dim)
+                || !this.checkInputListSize(assignments.size())) {
             return false;
         }
-        for (int i = 0; i < this.getAssignmentsCount(); i++) {
+        for (int i = 0; i
+                < this.getAssignmentsCount(); i++) {
             this.setAssignment(dim, i, assignments.get(i));
         }
-        
+
         return true;
     }
-    
-    public Integer getAssignment(final int dim, final int index){
-        if(!this.containsDim(dim) || !this.checkIndex(dim, index)){
+
+    public Integer getAssignment(final int dim, final int index) {
+        if (!this.containsDim(dim)
+                || !this.checkIndex(dim, index)) {
             return null;
         }
 
         return this.assignments[dim][index];
     }
-    
-    public Integer getIndex(final int dim, final int assignment){
-        if(!this.containsDim(dim)){
+
+    public Integer getIndex(final int dim, final int assignment) {
+        if (!this.containsDim(dim)) {
             return null;
         }
-        for (int index = 0; index < this.assignments[dim].length; index++) {
-            if(this.getAssignment(dim, index) == assignment){
+        for (int index = 0; index
+                < this.assignments[dim].length; index++) {
+            if (this.getAssignment(dim, index)
+                    == assignment) {
                 return index;
             }
         }
-        
+
         return -1;
     }
-    
-    public ArrayList<Integer> getAssignments(final int dim){
-        if(!this.containsDim(dim)){
+
+    public ArrayList<Integer> getAssignments(final int dim) {
+        if (!this.containsDim(dim)) {
             return null;
         }
 
         return new ArrayList<>(Arrays.asList(ArrayUtils.toObject(this.assignments[dim])));
     }
-    
-    public int getAssignmentsCount(){
-        if(this.getNDim() > 0){
+
+    public int getAssignmentsCount() {
+        if (this.getNDim()
+                > 0) {
             return this.assignments[0].length;
         }
         return 0;
     }
-    
-    public int getSetAssignmentsCount(final int dim){
+
+    public int getSetAssignmentsCount(final int dim) {
         int setAssignmentsCounter = 0;
-        if(this.containsDim(dim)){
-            for (int j = 0; j < this.assignments[dim].length; j++) {
-                if(this.assignments[dim][j] != -1){
+        if (this.containsDim(dim)) {
+            for (int j = 0; j
+                    < this.assignments[dim].length; j++) {
+                if (this.assignments[dim][j]
+                        != -1) {
                     setAssignmentsCounter++;
                 }
             }
         }
         return setAssignmentsCounter;
     }
-    
-    public Boolean isFullyAssigned(final int dim){
-        if(!this.containsDim(dim)){
-            return null;
-        }
-        
-        return this.getSetAssignmentsCount(dim) == this.getAssignmentsCount();
-    }
 
-    public Boolean isAssigned(final int dim, final int index){
-        if(!this.containsDim(dim)){
+    public Boolean isFullyAssigned(final int dim) {
+        if (!this.containsDim(dim)) {
             return null;
         }
 
-        return this.getAssignment(dim, index) != -1;
+        return this.getSetAssignmentsCount(dim)
+                == this.getAssignmentsCount();
     }
-    
+
+    public Boolean isAssigned(final int dim, final int index) {
+        if (!this.containsDim(dim)) {
+            return null;
+        }
+
+        return this.getAssignment(dim, index)
+                != -1;
+    }
+
     /**
      * Adds a new assignment entry (index), e.g. for a new signal. The given assignment indices
      * will be stored for each dimension of the new assignment entry (index).
@@ -163,33 +200,41 @@ public class Assignment extends Dimensional implements Cloneable {
      *
      * @return
      */
-    public boolean addAssignment(final int[] assignment){
-        if(!this.compareNDim(assignments.length)){
+    public boolean addAssignment(final int[] assignment) {
+        if (this.getNDim()
+                != assignments.length) {
             return false;
         }
-        final int[][] extendedAssignments = new int[this.getNDim()][this.getAssignmentsCount() + 1];
-        for (int dim = 0; dim < this.getNDim(); dim++) {
-            for (int i = 0; i < this.getAssignmentsCount(); i++) {
+        final int[][] extendedAssignments = new int[this.getNDim()][this.getAssignmentsCount()
+                + 1];
+        for (int dim = 0; dim
+                < this.getNDim(); dim++) {
+            for (int i = 0; i
+                    < this.getAssignmentsCount(); i++) {
                 extendedAssignments[dim][i] = this.getAssignment(dim, i);
             }
             extendedAssignments[dim][this.getAssignmentsCount()] = assignment[dim];
         }
         this.assignments = extendedAssignments;
-        
+
         return true;
     }
 
-    public boolean removeAssignment(final int index){
-        if(!this.checkIndex(0, index)){
+    public boolean removeAssignment(final int index) {
+        if (!this.checkIndex(0, index)) {
             return false;
         }
-        final int[][] reducedAssignments = new int[this.getNDim()][this.getAssignmentsCount() - 1];
+        final int[][] reducedAssignments = new int[this.getNDim()][this.getAssignmentsCount()
+                - 1];
         int nextIndexToInsertCounter = 0;
-        for (int i = 0; i < this.getAssignmentsCount(); i++) {
-            if(i == index){
+        for (int i = 0; i
+                < this.getAssignmentsCount(); i++) {
+            if (i
+                    == index) {
                 continue;
             }
-            for (int dim = 0; dim < this.getNDim(); dim++) {
+            for (int dim = 0; dim
+                    < this.getNDim(); dim++) {
                 reducedAssignments[dim][nextIndexToInsertCounter] = this.getAssignment(dim, i);
             }
             nextIndexToInsertCounter++;
@@ -199,16 +244,20 @@ public class Assignment extends Dimensional implements Cloneable {
         return true;
     }
 
-    private boolean checkIndex(final int dim, final int index){
-       return (index >= 0) && (index < this.assignments[dim].length);
+    private boolean checkIndex(final int dim, final int index) {
+        return (index
+                >= 0)
+                && (index
+                < this.assignments[dim].length);
     }
-    
-    private boolean checkInputListSize(final int size){
-       return (size == this.getAssignmentsCount());
-   } 
-    
+
+    private boolean checkInputListSize(final int size) {
+        return (size
+                == this.getAssignmentsCount());
+    }
+
     @Override
-    public Assignment clone() throws CloneNotSupportedException{
+    public Assignment clone() throws CloneNotSupportedException {
         return (Assignment) super.clone();
     }
 
@@ -217,11 +266,13 @@ public class Assignment extends Dimensional implements Cloneable {
         final StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("Assignments:\n");
 
-        for (int i = 0; i < this.getNDim(); i++) {
-            stringBuilder.append(Arrays.toString(this.assignments[i])).append("\n");
+        for (int i = 0; i
+                < this.getNDim(); i++) {
+            stringBuilder.append(Arrays.toString(this.assignments[i]))
+                         .append("\n");
         }
 
-    return stringBuilder.toString();
+        return stringBuilder.toString();
     }
 
     public int[][] getAssignments() {

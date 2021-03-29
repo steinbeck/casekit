@@ -83,4 +83,40 @@ public class Utils {
         return smilesGenerator.create(ac);
     }
 
+    /**
+     * @param data
+     *
+     * @return
+     */
+    public static Double getRMSD(final Double[] data) {
+        if (data
+                == null
+                || data.length
+                == 0) {
+            return null;
+        }
+        if (data.length
+                == 1) {
+            return data[0];
+        }
+        int nullCounter = 0;
+        double qSum = 0;
+        for (final Double d : data) {
+            if (d
+                    != null) {
+                qSum += d
+                        * d;
+            } else {
+                nullCounter++;
+            }
+        }
+
+        return ((data.length
+                - nullCounter)
+                != 0)
+               ? Math.sqrt(qSum
+                                   / (data.length
+                - nullCounter))
+               : null;
+    }
 }

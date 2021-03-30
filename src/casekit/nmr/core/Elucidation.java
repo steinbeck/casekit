@@ -8,6 +8,7 @@ import casekit.nmr.utils.Match;
 import java.util.ArrayList;
 import java.util.List;
 
+@Deprecated
 public class Elucidation {
 
     public static List<DataSet> findFragments(final Spectrum querySpectrum, final List<DataSet> compoundDataSets,

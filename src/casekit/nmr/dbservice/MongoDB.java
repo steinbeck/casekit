@@ -15,6 +15,7 @@ package casekit.nmr.dbservice;
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
+@Deprecated
 public class MongoDB {
 
 

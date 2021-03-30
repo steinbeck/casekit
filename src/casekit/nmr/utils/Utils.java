@@ -56,23 +56,6 @@ public class Utils {
                 - 1];
     }
 
-    public static Map<String, Integer> getMolecularFormulaElementCounts(final String mf) {
-        final LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
-        final IMolecularFormula iMolecularFormula = Utils.getMolecularFormulaFromString(mf);
-        final List<String> elements = new ArrayList<>();
-        final Matcher matcher = Pattern.compile("([A-Z][a-z]*)")
-                                       .matcher(mf);
-
-        while (matcher.find()) {
-            elements.add(matcher.group(1));
-        }
-        for (final String element : elements) {
-            counts.put(element, MolecularFormulaManipulator.getElementCount(iMolecularFormula, element));
-        }
-
-        return counts;
-    }
-
     public static IMolecularFormula getMolecularFormulaFromString(final String mf) {
         return MolecularFormulaManipulator.getMolecularFormula(mf, SilentChemObjectBuilder.getInstance());
     }
@@ -118,5 +101,30 @@ public class Utils {
                                    / (data.length
                 - nullCounter))
                : null;
+    }
+
+    public static Map<String, Integer> getMolecularFormulaElementCounts(final String mf) {
+        final LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
+        final List<String> elements = new ArrayList<>();
+        Matcher matcher = Pattern.compile("([A-Z][a-z]{0,1})")
+                                 .matcher(mf);
+        while (matcher.find()) {
+            elements.add(matcher.group(1));
+        }
+        int count;
+        for (final String element : elements) {
+            matcher = Pattern.compile("("
+                                              + element
+                                              + "\\d+)")
+                             .matcher(mf);
+            count = 1;
+            if (matcher.find()) {
+                count = Integer.parseInt(matcher.group(1)
+                                                .split(element)[1]);
+            }
+            counts.put(element, count);
+        }
+
+        return counts;
     }
 }

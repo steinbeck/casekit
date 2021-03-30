@@ -29,12 +29,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.HashMap;
+import java.util.Map;
 
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
-public class Correlations extends Default<Correlation> {
-    private HashMap<String, HashMap<String, Object>> state;
+public class Correlations
+        extends Default<Correlation> {
+    private Map<String, Map<String, Object>> state;
 }

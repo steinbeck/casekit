@@ -267,7 +267,8 @@ public class Match {
                     passed = querySpectrum.getMultiplicity(pickedSignalIndexSpectrum2)
                                           .equals(spectrum.getMultiplicity(i));
                 }
-                if (checkEquivalencesCount) {
+                if (passed
+                        && checkEquivalencesCount) {
                     passed = querySpectrum.getEquivalencesCount(pickedSignalIndexSpectrum2)
                             == spectrum.getEquivalencesCount(i);
                 }

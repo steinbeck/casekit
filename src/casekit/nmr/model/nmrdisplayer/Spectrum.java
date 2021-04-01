@@ -48,34 +48,56 @@ public class Spectrum {
     private HashMap<String, Object> info;
 
     public casekit.nmr.model.Spectrum toSpectrum(final boolean considerSignalKind) {
-        final int dimension = (int) info.get("dimension");
-        final boolean isFid = (boolean) info.get("isFid");
+        final int dimension = (int) this.info.get("dimension");
+        final boolean isFid = (boolean) this.info.get("isFid");
 
         if (!isFid) {
-            if (dimension == 1) {
-                final String nucleus = (String) info.get("nucleus");
-                final casekit.nmr.model.Spectrum spectrum = new casekit.nmr.model.Spectrum(new String[]{nucleus});
-                ranges.getValues().forEach(range -> range.getSignal().forEach(signal1D -> {
-                    if (considerSignalKind && signal1D.getKind().equals("signal")) {
-                        spectrum.addSignal(new Signal(new String[]{nucleus}, new Double[]{signal1D.getDelta()}, signal1D.getMultiplicity(), signal1D.getKind(), null, 0, 0));
-                    }
-                }));
-                spectrum.setSolvent((String) info.get("solvent"));
-                spectrum.setSpecType((String) info.get("experiment"));
+            if (dimension
+                    == 1) {
+                final String nucleus = (String) this.info.get("nucleus");
+                final casekit.nmr.model.Spectrum spectrum = new casekit.nmr.model.Spectrum();
+                spectrum.setNuclei(new String[]{nucleus});
+                this.ranges.getValues()
+                           .forEach(range -> range.getSignal()
+                                                  .forEach(signal1D -> {
+                                                      if (considerSignalKind
+                                                              && signal1D.getKind()
+                                                                         .equals("signal")) {
+                                                          spectrum.addSignal(new Signal(new String[]{nucleus},
+                                                                                        new Double[]{
+                                                                                                signal1D.getDelta()},
+                                                                                        signal1D.getMultiplicity(),
+                                                                                        signal1D.getKind(), null, 0,
+                                                                                        0));
+                                                      }
+                                                  }));
+                spectrum.setSolvent((String) this.info.get("solvent"));
+                spectrum.setSpecType((String) this.info.get("experiment"));
 
                 return spectrum;
 
-            } else if (dimension == 2) {
-                final String[] nuclei = ((ArrayList<String>) info.get("nucleus")).toArray(new String[]{});
-                final casekit.nmr.model.Spectrum spectrum = new casekit.nmr.model.Spectrum(nuclei);
+            } else if (dimension
+                    == 2) {
+                final String[] nuclei = ((ArrayList<String>) this.info.get("nucleus")).toArray(new String[]{});
+                final casekit.nmr.model.Spectrum spectrum = new casekit.nmr.model.Spectrum();
+                spectrum.setNuclei(nuclei);
 
-                zones.getValues().forEach(zone -> zone.getSignal().forEach(signal2D -> {
-                    if (considerSignalKind && signal2D.getKind().equals("signal")) {
-                        spectrum.addSignal(new Signal(nuclei, new Double[]{(Double) signal2D.getX().get("delta"), (Double) signal2D.getY().get("delta")}, signal2D.getMultiplicity(), signal2D.getKind(), null, 0, 0));
-                    }
-                }));
-                spectrum.setSolvent((String) info.get("solvent"));
-                spectrum.setSpecType((String) info.get("experiment"));
+                this.zones.getValues()
+                          .forEach(zone -> zone.getSignal()
+                                               .forEach(signal2D -> {
+                                                   if (considerSignalKind
+                                                           && signal2D.getKind()
+                                                                      .equals("signal")) {
+                                                       spectrum.addSignal(new Signal(nuclei, new Double[]{
+                                                               (Double) signal2D.getX()
+                                                                                .get("delta"), (Double) signal2D.getY()
+                                                                                                                .get("delta")},
+                                                                                     signal2D.getMultiplicity(),
+                                                                                     signal2D.getKind(), null, 0, 0));
+                                                   }
+                                               }));
+                spectrum.setSolvent((String) this.info.get("solvent"));
+                spectrum.setSpecType((String) this.info.get("experiment"));
 
                 return spectrum;
             }

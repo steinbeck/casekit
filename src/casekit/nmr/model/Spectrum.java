@@ -62,12 +62,6 @@ public class Spectrum {
     public Spectrum() {
     }
 
-    public Spectrum(final String[] nuclei) {
-        this.nuclei = nuclei;
-        this.signals = new ArrayList<>();
-        this.signalCount = 0;
-    }
-
     public Spectrum(final String[] nuclei, final String description, final String specType,
                     final Double spectrometerFrequency, final String solvent, final String standard,
                     final List<Signal> signals, final int signalCount) {
@@ -77,7 +71,7 @@ public class Spectrum {
         this.spectrometerFrequency = spectrometerFrequency;
         this.solvent = solvent;
         this.standard = standard;
-        this.signals = new ArrayList<>(signals);
+        this.signals = signals;
         this.signalCount = signalCount;
     }
 
@@ -104,20 +98,20 @@ public class Spectrum {
         return Arrays.equals(this.getNuclei(), nuclei);
     }
 
-    public void setSpecType(final String specType) {
-        this.specType = specType;
-    }
-
     public String getSpecType() {
         return this.specType;
     }
 
-    public void setSpecDescription(final String description) {
-        this.description = description;
+    public void setSpecType(final String specType) {
+        this.specType = specType;
     }
 
     public String getSpecDescription() {
         return this.description;
+    }
+
+    public void setSpecDescription(final String description) {
+        this.description = description;
     }
 
     public int getSignalCount() {
@@ -133,11 +127,13 @@ public class Spectrum {
     }
 
     /**
-     * Adds a signal to this spectrum.
+     * Adds a signal to this spectrum with pickPrecision of 0.
      *
      * @param signal signal to add
      *
      * @return
+     *
+     * @see #addSignal(Signal, double)
      */
     public boolean addSignal(final Signal signal) {
         return this.addSignal(signal, 0.0);
@@ -231,6 +227,10 @@ public class Spectrum {
         return this.signals;
     }
 
+    public void setSignals(final List<Signal> signals) {
+        this.signals = signals;
+    }
+
     public Double getShift(final int signalIndex, final int dim) {
         if (!this.checkSignalIndex(signalIndex)) {
             return null;
@@ -299,30 +299,37 @@ public class Spectrum {
         return -1;
     }
 
+    public Double getSpectrometerFrequency() {
+        return this.spectrometerFrequency;
+    }
+
     public void setSpectrometerFrequency(final Double sf) {
         this.spectrometerFrequency = sf;
     }
 
-    public Double getSpectrometerFrequency() {
-        return spectrometerFrequency;
+    public String getSolvent() {
+        return this.solvent;
     }
 
     public void setSolvent(final String solvent) {
         this.solvent = solvent;
     }
 
-    public String getSolvent() {
-        return solvent;
+    public String getStandard() {
+        return this.standard;
     }
 
     public void setStandard(final String standard) {
         this.standard = standard;
     }
 
-    public String getStandard() {
-        return standard;
+    public String getDescription() {
+        return this.description;
     }
 
+    public void setDescription(final String description) {
+        this.description = description;
+    }
 
     /**
      * Returns the signal index (or indices) closest to the given shift. If no signal is found within the interval
@@ -395,7 +402,10 @@ public class Spectrum {
     }
 
     public Spectrum buildClone() {
-        final Spectrum clone = new Spectrum(this.getNuclei());
+        final Spectrum clone = new Spectrum();
+        clone.setNuclei(this.getNuclei()
+                            .clone());
+        clone.setSignals(new ArrayList<>());
         for (int i = 0; i
                 < this.getSignalCount(); i++) {
             clone.addSignal(this.getSignal(i)
@@ -414,27 +424,23 @@ public class Spectrum {
     public String toString() {
         return "Spectrum{"
                 + "description='"
-                + description
+                + this.description
                 + '\''
                 + ", specType='"
-                + specType
+                + this.specType
                 + '\''
                 + ", spectrometerFrequency="
-                + spectrometerFrequency
+                + this.spectrometerFrequency
                 + ", solvent='"
-                + solvent
+                + this.solvent
                 + '\''
                 + ", standard='"
-                + standard
+                + this.standard
                 + '\''
                 + ", signals="
-                + signals
+                + this.signals
                 + ", signalCount="
-                + signalCount
+                + this.signalCount
                 + '}';
-    }
-
-    public String getDescription() {
-        return description;
     }
 }

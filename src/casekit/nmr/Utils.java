@@ -118,28 +118,6 @@ public class Utils {
     }
 
     /**
-     * Specified for carbons only -> not generic!!!
-     *
-     * @param protonsCount
-     *
-     * @return
-     */
-    public static String getMultiplicityFromProtonsCount(final int protonsCount) {
-        switch (protonsCount) {
-            case 0:
-                return "S";
-            case 1:
-                return "D";
-            case 2:
-                return "T";
-            case 3:
-                return "Q";
-            default:
-                return null;
-        }
-    }
-
-    /**
      * Returns the casekit.nmr isotope identifier for a given element, e.g. C -> 13C.
      * Elements defined so far: C, H, N, P, F, D, O, S, Si, B, Pt.
      *

@@ -110,6 +110,7 @@ public class NMRShiftDB {
         String spectrumIndexInRecord;
         IMolecularFormula mf;
         List<Integer> explicitHydrogenIndices;
+        int[] temp;
 
         while (iterator.hasNext()) {
             structure = iterator.next();
@@ -168,7 +169,7 @@ public class NMRShiftDB {
                                     spectrum.setSpectrometerFrequency(Double.parseDouble(fieldStrength.split(
                                             spectrumIndexInRecord
                                                     + ":")[1]));
-                                } catch (NumberFormatException e) {
+                                } catch (final NumberFormatException e) {
                                     //                                    e.printStackTrace();
                                 }
                                 break;
@@ -182,18 +183,23 @@ public class NMRShiftDB {
                             && !explicitHydrogenIndices.isEmpty()) {
                         int hCount;
                         for (int i = 0; i
-                                < assignment.getAssignmentsCount(); i++) {
-                            hCount = 0;
-                            for (int j = 0; j
-                                    < explicitHydrogenIndices.size(); j++) {
-                                if (explicitHydrogenIndices.get(j)
-                                        >= assignment.getAssignment(0, i)) {
-                                    break;
+                                < assignment.getSize(); i++) {
+                            for (int k = 0; k
+                                    < assignment.getAssignment(0, i).length; k++) {
+                                hCount = 0;
+                                for (int j = 0; j
+                                        < explicitHydrogenIndices.size(); j++) {
+                                    if (explicitHydrogenIndices.get(j)
+                                            >= assignment.getAssignment(0, i, k)) {
+                                        break;
+                                    }
+                                    hCount++;
                                 }
-                                hCount++;
+                                temp = assignment.getAssignment(0, i);
+                                temp[k] = assignment.getAssignment(0, i, k)
+                                        - hCount;
+                                assignment.setAssignment(0, i, temp);
                             }
-                            assignment.setAssignment(0, i, assignment.getAssignment(0, i)
-                                    - hCount);
                         }
                     }
 
@@ -379,7 +385,7 @@ public class NMRShiftDB {
                 basicSpectrum.append(Double.parseDouble(spectrumStringArray[i][1]))
                              .append("\n");
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return null;
         }
 
@@ -394,7 +400,9 @@ public class NMRShiftDB {
             return null;
         }
         final String[][] spectrumStringArray = parseNMRShiftDBSpectrum(NMRShiftDBSpectrum);
-        final Spectrum spectrum = new Spectrum(new String[]{nucleus});
+        final Spectrum spectrum = new Spectrum();
+        spectrum.setNuclei(new String[]{nucleus});
+        spectrum.setSignals(new ArrayList<>());
         String multiplicity;
         Double shift, intensity;
         try {
@@ -407,7 +415,7 @@ public class NMRShiftDB {
                         new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 1,
                                    0));
             }
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return null;
         }
 
@@ -423,10 +431,15 @@ public class NMRShiftDB {
         }
         final String[][] NMRShiftDBSpectrumStringArray = parseNMRShiftDBSpectrum(NMRShiftDBSpectrum);
         final Spectrum spectrum = NMRShiftDBSpectrumToSpectrum(NMRShiftDBSpectrum, nucleus);
-        final Assignment assignment = new Assignment(spectrum);
+        final Assignment assignment = new Assignment();
+        assignment.setNuclei(spectrum.getNuclei());
+        assignment.initAssignments(spectrum.getSignalCount());
+        int signalIndex;
         for (int i = 0; i
                 < NMRShiftDBSpectrumStringArray.length; i++) {
-            assignment.setAssignment(0, i, new Integer(NMRShiftDBSpectrumStringArray[i][3]));
+            signalIndex = spectrum.pickClosestSignal(Double.parseDouble(NMRShiftDBSpectrumStringArray[i][0]), 0, 0.0)
+                                  .get(0);
+            assignment.addAssignmentEquivalence(0, signalIndex, Integer.parseInt(NMRShiftDBSpectrumStringArray[i][3]));
         }
 
         return assignment;

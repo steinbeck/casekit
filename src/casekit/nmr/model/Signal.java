@@ -46,10 +46,6 @@ public class Signal {
     public Signal() {
     }
 
-    public Signal(final String[] nuclei) {
-        this(nuclei, null, null, null, null, 1, 0);
-    }
-
     public Signal(final String[] nuclei, final Double[] shifts, final String multiplicity, final String kind,
                   final Double intensity, final int equivalencesCount, final int phase) {
         this.nuclei = nuclei;
@@ -100,70 +96,40 @@ public class Signal {
         return this.shifts[dim];
     }
 
-    public void setIntensity(final Double intensity) {
-        this.intensity = intensity;
-    }
-
     public Double getIntensity() {
         return this.intensity;
     }
 
-    public void setMultiplicity(final String multiplicity) {
-        this.multiplicity = multiplicity;
+    public void setIntensity(final Double intensity) {
+        this.intensity = intensity;
     }
 
     public String getMultiplicity() {
         return this.multiplicity;
     }
 
+    public void setMultiplicity(final String multiplicity) {
+        this.multiplicity = multiplicity;
+    }
+
     public String getKind() {
-        return kind;
+        return this.kind;
     }
 
     public void setKind(final String kind) {
         this.kind = kind;
     }
 
-    //    public void setPhase(final Integer phase) {
-    //        this.phase = phase;
-    //    }
-    //
-    //    public Integer getPhase() {
-    //        return this.phase;
-    //    }
-
-
-    public Signal buildClone() {
-        return new Signal(this.getNuclei(), this.shifts, this.multiplicity, this.kind, this.intensity,
-                          this.equivalencesCount, this.phase);
-    }
-
-    @Override
-    public String toString() {
-        return "Signal{"
-                + "shifts="
-                + Arrays.toString(shifts)
-                + ", multiplicity='"
-                + multiplicity
-                + '\''
-                + ", intensity="
-                + intensity
-                + ", kind='"
-                + kind
-                + '\''
-                + ", equivalencesCount="
-                + equivalencesCount
-                + ", phase="
-                + phase
-                + '}';
-    }
-
     public Double[] getShifts() {
-        return shifts;
+        return this.shifts;
+    }
+
+    public void setShifts(final Double[] shifts) {
+        this.shifts = shifts;
     }
 
     public int getEquivalencesCount() {
-        return equivalencesCount;
+        return this.equivalencesCount;
     }
 
     public void setEquivalencesCount(final int equivalencesCount) {
@@ -171,10 +137,36 @@ public class Signal {
     }
 
     public int getPhase() {
-        return phase;
+        return this.phase;
     }
 
     public void setPhase(final int phase) {
         this.phase = phase;
+    }
+
+    public Signal buildClone() {
+        return new Signal(this.getNuclei()
+                              .clone(), this.shifts.clone(), this.multiplicity, this.kind, this.intensity,
+                          this.equivalencesCount, this.phase);
+    }
+
+    @Override
+    public String toString() {
+        return "Signal{"
+                + "shifts="
+                + Arrays.toString(this.shifts)
+                + ", multiplicity='"
+                + this.multiplicity
+                + '\''
+                + ", intensity="
+                + this.intensity
+                + ", kind='"
+                + this.kind
+                + '\''
+                + ", equivalencesCount="
+                + this.equivalencesCount
+                + ", phase="
+                + this.phase
+                + '}';
     }
 }

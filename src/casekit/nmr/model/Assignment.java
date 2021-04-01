@@ -23,11 +23,7 @@
  */
 package casekit.nmr.model;
 
-import org.apache.commons.lang3.ArrayUtils;
-
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
@@ -36,33 +32,28 @@ public class Assignment
         implements Cloneable {
 
     private String[] nuclei;
-    private int[][] assignments;
+    private int[][][] assignments;
 
 
     public Assignment() {
     }
 
-    public Assignment(final String[] nuclei, final int[][] assignments) {
+    public Assignment(final String[] nuclei, final int[][][] assignments) {
         this.nuclei = nuclei;
         this.assignments = assignments;
     }
 
-    public Assignment(final Spectrum spectrum) {
-        this.nuclei = spectrum.getNuclei();
-        this.assignments = this.initAssignments(this.nuclei.length, spectrum.getSignalCount());
-    }
-
-    private int[][] initAssignments(final int nDim, final int nSignals) {
-        final int[][] temp = new int[nDim][nSignals];
+    public void initAssignments(final int length) {
+        final int[][][] temp = new int[this.getNDim()][length][1];
         for (int i = 0; i
-                < nDim; i++) {
+                < this.getNDim(); i++) {
             for (int j = 0; j
-                    < nSignals; j++) {
-                temp[i][j] = -1;
+                    < length; j++) {
+                temp[i][j] = new int[]{};
             }
         }
 
-        return temp;
+        this.assignments = temp;
     }
 
     public String[] getNuclei() {
@@ -89,7 +80,7 @@ public class Assignment
     }
 
     /**
-     * Sets an assignment with value for an index position.
+     * Sets an assignment array with value for an index position.
      *
      * @param dim
      * @param index
@@ -97,7 +88,7 @@ public class Assignment
      *
      * @return
      */
-    public boolean setAssignment(final int dim, final int index, final int assignment) {
+    public boolean setAssignment(final int dim, final int index, final int[] assignment) {
         if (!this.containsDim(dim)
                 || !this.checkIndex(dim, index)) {
             return false;
@@ -107,20 +98,21 @@ public class Assignment
         return true;
     }
 
-    public boolean setAssignments(final int dim, final List<Integer> assignments) {
+    public boolean setAssignments(final int dim, final int[][] assignments) {
         if (!this.containsDim(dim)
-                || !this.checkInputListSize(assignments.size())) {
+                || this.getSize()
+                != assignments.length) {
             return false;
         }
         for (int i = 0; i
-                < this.getAssignmentsCount(); i++) {
-            this.setAssignment(dim, i, assignments.get(i));
+                < this.getSize(); i++) {
+            this.setAssignment(dim, i, assignments[i]);
         }
 
         return true;
     }
 
-    public Integer getAssignment(final int dim, final int index) {
+    public int[] getAssignment(final int dim, final int index) {
         if (!this.containsDim(dim)
                 || !this.checkIndex(dim, index)) {
             return null;
@@ -129,14 +121,38 @@ public class Assignment
         return this.assignments[dim][index];
     }
 
+    public int getAssignment(final int dim, final int index, final int equivalenceIndex) {
+        if (!this.containsDim(dim)
+                || !this.checkIndex(dim, index)) {
+            return -1;
+        }
+
+        return this.assignments[dim][index][equivalenceIndex];
+    }
+
+    public void addAssignmentEquivalence(final int dim, final int index, final int equivalenceIndex) {
+        final int[] temp = this.getAssignment(dim, index);
+        final int[] equivalenceIndices = new int[temp.length
+                + 1];
+        for (int j = 0; j
+                < temp.length; j++) {
+            equivalenceIndices[j] = temp[j];
+        }
+        equivalenceIndices[equivalenceIndices.length
+                - 1] = equivalenceIndex;
+
+        this.setAssignment(dim, index, equivalenceIndices);
+    }
+
     public Integer getIndex(final int dim, final int assignment) {
         if (!this.containsDim(dim)) {
             return null;
         }
         for (int index = 0; index
                 < this.assignments[dim].length; index++) {
-            if (this.getAssignment(dim, index)
-                    == assignment) {
+            if (Arrays.stream(this.getAssignment(dim, index))
+                      .anyMatch(value -> value
+                              == assignment)) {
                 return index;
             }
         }
@@ -144,15 +160,15 @@ public class Assignment
         return -1;
     }
 
-    public ArrayList<Integer> getAssignments(final int dim) {
+    public int[][] getAssignments(final int dim) {
         if (!this.containsDim(dim)) {
             return null;
         }
 
-        return new ArrayList<>(Arrays.asList(ArrayUtils.toObject(this.assignments[dim])));
+        return this.assignments[dim];
     }
 
-    public int getAssignmentsCount() {
+    public int getSize() {
         if (this.getNDim()
                 > 0) {
             return this.assignments[0].length;
@@ -165,8 +181,8 @@ public class Assignment
         if (this.containsDim(dim)) {
             for (int j = 0; j
                     < this.assignments[dim].length; j++) {
-                if (this.assignments[dim][j]
-                        != -1) {
+                if (this.assignments[dim][j].length
+                        > 0) {
                     setAssignmentsCounter++;
                 }
             }
@@ -174,74 +190,15 @@ public class Assignment
         return setAssignmentsCounter;
     }
 
-    public Boolean isFullyAssigned(final int dim) {
-        if (!this.containsDim(dim)) {
-            return null;
-        }
-
-        return this.getSetAssignmentsCount(dim)
-                == this.getAssignmentsCount();
-    }
-
-    public Boolean isAssigned(final int dim, final int index) {
-        if (!this.containsDim(dim)) {
-            return null;
-        }
-
-        return this.getAssignment(dim, index)
-                != -1;
-    }
-
-    /**
-     * Adds a new assignment entry (index), e.g. for a new signal. The given assignment indices
-     * will be stored for each dimension of the new assignment entry (index).
-     *
-     * @param assignment assignment indices to store in each dimension of new assignment entry
-     *
-     * @return
-     */
-    public boolean addAssignment(final int[] assignment) {
-        if (this.getNDim()
-                != assignments.length) {
-            return false;
-        }
-        final int[][] extendedAssignments = new int[this.getNDim()][this.getAssignmentsCount()
-                + 1];
-        for (int dim = 0; dim
-                < this.getNDim(); dim++) {
-            for (int i = 0; i
-                    < this.getAssignmentsCount(); i++) {
-                extendedAssignments[dim][i] = this.getAssignment(dim, i);
+    public int getSetAssignmentsCountWithEquivalences(final int dim) {
+        int setAssignmentsCounter = 0;
+        if (this.containsDim(dim)) {
+            for (int j = 0; j
+                    < this.assignments[dim].length; j++) {
+                setAssignmentsCounter += this.assignments[dim][j].length;
             }
-            extendedAssignments[dim][this.getAssignmentsCount()] = assignment[dim];
         }
-        this.assignments = extendedAssignments;
-
-        return true;
-    }
-
-    public boolean removeAssignment(final int index) {
-        if (!this.checkIndex(0, index)) {
-            return false;
-        }
-        final int[][] reducedAssignments = new int[this.getNDim()][this.getAssignmentsCount()
-                - 1];
-        int nextIndexToInsertCounter = 0;
-        for (int i = 0; i
-                < this.getAssignmentsCount(); i++) {
-            if (i
-                    == index) {
-                continue;
-            }
-            for (int dim = 0; dim
-                    < this.getNDim(); dim++) {
-                reducedAssignments[dim][nextIndexToInsertCounter] = this.getAssignment(dim, i);
-            }
-            nextIndexToInsertCounter++;
-        }
-        this.assignments = reducedAssignments;
-
-        return true;
+        return setAssignmentsCounter;
     }
 
     private boolean checkIndex(final int dim, final int index) {
@@ -251,9 +208,8 @@ public class Assignment
                 < this.assignments[dim].length);
     }
 
-    private boolean checkInputListSize(final int size) {
-        return (size
-                == this.getAssignmentsCount());
+    public int[][][] getAssignments() {
+        return this.assignments;
     }
 
     @Override
@@ -273,9 +229,5 @@ public class Assignment
         }
 
         return stringBuilder.toString();
-    }
-
-    public int[][] getAssignments() {
-        return assignments;
     }
 }

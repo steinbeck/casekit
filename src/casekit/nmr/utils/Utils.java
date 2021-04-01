@@ -19,25 +19,36 @@ import java.util.regex.Pattern;
 
 public class Utils {
 
+    /**
+     * Specified for carbons only -> not generic!!!
+     *
+     * @param protonsCount
+     *
+     * @return
+     */
+    public static String getMultiplicityFromProtonsCount(final int protonsCount) {
+        switch (protonsCount) {
+            case 0:
+                return "S";
+            case 1:
+                return "D";
+            case 2:
+                return "T";
+            case 3:
+                return "Q";
+            default:
+                return null;
+        }
+    }
+
     public static String getMultiplicityFromProtonsCount(final Correlation correlation) {
         if (correlation.getAtomType()
                        .equals("C")
                 && correlation.getProtonsCount()
                               .size()
                 == 1) {
-            switch (correlation.getProtonsCount()
-                               .get(0)) {
-                case 0:
-                    return "s";
-                case 1:
-                    return "d";
-                case 2:
-                    return "t";
-                case 3:
-                    return "q";
-                default:
-                    return null;
-            }
+            return getMultiplicityFromProtonsCount(correlation.getProtonsCount()
+                                                              .get(0));
         }
         return null;
     }

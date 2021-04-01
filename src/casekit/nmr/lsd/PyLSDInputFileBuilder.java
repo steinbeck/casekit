@@ -500,8 +500,8 @@ public class PyLSDInputFileBuilder {
                           .add(buildCOSY(correlation, i, data, indicesMap));
                 collection.get("SHIX")
                           .add(buildSHIX(correlation, i, indicesMap));
-                collection.get("SHIH")
-                          .add(buildSHIH(correlation, i, indicesMap));
+                //                collection.get("SHIH")
+                //                          .add(buildSHIH(correlation, i, indicesMap));
             }
 
             collection.keySet()

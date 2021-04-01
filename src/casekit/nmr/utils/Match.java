@@ -269,7 +269,7 @@ public class Match {
                 }
                 if (checkEquivalencesCount) {
                     passed = querySpectrum.getEquivalencesCount(pickedSignalIndexSpectrum2)
-                            <= spectrum.getEquivalencesCount(i);
+                            == spectrum.getEquivalencesCount(i);
                 }
 
                 if (passed) {

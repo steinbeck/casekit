@@ -27,10 +27,7 @@ import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class NMRShiftDB {
 
@@ -102,7 +99,7 @@ public class NMRShiftDB {
         IAtomContainer structure;
         Spectrum spectrum;
         Assignment assignment;
-        HashMap<String, String> meta;
+        Map<String, String> meta;
         final CDKHydrogenAdder hydrogenAdder = CDKHydrogenAdder.getInstance(SilentChemObjectBuilder.getInstance());
 
         List<String> spectraProperties1D;
@@ -111,6 +108,8 @@ public class NMRShiftDB {
         IMolecularFormula mf;
         List<Integer> explicitHydrogenIndices;
         int[] temp;
+        StringBuilder mfAlphabetic;
+        Map<String, Integer> mfAlphabeticMap;
 
         while (iterator.hasNext()) {
             structure = iterator.next();
@@ -128,7 +127,18 @@ public class NMRShiftDB {
             meta.put("title", structure.getTitle());
             meta.put("id", structure.getProperty("nmrshiftdb2 ID"));
             mf = Utils.getMolecularFormulaFromAtomContainer(structure);
-            meta.put("mf", Utils.molecularFormularToString(mf));
+            meta.put("mfOriginal", Utils.molecularFormularToString(mf));
+            mfAlphabetic = new StringBuilder();
+            mfAlphabeticMap = new TreeMap<>(
+                    casekit.nmr.utils.Utils.getMolecularFormulaElementCounts(Utils.molecularFormularToString(mf)));
+            for (final Map.Entry<String, Integer> entry : mfAlphabeticMap.entrySet()) {
+                mfAlphabetic.append(entry.getKey());
+                if (entry.getValue()
+                        > 1) {
+                    mfAlphabetic.append(entry.getValue());
+                }
+            }
+            meta.put("mf", mfAlphabetic.toString());
             try {
                 final String smiles = casekit.nmr.utils.Utils.getSmilesFromAtomContainer(structure);
                 meta.put("smiles", smiles);

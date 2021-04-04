@@ -79,11 +79,9 @@ public class Match {
      * @param dim2      dimension in second spectrum to take the shifts from
      *
      * @return
-     *
-     * @throws CDKException
      */
     public static Float calculateTanimotoCoefficient(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
-                                                     final int dim2) throws CDKException {
+                                                     final int dim2) {
         if (!Match.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
             return null;
         }
@@ -96,7 +94,12 @@ public class Match {
                                                                                  new Double[spectrum2.getSignalCount()]));
         Arrays.parallelSort(shiftsSpectrum2);
 
-        return Tanimoto.calculate(shiftsSpectrum1, shiftsSpectrum2);
+        try {
+            return Tanimoto.calculate(shiftsSpectrum1, shiftsSpectrum2);
+        } catch (final CDKException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     /**

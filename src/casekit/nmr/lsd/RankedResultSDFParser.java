@@ -119,12 +119,9 @@ public class RankedResultSDFParser {
             }
             dataSet = new DataSet(structure, predictedSpectrum, assignment, meta);
             dataSet.addMetaInfo("rmsd", String.valueOf(Match.calculateRMSD(deviations)));
-            try {
-                dataSet.addMetaInfo("tanimoto", String.valueOf(
-                        Match.calculateTanimotoCoefficient(dataSet.getSpectrum(), experimentalSpectrum, 0, 0)));
-            } catch (final CDKException e) {
-                e.printStackTrace();
-            }
+            dataSet.addMetaInfo("tanimoto", String.valueOf(
+                    Match.calculateTanimotoCoefficient(dataSet.getSpectrum(), experimentalSpectrum, 0, 0)));
+
             dataSetList.add(dataSet);
         }
         // pre-sort by RMSD value

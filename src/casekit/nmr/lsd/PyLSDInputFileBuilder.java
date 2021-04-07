@@ -405,28 +405,32 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildFilters(final String pathToLSDFilterList) {
+    private static String buildFilters(final String[] filterPaths) {
         final StringBuilder stringBuilder = new StringBuilder();
         // DEFF + FEXP -> add filters
         stringBuilder.append("; externally defined filters\n");
         final Map<String, String> filters = new LinkedHashMap<>();
         int counter = 1;
-        try {
-            final BufferedReader bufferedReader = FileSystem.readFile(pathToLSDFilterList);
-            if (bufferedReader
-                    != null) {
-                String line;
-                while ((line = bufferedReader.readLine())
+        BufferedReader bufferedReader;
+        for (final String filterPath : filterPaths) {
+            try {
+                bufferedReader = FileSystem.readFile(filterPath);
+                if (bufferedReader
                         != null) {
-                    filters.put("F"
-                                        + counter, line);
-                    counter++;
+                    String line;
+                    while ((line = bufferedReader.readLine())
+                            != null) {
+                        filters.put("F"
+                                            + counter, line);
+                        counter++;
+                    }
+                    bufferedReader.close();
                 }
-                bufferedReader.close();
+            } catch (final IOException e) {
+                e.printStackTrace();
             }
-        } catch (final IOException e) {
-            e.printStackTrace();
         }
+
         if (!filters.isEmpty()) {
             filters.forEach((label, filePath) -> stringBuilder.append("DEFF ")
                                                               .append(label)
@@ -479,8 +483,10 @@ public class PyLSDInputFileBuilder {
             stringBuilder.append(buildPIEC())
                          .append("\n\n");
             // ELIM
-            stringBuilder.append(buildELIM(elucidationOptions.getElimP1(), elucidationOptions.getElimP2()))
-                         .append("\n\n");
+            if (elucidationOptions.isUseElim()) {
+                stringBuilder.append(buildELIM(elucidationOptions.getElimP1(), elucidationOptions.getElimP2()))
+                             .append("\n\n");
+            }
 
             final Map<String, List<String>> collection = new LinkedHashMap<>();
             collection.put("MULT", new ArrayList<>());
@@ -528,11 +534,9 @@ public class PyLSDInputFileBuilder {
             // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance
             stringBuilder.append(buildLISTAndPROP(elucidationOptions.isAllowHeteroHeteroBonds()))
                          .append("\n");
-            // DEFF and FEXP as default filters (bad lists)
-            stringBuilder.append(buildFilters(elucidationOptions.getPathToLSDFilterList()))
+            // DEFF and FEXP as filters (bad lists)
+            stringBuilder.append(buildFilters(elucidationOptions.getFilterPaths()))
                          .append("\n");
-
-            //            stringBuilder.append("\n").append("MAXT 30").append("\n");
 
             return stringBuilder.toString();
         }

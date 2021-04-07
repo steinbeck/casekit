@@ -3,20 +3,21 @@ package casekit.nmr.lsd.model;
 public class ElucidationOptions {
 
     // PyLSD options
-    private String pathToLSDFilterList;
+    private String[] filterPaths;
     private boolean allowHeteroHeteroBonds;
+    private boolean useElim;
     private int elimP1;
     private int elimP2;
 
     public ElucidationOptions() {
     }
 
-    public String getPathToLSDFilterList() {
-        return this.pathToLSDFilterList;
+    public String[] getFilterPaths() {
+        return this.filterPaths;
     }
 
-    public void setPathToLSDFilterList(final String pathToLSDFilterList) {
-        this.pathToLSDFilterList = pathToLSDFilterList;
+    public void setFilterPaths(final String[] filterPaths) {
+        this.filterPaths = filterPaths;
     }
 
     public boolean isAllowHeteroHeteroBonds() {
@@ -25,6 +26,14 @@ public class ElucidationOptions {
 
     public void setAllowHeteroHeteroBonds(final boolean allowHeteroHeteroBonds) {
         this.allowHeteroHeteroBonds = allowHeteroHeteroBonds;
+    }
+
+    public boolean isUseElim() {
+        return this.useElim;
+    }
+
+    public void setUseElim(final boolean useElim) {
+        this.useElim = useElim;
     }
 
     public int getElimP1() {

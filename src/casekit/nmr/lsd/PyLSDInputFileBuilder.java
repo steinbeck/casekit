@@ -1,6 +1,7 @@
 package casekit.nmr.lsd;
 
 import casekit.io.FileSystem;
+import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.nmrdisplayer.Correlation;
 import casekit.nmr.model.nmrdisplayer.Data;
 import casekit.nmr.model.nmrdisplayer.Link;
@@ -40,6 +41,13 @@ public class PyLSDInputFileBuilder {
 
     private static String buildPIEC() {
         return "PIEC 1";
+    }
+
+    private static String buildELIM(final int elimP1, final int elimP2) {
+        return "ELIM "
+                + elimP1
+                + " "
+                + elimP2;
     }
 
     private static Map<Integer, Object[]> buildIndicesMap(final Data data, final Map<String, Integer> elementCounts) {
@@ -447,8 +455,7 @@ public class PyLSDInputFileBuilder {
 
     public static String buildPyLSDInputFileContent(final Data data, final String mf,
                                                     final Map<Integer, List<Integer>> detectedHybridizations,
-                                                    final boolean allowHeteroHeteroBonds,
-                                                    final String pathToLSDFilterList) {
+                                                    final ElucidationOptions elucidationOptions) {
         final Map<String, Map<String, Object>> state = data.getCorrelations()
                                                            .getState();
         final boolean hasErrors = state.keySet()
@@ -470,6 +477,9 @@ public class PyLSDInputFileBuilder {
                          .append("\n\n");
             // PIEC
             stringBuilder.append(buildPIEC())
+                         .append("\n\n");
+            // ELIM
+            stringBuilder.append(buildELIM(elucidationOptions.getElimP1(), elucidationOptions.getElimP2()))
                          .append("\n\n");
 
             final Map<String, List<String>> collection = new LinkedHashMap<>();
@@ -516,10 +526,10 @@ public class PyLSDInputFileBuilder {
             // BOND (interpretation, INADEQUATE, previous assignments) -> input fragments
 
             // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance
-            stringBuilder.append(buildLISTAndPROP(allowHeteroHeteroBonds))
+            stringBuilder.append(buildLISTAndPROP(elucidationOptions.isAllowHeteroHeteroBonds()))
                          .append("\n");
             // DEFF and FEXP as default filters (bad lists)
-            stringBuilder.append(buildFilters(pathToLSDFilterList))
+            stringBuilder.append(buildFilters(elucidationOptions.getPathToLSDFilterList()))
                          .append("\n");
 
             //            stringBuilder.append("\n").append("MAXT 30").append("\n");

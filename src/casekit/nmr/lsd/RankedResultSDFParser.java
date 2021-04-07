@@ -40,6 +40,7 @@ public class RankedResultSDFParser {
         DataSet dataSet;
         Double[] deviations;
         int signalCounter, matchedSignalIndex;
+        List<Integer> closestSignalList;
 
         while (iterator.hasNext()) {
             structure = iterator.next();
@@ -91,11 +92,17 @@ public class RankedResultSDFParser {
             for (final Map.Entry<String, String> shiftProperty1D : shiftProperties1D.entrySet()) {
                 split = shiftProperty1D.getValue()
                                        .split("\\s");
+                multiplicity = Utils.getMultiplicityFromProtonsCount(structure.getAtom(Integer.parseInt(split[0])
+                                                                                               - 1)
+                                                                              .getImplicitHydrogenCount());
                 experimentalShift = Double.parseDouble(split[1]); // exp. shift
                 predictedShift = Double.parseDouble(split[3]); // pred. shift
 
-                matchedSignalIndex = experimentalSpectrum.pickClosestSignal(experimentalShift, 0, 0.0)
-                                                         .get(0);
+                // just to be sure that we take the right signal if equivalences are present
+                closestSignalList = experimentalSpectrum.pickByClosestShift(experimentalShift, 0, 0.0);
+                closestSignalList.retainAll(experimentalSpectrum.pickByMultiplicity(multiplicity));
+                matchedSignalIndex = closestSignalList.get(0);
+
                 deviations[signalCounter] = Math.abs(predictedShift
                                                              - experimentalShift);
                 signalShiftList.putIfAbsent(matchedSignalIndex, new ArrayList<>());
@@ -107,7 +114,7 @@ public class RankedResultSDFParser {
             }
             for (final int signalIndex : signalShiftList.keySet()) {
                 predictedSpectrum.getSignal(signalIndex)
-                                 .setShift(casekit.nmr.Utils.getMean(signalShiftList.get(signalIndex)), 0);
+                                 .setShift(casekit.nmr.Utils.getMedian(signalShiftList.get(signalIndex)), 0);
                 predictedSpectrum.getSignal(signalIndex)
                                  .setEquivalencesCount(signalShiftList.get(signalIndex)
                                                                       .size());

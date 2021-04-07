@@ -445,10 +445,17 @@ public class NMRShiftDB {
         assignment.setNuclei(spectrum.getNuclei());
         assignment.initAssignments(spectrum.getSignalCount());
         int signalIndex;
+        String multiplicity;
+        List<Integer> closestSignalList;
         for (int i = 0; i
                 < NMRShiftDBSpectrumStringArray.length; i++) {
-            signalIndex = spectrum.pickByClosestShift(Double.parseDouble(NMRShiftDBSpectrumStringArray[i][0]), 0, 0.0)
-                                  .get(0);
+            // just to be sure that we take the right signal if equivalences are present
+            closestSignalList = spectrum.pickByClosestShift(Double.parseDouble(NMRShiftDBSpectrumStringArray[i][0]), 0,
+                                                            0.0);
+            multiplicity = NMRShiftDBSpectrumStringArray[i][2];
+            closestSignalList.retainAll(spectrum.pickByMultiplicity(multiplicity));
+            signalIndex = closestSignalList.get(0);
+
             assignment.addAssignmentEquivalence(0, signalIndex, Integer.parseInt(NMRShiftDBSpectrumStringArray[i][3]));
         }
 

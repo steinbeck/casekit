@@ -133,21 +133,23 @@ public class Spectrum {
      *
      * @return
      *
-     * @see #addSignal(Signal, double)
+     * @see #addSignal(Signal, double, boolean)
      */
     public boolean addSignal(final Signal signal) {
-        return this.addSignal(signal, 0.0);
+        return this.addSignal(signal, 0.0, true);
     }
 
     /**
      * Adds a signal to this spectrum and stores an equivalent signal index.
      *
-     * @param signal        signal to add
-     * @param pickPrecision precision to find equivalent signals to store in
+     * @param signal            signal to add
+     * @param pickPrecision     precision to find equivalent signals to store in
+     * @param checkMultiplicity indicates whether to compare the multiplicity of signal
+     *                          to add while searching for equivalences
      *
      * @return
      */
-    public boolean addSignal(final Signal signal, final double pickPrecision) {
+    public boolean addSignal(final Signal signal, final double pickPrecision, final boolean checkMultiplicity) {
         if ((signal
                 == null)
                 || !this.compareNuclei(signal.getNuclei())) {
@@ -155,10 +157,14 @@ public class Spectrum {
         }
 
         // check for equivalent signals in all dimensions
-        final List<Integer> closestSignalList = this.pickClosestSignal(signal.getShift(0), 0, pickPrecision);
+        final List<Integer> closestSignalList = this.pickByClosestShift(signal.getShift(0), 0, pickPrecision);
         for (int dim = 1; dim
                 < this.getNDim(); dim++) {
-            closestSignalList.retainAll(this.pickClosestSignal(signal.getShift(dim), dim, pickPrecision));
+            closestSignalList.retainAll(this.pickByClosestShift(signal.getShift(dim), dim, pickPrecision));
+        }
+
+        if (checkMultiplicity) {
+            closestSignalList.retainAll(this.pickByMultiplicity(signal.getMultiplicity()));
         }
 
         if (closestSignalList.isEmpty()) {
@@ -332,6 +338,35 @@ public class Spectrum {
     }
 
     /**
+     * Returns the indices of signals with same multiplicity.
+     *
+     * @param multiplicity multiplicity to search for
+     *
+     * @return
+     */
+    public List<Integer> pickByMultiplicity(final String multiplicity) {
+        final List<Integer> matchIndices = new ArrayList<>();
+        for (int s = 0; s
+                < this.getSignalCount(); s++) {
+            if ((this.getSignal(s)
+                     .getMultiplicity()
+                    == null
+                    && multiplicity
+                    == null)
+                    || (this.getSignal(s)
+                            .getMultiplicity()
+                    != null
+                    && this.getSignal(s)
+                           .getMultiplicity()
+                           .equals(multiplicity))) {
+                matchIndices.add(s);
+            }
+        }
+
+        return matchIndices;
+    }
+
+    /**
      * Returns the signal index (or indices) closest to the given shift. If no signal is found within the interval
      * defined by {@code pickPrecision}, an empty list is returned.
      *
@@ -341,7 +376,7 @@ public class Spectrum {
      *
      * @return
      */
-    public List<Integer> pickClosestSignal(final double shift, final int dim, final double pickPrecision) {
+    public List<Integer> pickByClosestShift(final double shift, final int dim, final double pickPrecision) {
         final List<Integer> matchIndices = new ArrayList<>();
         if (!this.containsDim(dim)) {
             return matchIndices;

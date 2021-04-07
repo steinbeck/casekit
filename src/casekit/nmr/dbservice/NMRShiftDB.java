@@ -447,7 +447,7 @@ public class NMRShiftDB {
         int signalIndex;
         for (int i = 0; i
                 < NMRShiftDBSpectrumStringArray.length; i++) {
-            signalIndex = spectrum.pickClosestSignal(Double.parseDouble(NMRShiftDBSpectrumStringArray[i][0]), 0, 0.0)
+            signalIndex = spectrum.pickByClosestShift(Double.parseDouble(NMRShiftDBSpectrumStringArray[i][0]), 0, 0.0)
                                   .get(0);
             assignment.addAssignmentEquivalence(0, signalIndex, Integer.parseInt(NMRShiftDBSpectrumStringArray[i][3]));
         }

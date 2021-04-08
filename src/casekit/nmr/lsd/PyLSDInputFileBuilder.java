@@ -313,10 +313,6 @@ public class PyLSDInputFileBuilder {
                              .equals(correlation.getId())) {
                         for (int k = 1; k
                                 < indicesMap.get(index).length; k++) {
-                            //                            for (int l = 1; l < indicesMap.get(matchIndex).length; l++) {
-                            //                                uniqueSet.add(indicesMap.get(index)[k] + " " + indicesMap.get(matchIndex)[l]);
-                            //                            }
-
                             // only allow COSY values between possible equivalent protons and only one another non-equivalent proton
                             if (indicesMap.get(matchIndex).length
                                     == 2) {
@@ -516,8 +512,8 @@ public class PyLSDInputFileBuilder {
                           .add(buildCOSY(correlation, i, data, indicesMap));
                 collection.get("SHIX")
                           .add(buildSHIX(correlation, i, indicesMap));
-                //                collection.get("SHIH")
-                //                          .add(buildSHIH(correlation, i, indicesMap));
+                collection.get("SHIH")
+                          .add(buildSHIH(correlation, i, indicesMap));
             }
 
             collection.keySet()

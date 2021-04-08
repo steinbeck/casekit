@@ -58,7 +58,7 @@ public class RankedResultSDFParser {
             } catch (final CDKException e) {
                 e.printStackTrace();
             }
-            shiftProperties1D = getShiftProperties1D(structure);
+            shiftProperties1D = getShiftProperties1D(structure, Utils.getAtomTypeFromNucleus(nucleus));
 
             experimentalSpectrum = new Spectrum();
             experimentalSpectrum.setNuclei(new String[]{nucleus});
@@ -150,7 +150,7 @@ public class RankedResultSDFParser {
         return dataSetList;
     }
 
-    public static LinkedHashMap<String, String> getShiftProperties1D(final IAtomContainer ac) {
+    public static LinkedHashMap<String, String> getShiftProperties1D(final IAtomContainer ac, final String atomType) {
         final LinkedHashMap<String, String> shiftProperties1D = new LinkedHashMap<>();
         String[] split;
         for (final Object key : ac.getProperties()
@@ -158,7 +158,12 @@ public class RankedResultSDFParser {
             if (key instanceof String
                     && ((String) key).startsWith("CS")) {
                 split = ((String) key).split("CS");
-                shiftProperties1D.put(split[1], ac.getProperty(key));
+                if (ac.getAtom(Integer.parseInt(split[1])
+                                       - 1)
+                      .getSymbol()
+                      .equals(atomType)) {
+                    shiftProperties1D.put(split[1], ac.getProperty(key));
+                }
             }
         }
 

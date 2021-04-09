@@ -244,12 +244,14 @@ public class PyLSDInputFileBuilder {
     }
 
     private static String buildHMBC(final Correlation correlation, final int index, final Data data,
-                                    final Map<Integer, Object[]> indicesMap) {
+                                    final Map<Integer, Object[]> indicesMap, final int hmbcP3, final int hmbcP4) {
         if (correlation.getAtomType()
                        .equals("H")) {
             return null;
         }
-        final String defaultBondDistance = "2 4";
+        final String defaultBondDistance = hmbcP3
+                + " "
+                + hmbcP4;
         final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType()
@@ -294,12 +296,14 @@ public class PyLSDInputFileBuilder {
     }
 
     private static String buildCOSY(final Correlation correlation, final int index, final Data data,
-                                    final Map<Integer, Object[]> indicesMap) {
+                                    final Map<Integer, Object[]> indicesMap, final int cosyP3, final int cosyP4) {
         if (!correlation.getAtomType()
                         .equals("H")) {
             return null;
         }
-        final String defaultBondDistance = "3 4";
+        final String defaultBondDistance = cosyP3
+                + " "
+                + cosyP4;
         final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType()
@@ -507,9 +511,11 @@ public class PyLSDInputFileBuilder {
                 collection.get("HSQC")
                           .add(buildHSQC(correlation, i, indicesMap));
                 collection.get("HMBC")
-                          .add(buildHMBC(correlation, i, data, indicesMap));
+                          .add(buildHMBC(correlation, i, data, indicesMap, elucidationOptions.getHmbcP3(),
+                                         elucidationOptions.getHmbcP4()));
                 collection.get("COSY")
-                          .add(buildCOSY(correlation, i, data, indicesMap));
+                          .add(buildCOSY(correlation, i, data, indicesMap, elucidationOptions.getCosyP3(),
+                                         elucidationOptions.getCosyP4()));
                 collection.get("SHIX")
                           .add(buildSHIX(correlation, i, indicesMap));
                 collection.get("SHIH")

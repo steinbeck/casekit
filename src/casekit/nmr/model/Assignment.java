@@ -194,13 +194,33 @@ public class Assignment
         return setAssignmentsCounter;
     }
 
+    public boolean addAssignment(final int dim, final int[] assignment) {
+        if (!this.containsDim(dim)) {
+            return false;
+        }
+
+        final int[][][] newAssignments = new int[this.getNDim()][][];
+        for (int d = 0; d
+                < this.getNDim(); d++) {
+            newAssignments[d] = new int[this.assignments[d].length
+                    + 1][];
+            for (int i = 0; i
+                    < this.assignments[d].length; i++) {
+                newAssignments[d][i] = this.assignments[d][i];
+            }
+        }
+        newAssignments[dim][this.assignments[dim].length] = assignment;
+        this.assignments = newAssignments;
+
+        return true;
+    }
+
     private boolean checkIndex(final int dim, final int index) {
         return (index
                 >= 0)
                 && (index
                 < this.assignments[dim].length);
     }
-
 
     @Override
     public Assignment clone() throws CloneNotSupportedException {

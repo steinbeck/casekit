@@ -107,22 +107,26 @@ public class Match {
      * Returns deviations between matched shifts of two spectra.
      * The matching procedure is already included here.
      *
-     * @param spectrum1 first spectrum
-     * @param spectrum2 second spectrum
-     * @param dim1      dimension in first spectrum to take the shifts from
-     * @param dim2      dimension in second spectrum to take the shifts from
-     * @param shiftTol
+     * @param spectrum1                   first spectrum
+     * @param spectrum2                   second spectrum
+     * @param dim1                        dimension in first spectrum to take the shifts from
+     * @param dim2                        dimension in second spectrum to take the shifts from
+     * @param shiftTol                    shift tolerance
+     * @param checkMultiplicity           indicates whether to compare the multiplicity of matched signals
+     * @param checkEquivalencesCount      indicates whether to compare the equivalences counts of matched signals
+     * @param allowLowerEquivalencesCount indicates to allow a lower equivalences counts spectrum 2
      *
      * @return
      *
-     * @see #matchSpectra(Spectrum, Spectrum, int, int, double, boolean, boolean)
+     * @see #matchSpectra(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
      */
     public static Double[] getDeviations(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                          final int dim2, final double shiftTol, final boolean checkMultiplicity,
-                                         final boolean checkEquivalencesCount) {
+                                         final boolean checkEquivalencesCount,
+                                         final boolean allowLowerEquivalencesCount) {
         final Double[] deviations = new Double[spectrum1.getSignalCount()];
         final Assignment matchAssignments = matchSpectra(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
-                                                         checkEquivalencesCount);
+                                                         checkEquivalencesCount, allowLowerEquivalencesCount);
         Signal matchedSignalInSpectrum2;
         for (int i = 0; i
                 < spectrum1.getSignalCount(); i++) {
@@ -162,25 +166,29 @@ public class Match {
      * Returns the average of all deviations of matched shifts between two
      * spectra.
      *
-     * @param spectrum1 first spectrum
-     * @param spectrum2 second spectrum
-     * @param dim1      dimension in first spectrum to take the shifts from
-     * @param dim2      dimension in second spectrum to take the shifts from
-     * @param shiftTol  Tolerance value [ppm] used during peak picking in
-     *                  shift comparison
+     * @param spectrum1                   first spectrum
+     * @param spectrum2                   second spectrum
+     * @param dim1                        dimension in first spectrum to take the shifts from
+     * @param dim2                        dimension in second spectrum to take the shifts from
+     * @param shiftTol                    Tolerance value [ppm] used during peak picking in
+     *                                    shift comparison
+     * @param checkMultiplicity           indicates whether to compare the multiplicity of matched signals
+     * @param checkEquivalencesCount      indicates whether to compare the equivalences counts of matched signals
+     * @param allowLowerEquivalencesCount indicates to allow a lower equivalences counts spectrum 2
      *
      * @return
      *
-     * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean)
+     * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
      * @see #calculateAverageDeviation(Double[])
      */
     public static Double calculateAverageDeviation(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                                    final int dim2, final double shiftTol,
                                                    final boolean checkMultiplicity,
-                                                   final boolean checkEquivalencesCount) {
+                                                   final boolean checkEquivalencesCount,
+                                                   final boolean allowLowerEquivalencesCount) {
         return Match.calculateAverageDeviation(
                 Match.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
-                                    checkEquivalencesCount));
+                                    checkEquivalencesCount, allowLowerEquivalencesCount));
     }
 
     /**
@@ -206,23 +214,27 @@ public class Match {
      * Returns the average of all deviations of matched shifts between two
      * spectra.
      *
-     * @param spectrum1 first spectrum
-     * @param spectrum2 second spectrum
-     * @param dim1      dimension in first spectrum to take the shifts from
-     * @param dim2      dimension in second spectrum to take the shifts from
-     * @param shiftTol  Tolerance value [ppm] used during peak picking in
-     *                  shift comparison
+     * @param spectrum1                   first spectrum
+     * @param spectrum2                   second spectrum
+     * @param dim1                        dimension in first spectrum to take the shifts from
+     * @param dim2                        dimension in second spectrum to take the shifts from
+     * @param shiftTol                    Tolerance value [ppm] used during peak picking in
+     *                                    shift comparison
+     * @param checkMultiplicity           indicates whether to compare the multiplicity of matched signals
+     * @param checkEquivalencesCount      indicates whether to compare the equivalences counts of matched signals
+     * @param allowLowerEquivalencesCount indicates to allow a lower equivalences counts spectrum 2
      *
      * @return
      *
-     * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean)
+     * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
      * @see #calculateAverageDeviation(Double[])
      */
     public static Double calculateRMSD(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                        final int dim2, final double shiftTol, final boolean checkMultiplicity,
-                                       final boolean checkEquivalencesCount) {
+                                       final boolean checkEquivalencesCount,
+                                       final boolean allowLowerEquivalencesCount) {
         return Match.calculateRMSD(Match.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
-                                                       checkEquivalencesCount));
+                                                       checkEquivalencesCount, allowLowerEquivalencesCount));
     }
 
     /**
@@ -230,51 +242,60 @@ public class Match {
      * as an Assignment object with one set dimension only. <br>
      * Despite intensities are expected, they are still not considered here.
      *
-     * @param spectrum      first spectrum
-     * @param querySpectrum query spectrum (Subspectrum)
-     * @param dim1          dimension in first spectrum to take the shifts from
-     * @param dim2          dimension in second spectrum to take the shifts from
-     * @param shiftTol      Tolerance value [ppm] used during spectra shift
-     *                      comparison
+     * @param spectrum1                   first spectrum
+     * @param spectrum2                   second spectrum (query as exact or subspectrum to check)
+     * @param dim1                        dimension in first spectrum to take the shifts from
+     * @param dim2                        dimension in second spectrum to take the shifts from
+     * @param shiftTol                    Tolerance value [ppm] used during spectra shift
+     *                                    comparison
+     * @param checkMultiplicity           indicates whether to compare the multiplicity of matched signals
+     * @param checkEquivalencesCount      indicates whether to compare the equivalences counts of matched signals
+     * @param allowLowerEquivalencesCount indicates to allow a lower equivalences counts spectrum 2
      *
      * @return Assignments with signal indices of spectrum and matched indices
      * in query spectrum; null if one of the spectra does not
      * contain the selected dimension
      */
-    public static Assignment matchSpectra(final Spectrum spectrum, final Spectrum querySpectrum, final int dim1,
+    public static Assignment matchSpectra(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                           final int dim2, final double shiftTol, final boolean checkMultiplicity,
-                                          final boolean checkEquivalencesCount) {
-        if (!Match.checkDimensions(spectrum, querySpectrum, dim1, dim2)) {
+                                          final boolean checkEquivalencesCount,
+                                          final boolean allowLowerEquivalencesCount) {
+        if (!Match.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
             return null;
         }
         final Assignment matchAssignments = new Assignment();
-        matchAssignments.setNuclei(new String[]{spectrum.getNuclei()[dim1]});
-        matchAssignments.initAssignments(spectrum.getSignalCount());
+        matchAssignments.setNuclei(new String[]{spectrum1.getNuclei()[dim1]});
+        matchAssignments.initAssignments(spectrum1.getSignalCount());
         final Set<Integer> assigned = new HashSet<>();
         List<Integer> pickedSignalIndicesSpectrum2;
         boolean passed;
 
         for (int i = 0; i
-                < spectrum.getSignalCount(); i++) {
-            if (spectrum.getShift(i, dim1)
+                < spectrum1.getSignalCount(); i++) {
+            if (spectrum1.getShift(i, dim1)
                     == null) {
                 continue;
             }
 
             // @TODO add solvent deviation value for picking closest signal(s)
             pickedSignalIndicesSpectrum2 = new ArrayList<>();
-            for (final int pickedSignalIndexSpectrum2 : querySpectrum.pickSignals(spectrum.getShift(i, dim1), dim2,
-                                                                                  shiftTol)) {
+            for (final int pickedSignalIndexSpectrum2 : spectrum2.pickSignals(spectrum1.getShift(i, dim1), dim2,
+                                                                              shiftTol)) {
                 passed = true;
                 // @TODO maybe consider further parameters to check ? e.g. intensity
                 if (checkMultiplicity) {
-                    passed = querySpectrum.getMultiplicity(pickedSignalIndexSpectrum2)
-                                          .equals(spectrum.getMultiplicity(i));
+                    passed = spectrum2.getMultiplicity(pickedSignalIndexSpectrum2)
+                                      .equals(spectrum1.getMultiplicity(i));
                 }
                 if (passed
                         && checkEquivalencesCount) {
-                    passed = querySpectrum.getEquivalencesCount(pickedSignalIndexSpectrum2)
-                            == spectrum.getEquivalencesCount(i);
+                    if (allowLowerEquivalencesCount) {
+                        passed = spectrum2.getEquivalencesCount(pickedSignalIndexSpectrum2)
+                                <= spectrum1.getEquivalencesCount(i);
+                    } else {
+                        passed = spectrum2.getEquivalencesCount(pickedSignalIndexSpectrum2)
+                                == spectrum1.getEquivalencesCount(i);
+                    }
                 }
 
                 if (passed) {
@@ -286,7 +307,7 @@ public class Match {
                     // add signal to list of already assigned signals
                     assigned.add(pickedSignalIndexSpectrum2);
                     for (int k = 0; k
-                            < spectrum.getEquivalencesCount(i); k++) {
+                            < spectrum1.getEquivalencesCount(i); k++) {
                         matchAssignments.addAssignmentEquivalence(0, i, pickedSignalIndexSpectrum2);
                     }
                     break;
@@ -303,20 +324,24 @@ public class Match {
      * N here means the number of dimensions in both spectra. <br>
      * Despite intensities are expected, they are still not considered here.
      *
-     * @param spectrum1 first spectrum
-     * @param spectrum2 second spectrum (query)
-     * @param shiftTols tolerance values [ppm] per each dimension used during spectra shift
-     *                  comparisons
+     * @param spectrum1                   first spectrum
+     * @param spectrum2                   second spectrum (query as exact or subspectrum to check)
+     * @param shiftTols                   tolerance values [ppm] per each dimension used during spectra shift
+     *                                    comparisons
+     * @param checkMultiplicity           indicates whether to compare the multiplicity of matched signals
+     * @param checkEquivalencesCount      indicates whether to compare the equivalences counts of matched signals
+     * @param allowLowerEquivalencesCount indicates to allow a lower equivalences counts spectrum 2
      *
      * @return Assignments with signal indices of spectrum1 and matched indices
      * in spectrum2 for each dimension; null if the number of
      * dimensions in both spectra is not the same or is different than the number of given
      * shift tolerances
      *
-     * @see #matchSpectra(Spectrum, Spectrum, int, int, double, boolean, boolean)
+     * @see #matchSpectra(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
      */
     public static Assignment matchSpectra(final Spectrum spectrum1, final Spectrum spectrum2, final double[] shiftTols,
-                                          final boolean checkMultiplicity, final boolean checkEquivalencesCount) {
+                                          final boolean checkMultiplicity, final boolean checkEquivalencesCount,
+                                          final boolean allowLowerEquivalencesCount) {
         if ((spectrum1.getNDim()
                 != spectrum2.getNDim())
                 || (spectrum1.getNDim()
@@ -329,8 +354,8 @@ public class Match {
         for (int dim = 0; dim
                 < spectrum1.getNDim(); dim++) {
             matchAssignment.setAssignments(dim, matchSpectra(spectrum1, spectrum2, dim, dim, shiftTols[dim],
-                                                             checkMultiplicity, checkEquivalencesCount).getAssignments(
-                    0));
+                                                             checkMultiplicity, checkEquivalencesCount,
+                                                             allowLowerEquivalencesCount).getAssignments(0));
         }
 
         return matchAssignment;

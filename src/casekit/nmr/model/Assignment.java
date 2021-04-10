@@ -23,25 +23,26 @@
  */
 package casekit.nmr.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.Arrays;
 
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
 public class Assignment
         implements Cloneable {
 
     private String[] nuclei;
     private int[][][] assignments;
 
-
-    public Assignment() {
-    }
-
-    public Assignment(final String[] nuclei, final int[][][] assignments) {
-        this.nuclei = nuclei;
-        this.assignments = assignments;
-    }
 
     public void initAssignments(final int length) {
         final int[][][] temp = new int[this.getNDim()][length][1];
@@ -54,14 +55,6 @@ public class Assignment
         }
 
         this.assignments = temp;
-    }
-
-    public String[] getNuclei() {
-        return this.nuclei;
-    }
-
-    public void setNuclei(final String[] nuclei) {
-        this.nuclei = nuclei;
     }
 
     public int getNDim() {
@@ -208,9 +201,6 @@ public class Assignment
                 < this.assignments[dim].length);
     }
 
-    public int[][][] getAssignments() {
-        return this.assignments;
-    }
 
     @Override
     public Assignment clone() throws CloneNotSupportedException {

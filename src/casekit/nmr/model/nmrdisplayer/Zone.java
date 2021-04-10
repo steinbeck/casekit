@@ -27,18 +27,17 @@ package casekit.nmr.model.nmrdisplayer;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 @ToString
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Zone {
 
     private String id;
     private String kind;
-    private ArrayList<Signal2D> signal;
+    private List<Signal2D> signal;
 }

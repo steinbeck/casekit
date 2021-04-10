@@ -32,20 +32,19 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Spectrum {
 
     private String id;
     private Default<Range> ranges;
     private Default<Zone> zones;
-    private HashMap<String, Object> info;
+    private Map<String, Object> info;
 
     public casekit.nmr.model.Spectrum toSpectrum(final boolean considerSignalKind) {
         final int dimension = (int) this.info.get("dimension");
@@ -105,5 +104,4 @@ public class Spectrum {
 
         return null;
     }
-
 }

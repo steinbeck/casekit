@@ -27,21 +27,20 @@ package casekit.nmr.model.nmrdisplayer;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
-import java.util.HashMap;
+import java.util.Map;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 @ToString
-
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Signal2D {
 
     private String id;
     private String kind;
     private String multiplicity;
-    private HashMap<String, Object> x;
-    private HashMap<String, Object> y;
+    private Map<String, Object> x;
+    private Map<String, Object> y;
     private Integer sign;
 }

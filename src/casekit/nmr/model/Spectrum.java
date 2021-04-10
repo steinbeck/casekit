@@ -28,6 +28,11 @@
  */
 package casekit.nmr.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -37,6 +42,10 @@ import java.util.stream.Collectors;
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
 public class Spectrum {
 
     private String[] nuclei;
@@ -59,30 +68,6 @@ public class Spectrum {
     private List<Signal> signals;
     private int signalCount;
 
-    public Spectrum() {
-    }
-
-    public Spectrum(final String[] nuclei, final String description, final String specType,
-                    final Double spectrometerFrequency, final String solvent, final String standard,
-                    final List<Signal> signals, final int signalCount) {
-        this.nuclei = nuclei;
-        this.description = description;
-        this.specType = specType;
-        this.spectrometerFrequency = spectrometerFrequency;
-        this.solvent = solvent;
-        this.standard = standard;
-        this.signals = signals;
-        this.signalCount = signalCount;
-    }
-
-    public String[] getNuclei() {
-        return this.nuclei;
-    }
-
-    public void setNuclei(final String[] nuclei) {
-        this.nuclei = nuclei;
-    }
-
     public int getNDim() {
         return this.getNuclei().length;
     }
@@ -96,26 +81,6 @@ public class Spectrum {
 
     public boolean compareNuclei(final String[] nuclei) {
         return Arrays.equals(this.getNuclei(), nuclei);
-    }
-
-    public String getSpecType() {
-        return this.specType;
-    }
-
-    public void setSpecType(final String specType) {
-        this.specType = specType;
-    }
-
-    public String getSpecDescription() {
-        return this.description;
-    }
-
-    public void setSpecDescription(final String description) {
-        this.description = description;
-    }
-
-    public int getSignalCount() {
-        return this.signalCount;
     }
 
     public int getSignalCountWithEquivalences() {
@@ -305,38 +270,6 @@ public class Spectrum {
         return -1;
     }
 
-    public Double getSpectrometerFrequency() {
-        return this.spectrometerFrequency;
-    }
-
-    public void setSpectrometerFrequency(final Double sf) {
-        this.spectrometerFrequency = sf;
-    }
-
-    public String getSolvent() {
-        return this.solvent;
-    }
-
-    public void setSolvent(final String solvent) {
-        this.solvent = solvent;
-    }
-
-    public String getStandard() {
-        return this.standard;
-    }
-
-    public void setStandard(final String standard) {
-        this.standard = standard;
-    }
-
-    public String getDescription() {
-        return this.description;
-    }
-
-    public void setDescription(final String description) {
-        this.description = description;
-    }
-
     /**
      * Returns the indices of signals with same multiplicity.
      *
@@ -446,7 +379,7 @@ public class Spectrum {
             clone.addSignal(this.getSignal(i)
                                 .buildClone());
         }
-        clone.setSpecDescription(this.description);
+        clone.setDescription(this.description);
         clone.setSolvent(this.solvent);
         clone.setSpecType(this.specType);
         clone.setSpectrometerFrequency(this.spectrometerFrequency);

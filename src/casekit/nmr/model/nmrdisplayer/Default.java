@@ -26,8 +26,8 @@ package casekit.nmr.model.nmrdisplayer;
 
 import lombok.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -37,6 +37,6 @@ import java.util.HashMap;
 
 public class Default<T> {
 
-    private HashMap<String, Object> options;
-    private ArrayList<T> values;
+    private Map<String, Object> options;
+    private List<T> values;
 }

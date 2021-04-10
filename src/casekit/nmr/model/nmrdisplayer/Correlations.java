@@ -37,5 +37,6 @@ import java.util.Map;
 @ToString
 public class Correlations
         extends Default<Correlation> {
+
     private Map<String, Map<String, Object>> state;
 }

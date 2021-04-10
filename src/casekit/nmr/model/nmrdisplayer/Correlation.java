@@ -29,8 +29,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @NoArgsConstructor
 @Getter
@@ -38,17 +38,18 @@ import java.util.HashMap;
 @ToString
 
 public class Correlation {
+
     private String id;
     private String experimentType;
     private String experimentID;
     private String atomType;
-    private HashMap<String, String> label;
+    private Map<String, String> label;
     private Signal1D signal;
-    private ArrayList<Link> link;
+    private List<Link> link;
     private int equivalence;
-    private HashMap<String, ArrayList<Integer>> attachment;
-    private ArrayList<Integer> protonsCount;
+    private Map<String, List<Integer>> attachment;
+    private List<Integer> protonsCount;
     private String hybridization;
     private boolean pseudo;
-    private HashMap<String, Boolean> edited;
+    private Map<String, Boolean> edited;
 }

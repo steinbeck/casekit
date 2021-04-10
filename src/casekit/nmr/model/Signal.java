@@ -27,43 +27,30 @@
  */
 package casekit.nmr.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.Arrays;
 
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
 public class Signal {
 
     private String[] nuclei;
     private Double[] shifts;
     private String multiplicity;
-    private Double intensity;
     private String kind;
+    private Double intensity;
     private int equivalencesCount;
     private int phase;
 
-
-    public Signal() {
-    }
-
-    public Signal(final String[] nuclei, final Double[] shifts, final String multiplicity, final String kind,
-                  final Double intensity, final int equivalencesCount, final int phase) {
-        this.nuclei = nuclei;
-        this.shifts = shifts;
-        this.multiplicity = multiplicity;
-        this.kind = kind;
-        this.intensity = intensity;
-        this.equivalencesCount = equivalencesCount;
-        this.phase = phase;
-    }
-
-    public String[] getNuclei() {
-        return this.nuclei;
-    }
-
-    public void setNuclei(final String[] nuclei) {
-        this.nuclei = nuclei;
-    }
 
     public int getNDim() {
         return this.getNuclei().length;
@@ -94,54 +81,6 @@ public class Signal {
             return null;
         }
         return this.shifts[dim];
-    }
-
-    public Double getIntensity() {
-        return this.intensity;
-    }
-
-    public void setIntensity(final Double intensity) {
-        this.intensity = intensity;
-    }
-
-    public String getMultiplicity() {
-        return this.multiplicity;
-    }
-
-    public void setMultiplicity(final String multiplicity) {
-        this.multiplicity = multiplicity;
-    }
-
-    public String getKind() {
-        return this.kind;
-    }
-
-    public void setKind(final String kind) {
-        this.kind = kind;
-    }
-
-    public Double[] getShifts() {
-        return this.shifts;
-    }
-
-    public void setShifts(final Double[] shifts) {
-        this.shifts = shifts;
-    }
-
-    public int getEquivalencesCount() {
-        return this.equivalencesCount;
-    }
-
-    public void setEquivalencesCount(final int equivalencesCount) {
-        this.equivalencesCount = equivalencesCount;
-    }
-
-    public int getPhase() {
-        return this.phase;
-    }
-
-    public void setPhase(final int phase) {
-        this.phase = phase;
     }
 
     public Signal buildClone() {

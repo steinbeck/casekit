@@ -29,19 +29,20 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.util.ArrayList;
+import java.util.List;
 
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
 public class Link {
+
     private String experimentType;
     private String experimentID;
     private String[] atomType;
     private Signal2D signal;
     private String axis;
-    private ArrayList<Integer> match;
+    private List<Integer> match;
     private String id;
     private String experimentLabel;
     private boolean pseudo;

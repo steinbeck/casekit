@@ -348,10 +348,6 @@ public class ExtendedConnectionMatrix {
         return this.connectionMatrix.length;
     }
 
-    public int getBondCount() {
-        return this.bondCount;
-    }
-
     public Boolean isUnsaturated(final int atomIndex) {
         if (!this.hasAtom(atomIndex)) {
             return null;

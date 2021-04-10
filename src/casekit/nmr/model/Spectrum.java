@@ -143,7 +143,7 @@ public class Spectrum {
                 if (closestSignal.getMultiplicity()
                                  .equals(signal.getMultiplicity())) {
                     closestSignal.setEquivalencesCount(closestSignal.getEquivalencesCount()
-                                                               + 1);
+                                                               + signal.getEquivalencesCount());
                 }
             }
         }

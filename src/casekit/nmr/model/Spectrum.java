@@ -76,7 +76,7 @@ public class Spectrum {
         return dim
                 >= 0
                 && dim
-                <= this.getNDim();
+                < this.getNDim();
     }
 
     public boolean compareNuclei(final String[] nuclei) {

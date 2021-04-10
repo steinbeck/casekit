@@ -180,7 +180,7 @@ public class Spectrum {
     }
 
     /**
-     * Returns a NMR Signal at position number in the List
+     * Returns a NMR Signal at position number in the signal list
      *
      * @param signalIndex
      *
@@ -194,12 +194,23 @@ public class Spectrum {
         return this.signals.get(signalIndex);
     }
 
-    public List<Signal> getSignals() {
-        return this.signals;
-    }
+    /**
+     * Sets a NMR Signal at position number in the signal list
+     *
+     * @param signalIndex signal index in list
+     * @param signal      signal
+     *
+     * @return
+     */
+    public boolean setSignal(final int signalIndex, final Signal signal) {
+        if (!this.checkSignalIndex(signalIndex)
+                || !this.compareNuclei(signal.getNuclei())) {
+            return false;
+        }
 
-    public void setSignals(final List<Signal> signals) {
-        this.signals = signals;
+        this.signals.set(signalIndex, signal);
+
+        return true;
     }
 
     public Double getShift(final int signalIndex, final int dim) {

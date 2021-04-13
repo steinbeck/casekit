@@ -45,7 +45,7 @@ public class Assignment
 
 
     public void initAssignments(final int length) {
-        final int[][][] temp = new int[this.getNDim()][length][1];
+        final int[][][] temp = new int[this.getNDim()][length][0];
         for (int i = 0; i
                 < this.getNDim(); i++) {
             for (int j = 0; j
@@ -53,7 +53,6 @@ public class Assignment
                 temp[i][j] = new int[]{};
             }
         }
-
         this.assignments = temp;
     }
 

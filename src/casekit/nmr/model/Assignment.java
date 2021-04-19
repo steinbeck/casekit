@@ -37,8 +37,7 @@ import java.util.Arrays;
 @AllArgsConstructor
 @Getter
 @Setter
-public class Assignment
-        implements Cloneable {
+public class Assignment {
 
     private String[] nuclei;
     private int[][][] assignments;
@@ -221,9 +220,26 @@ public class Assignment
                 < this.assignments[dim].length);
     }
 
-    @Override
-    public Assignment clone() throws CloneNotSupportedException {
-        return (Assignment) super.clone();
+    public Assignment buildClone() {
+        final Assignment clone = new Assignment();
+        clone.setNuclei(this.getNuclei()
+                            .clone());
+        final int[][][] values = new int[this.getNDim()][][];
+        for (int dim = 0; dim
+                < this.getNDim(); dim++) {
+            values[dim] = new int[this.getSize()][];
+            for (int i = 0; i
+                    < this.assignments[dim].length; i++) {
+                values[dim][i] = new int[this.assignments[dim][i].length];
+                for (int equiv = 0; equiv
+                        < this.assignments[dim][i].length; equiv++) {
+                    values[dim][i][equiv] = this.assignments[dim][i][equiv];
+                }
+            }
+        }
+        clone.setAssignments(values);
+
+        return clone;
     }
 
     @Override

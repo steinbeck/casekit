@@ -395,16 +395,21 @@ public class Utils {
 
         //        System.out.print(atomIndex + " --> " + Utils.getBondOrderSum(ac, atomIndex, true) + " + " + Utils.getBondOrderAsNumeric(bondToAdd));
         final IAtom atom = ac.getAtom(atomIndex);
+        // @TODO include different valencies: N3, N5, S2, S4, S6 etc.
         // -1 for cases with heterocyclic aromatics, like the N in the small aromatic ring in coffein if we want to add the bond to the CH3 group
         if (atom.isAromatic()
-                && (!atom.getSymbol()
-                         .equals("C"))) {
+                && (atom.getSymbol()
+                        .equals("N")
+                || atom.getSymbol()
+                       .equals("S")
+                || atom.getSymbol()
+                       .equals("P"))) {
             //            System.out.print("[ -1 ]");
             bondOrderSum -= 1;
         }
         //        System.out.print(" = " + bondOrderSum + " <= " + atom.getValency() + " ? -> " + (bondOrderSum <= atom.getValency()) + "\n");
 
-        // @TODO including charges
+        // @TODO include charges
         return bondOrderSum
                 <= atom.getValency();
     }

@@ -72,7 +72,8 @@ public class Utils {
     }
 
     public static String getSmilesFromAtomContainer(final IAtomContainer ac) throws CDKException {
-        final SmilesGenerator smilesGenerator = new SmilesGenerator(SmiFlavor.Absolute);
+        // SmiFlavor.Unique instead of SmiFlavor.Absolute because current errors with InChI generator
+        final SmilesGenerator smilesGenerator = new SmilesGenerator(SmiFlavor.Unique);
 
         return smilesGenerator.create(ac);
     }

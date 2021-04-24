@@ -1,14 +1,11 @@
 package casekit.nmr.lsd;
 
-import casekit.io.FileSystem;
 import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.nmrdisplayer.Correlation;
 import casekit.nmr.model.nmrdisplayer.Data;
 import casekit.nmr.model.nmrdisplayer.Link;
 import casekit.nmr.utils.Utils;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -411,24 +408,10 @@ public class PyLSDInputFileBuilder {
         stringBuilder.append("; externally defined filters\n");
         final Map<String, String> filters = new LinkedHashMap<>();
         int counter = 1;
-        BufferedReader bufferedReader;
         for (final String filterPath : filterPaths) {
-            try {
-                bufferedReader = FileSystem.readFile(filterPath);
-                if (bufferedReader
-                        != null) {
-                    String line;
-                    while ((line = bufferedReader.readLine())
-                            != null) {
-                        filters.put("F"
-                                            + counter, line);
-                        counter++;
-                    }
-                    bufferedReader.close();
-                }
-            } catch (final IOException e) {
-                e.printStackTrace();
-            }
+            filters.put("F"
+                                + counter, filterPath);
+            counter++;
         }
 
         if (!filters.isEmpty()) {

@@ -14,17 +14,27 @@ import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.CDKHydrogenAdder;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class RankedResultSDFParser {
 
-    public static List<DataSet> parseRankedResultSDF(final String pathToFile,
-                                                     final String nucleus) throws CDKException, FileNotFoundException {
+    public static List<DataSet> parseRankedResultSDFile(final String pathToFile,
+                                                        final String nucleus) throws CDKException, FileNotFoundException {
+        return parseRankedResultSDFile(new FileReader(pathToFile), nucleus);
+    }
+
+    public static List<DataSet> parseRankedResultSDFileContent(final String fileContent,
+                                                               final String nucleus) throws CDKException {
+        final InputStream inputStream = new ByteArrayInputStream(fileContent.getBytes(StandardCharsets.UTF_8));
+        return parseRankedResultSDFile(new InputStreamReader(inputStream), nucleus);
+    }
+
+    public static List<DataSet> parseRankedResultSDFile(final Reader fileReader,
+                                                        final String nucleus) throws CDKException {
         final List<DataSet> dataSetList = new ArrayList<>();
-        final IteratingSDFReader iterator = new IteratingSDFReader(new FileReader(pathToFile),
-                                                                   SilentChemObjectBuilder.getInstance());
+        final IteratingSDFReader iterator = new IteratingSDFReader(fileReader, SilentChemObjectBuilder.getInstance());
         IAtomContainer structure;
         Spectrum experimentalSpectrum, predictedSpectrum;
         Assignment assignment;

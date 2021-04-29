@@ -25,9 +25,9 @@ package casekit.nmr.utils;
 
 
 import casekit.nmr.Utils;
+import casekit.nmr.hose.HOSECodeBuilder;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
-import hose.HOSECodeBuilder;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;

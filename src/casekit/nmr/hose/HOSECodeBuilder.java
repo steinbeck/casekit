@@ -269,7 +269,7 @@ public class HOSECodeBuilder {
      * @see ConnectionTree
      */
     public static ConnectionTree buildConnectionTree(final IAtomContainer ac, final int rootAtomIndex,
-                                                     final Integer maxSphere, final HashSet<Integer> visited) {
+                                                     final Integer maxSphere, final Set<Integer> visited) {
         // create queue for BFS and add root atom index
         final Queue<Integer> queue = new LinkedList<>();
         queue.add(rootAtomIndex);

@@ -240,10 +240,9 @@ public class Match {
     /**
      * Returns the closest shift matches between two spectra in selected dimensions
      * as an Assignment object with one set dimension only. <br>
-     * Despite intensities are expected, they are still not considered here.
      *
-     * @param spectrum1                   first spectrum
-     * @param spectrum2                   second spectrum (query as exact or subspectrum to check)
+     * @param spectrum1                   first spectrum (possible subspectrum)
+     * @param spectrum2                   second spectrum
      * @param dim1                        dimension in first spectrum to take the shifts from
      * @param dim2                        dimension in second spectrum to take the shifts from
      * @param shiftTol                    Tolerance value [ppm] used during spectra shift
@@ -284,17 +283,17 @@ public class Match {
                 passed = true;
                 // @TODO maybe consider further parameters to check ? e.g. intensity
                 if (checkMultiplicity) {
-                    passed = spectrum2.getMultiplicity(pickedSignalIndexSpectrum2)
-                                      .equals(spectrum1.getMultiplicity(i));
+                    passed = spectrum1.getMultiplicity(i)
+                                      .equals(spectrum2.getMultiplicity(pickedSignalIndexSpectrum2));
                 }
                 if (passed
                         && checkEquivalencesCount) {
                     if (allowLowerEquivalencesCount) {
-                        passed = spectrum2.getEquivalencesCount(pickedSignalIndexSpectrum2)
-                                <= spectrum1.getEquivalencesCount(i);
+                        passed = spectrum1.getEquivalencesCount(i)
+                                <= spectrum2.getEquivalencesCount(pickedSignalIndexSpectrum2);
                     } else {
-                        passed = spectrum2.getEquivalencesCount(pickedSignalIndexSpectrum2)
-                                == spectrum1.getEquivalencesCount(i);
+                        passed = spectrum1.getEquivalencesCount(i)
+                                == spectrum2.getEquivalencesCount(pickedSignalIndexSpectrum2);
                     }
                 }
 

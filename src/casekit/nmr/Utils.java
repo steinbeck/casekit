@@ -298,6 +298,39 @@ public class Utils {
      *
      * @return
      */
+    public static Double getRMS(final Collection<Double> data) {
+        if ((data
+                == null)
+                || data.isEmpty()) {
+            return null;
+        }
+        double sum = 0;
+        int nullCounter = 0;
+        for (final Double d : data) {
+            if (d
+                    != null) {
+                sum += d
+                        * d;
+            } else {
+                nullCounter++;
+            }
+        }
+        return ((data.size()
+                - nullCounter)
+                != 0)
+               ? Math.sqrt(sum
+                                   / (data.size()
+                - nullCounter))
+               : null;
+    }
+
+    /**
+     * @param data
+     *
+     * @return
+     *
+     * @deprecated
+     */
     public static Double getStandardDeviation(final List<Double> data) {
         if ((data
                 == null)
@@ -312,6 +345,14 @@ public class Utils {
                : null;
     }
 
+
+    /**
+     * @param data
+     *
+     * @return
+     *
+     * @deprecated
+     */
     public static Double getVariance(final Collection<Double> data) {
         if ((data
                 == null)
@@ -374,6 +415,13 @@ public class Utils {
                : null;
     }
 
+    /**
+     * @param lookup
+     *
+     * @return
+     *
+     * @deprecated
+     */
     public static Map<String, Double> getMean(final Map<String, ArrayList<Double>> lookup) {
 
         final HashMap<String, Double> means = new HashMap<>();
@@ -473,6 +521,15 @@ public class Utils {
         }
         final CDKHydrogenAdder adder = CDKHydrogenAdder.getInstance(ac.getBuilder());
         adder.addImplicitHydrogens(ac);
+    }
+
+    public static void addExplicitHydrogens(final IAtomContainer ac) throws CDKException {
+        addImplicitHydrogens(ac);
+        convertImplicitToExplicitHydrogens(ac);
+    }
+
+    public static void convertImplicitToExplicitHydrogens(final IAtomContainer ac) {
+        AtomContainerManipulator.convertImplicitToExplicitHydrogens(ac);
     }
 
     /**

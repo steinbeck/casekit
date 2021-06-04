@@ -174,7 +174,7 @@ public class ConnectionTree {
     }
 
     public List<Integer> getKeys() {
-        final ArrayList<Integer> keys = new ArrayList<>();
+        final List<Integer> keys = new ArrayList<>();
         for (int s = 0; s
                 <= this.getMaxSphere(); s++) {
             for (final ConnectionTreeNode nodeInSphere : this.getNodesInSphere(s, false)) {
@@ -328,12 +328,38 @@ public class ConnectionTree {
                    .hasChild(childKey);
     }
 
+    public void removeNode(final int key) {
+        final ConnectionTreeNode node = this.getNode(key);
+        if (node
+                != null) {
+            final List<ConnectionTreeNode> children = new ArrayList<>(node.getChildNodes());
+            for (final ConnectionTreeNode childNode : children) {
+                if (childNode.isRingClosureNode()) {
+                    childNode.getRingClosureParent()
+                             .removeChildNode(childNode);
+                } else {
+                    this.removeNode(childNode.getKey());
+                }
+                node.removeChildNode(childNode);
+                this.keySet.remove(childNode.getKey());
+            }
+            final ConnectionTreeNode parent = node.getParent();
+            if (parent
+                    != null) {
+                parent.removeChildNode(node);
+            }
+            this.keySet.remove(node.getKey());
+        }
+    }
+
     /**
      * @param parentKey
      * @param childKey1
      * @param childKey2
      *
      * @return
+     *
+     * @deprecated
      */
     public boolean swapChildNodes(final int parentKey, final int childKey1, final int childKey2) {
         if (!this.containsKey(parentKey)

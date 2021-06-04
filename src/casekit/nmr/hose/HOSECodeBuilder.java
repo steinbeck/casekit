@@ -176,9 +176,7 @@ public class HOSECodeBuilder {
         // zeroth sphere
         final StringBuilder HOSECode = new StringBuilder(rootAtom.getSymbol()
                                                                  + "-"
-                                                                 + (connectionTree.getRootNode()
-                                                                                  .getChildNodes()
-                                                                                  .size()
+                                                                 + (rootAtom.getBondCount()
                 + (rootAtom.getImplicitHydrogenCount()
                            == null
                    ? 0

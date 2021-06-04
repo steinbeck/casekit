@@ -87,6 +87,9 @@ public class Utils {
         } else {
             weight += getSymbolPriorityWeight(node.getAtom()
                                                   .getSymbol());
+            //            weight -= node.getAtom()
+            //                          .getImplicitHydrogenCount()
+            //                    * getSymbolPriorityWeight("H");
         }
 
         return weight;
@@ -418,6 +421,7 @@ public class Utils {
             case "I":
                 return 2;
             case "&":
+            case "H":
                 return 1;
         }
 

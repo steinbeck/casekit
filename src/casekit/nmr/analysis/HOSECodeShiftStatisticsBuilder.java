@@ -5,14 +5,17 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
 
 import java.util.*;
 
 public class HOSECodeShiftStatisticsBuilder {
 
     public static Map<String, Map<String, Double[]>> buildHOSECodeShiftStatistics(final List<DataSet> dataSetList,
-                                                                                  final int maxSphere) {
+                                                                                  final int maxSphere,
+                                                                                  final boolean use3D) {
         final Map<String, Map<String, List<Double>>> hoseCodeShifts = new HashMap<>();
+        final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
         IAtomContainer structure;
         Signal signal;
         String hoseCode;
@@ -32,7 +35,12 @@ public class HOSECodeShiftStatisticsBuilder {
                     try {
                         for (int sphere = 1; sphere
                                 <= maxSphere; sphere++) {
-                            hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
+                            if (use3D) {
+                                hoseCode = extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i),
+                                                                                 maxSphere);
+                            } else {
+                                hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
+                            }
                             hoseCodeShifts.putIfAbsent(hoseCode, new HashMap<>());
                             hoseCodeShifts.get(hoseCode)
                                           .putIfAbsent(solvent, new ArrayList<>());

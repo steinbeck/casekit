@@ -421,11 +421,12 @@ public class Utils {
             case "I":
                 return 2;
             case "&":
-            case "H":
                 return 1;
+            case "H":
+                return 0;
+            default:
+                return 0;
         }
-
-        return 0;
     }
 
     /**

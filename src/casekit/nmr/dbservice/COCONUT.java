@@ -15,7 +15,10 @@ import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class COCONUT {
 
@@ -34,39 +37,22 @@ public class COCONUT {
         String spectrumPropertyString, multiplicity;
         IMolecularFormula mf;
         double calcShift;
-        List<Integer> explicitHydrogenIndices, closestSignalList;
-        StringBuilder mfAlphabetic;
-        Map<String, Integer> mfAlphabeticMap;
+        List<Integer> closestSignalList;
         int atomIndex;
 
         while (iterator.hasNext()) {
             structure = iterator.next();
             AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
-            explicitHydrogenIndices = casekit.nmr.Utils.getExplicitHydrogenIndices(structure);
-            Collections.sort(explicitHydrogenIndices);
-            if (!explicitHydrogenIndices.isEmpty()) {
-                // remove explicit hydrogens
-                casekit.nmr.Utils.removeAtoms(structure, "H");
+            if (!casekit.nmr.Utils.containsExplicitHydrogens(structure)) {
+                hydrogenAdder.addImplicitHydrogens(structure);
             }
-            hydrogenAdder.addImplicitHydrogens(structure);
             casekit.nmr.Utils.setAromaticityAndKekulize(structure);
 
             meta = new HashMap<>();
             meta.put("title", structure.getTitle());
-            meta.put("id", structure.getProperty("nmrshiftdb2 ID"));
+            meta.put("id", structure.getProperty("ID"));
             mf = casekit.nmr.Utils.getMolecularFormulaFromAtomContainer(structure);
-            meta.put("mfOriginal", casekit.nmr.Utils.molecularFormularToString(mf));
-            mfAlphabetic = new StringBuilder();
-            mfAlphabeticMap = new TreeMap<>(casekit.nmr.utils.Utils.getMolecularFormulaElementCounts(
-                    casekit.nmr.Utils.molecularFormularToString(mf)));
-            for (final Map.Entry<String, Integer> entry : mfAlphabeticMap.entrySet()) {
-                mfAlphabetic.append(entry.getKey());
-                if (entry.getValue()
-                        > 1) {
-                    mfAlphabetic.append(entry.getValue());
-                }
-            }
-            meta.put("mf", mfAlphabetic.toString());
+            meta.put("mf", casekit.nmr.Utils.molecularFormularToString(mf));
             try {
                 final String smiles = casekit.nmr.utils.Utils.getSmilesFromAtomContainer(structure);
                 meta.put("smiles", smiles);
@@ -92,6 +78,11 @@ public class COCONUT {
                                                                            + nucleus
                                                                            + "_shifts", String.class);
                 }
+                if (spectrumPropertyString
+                        == null) {
+                    continue;
+                }
+
                 spectrumPropertyString = spectrumPropertyString.replaceAll("[\\n\\r]", ";");
                 split = spectrumPropertyString.split(";");
                 spectrum = new Spectrum();

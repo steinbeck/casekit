@@ -160,11 +160,8 @@ public class Spectrum {
             Signal closestSignal;
             for (final Integer closestSignalIndex : closestSignalList) {
                 closestSignal = this.getSignal(closestSignalIndex);
-                if (closestSignal.getMultiplicity()
-                                 .equals(signal.getMultiplicity())) {
-                    closestSignal.setEquivalencesCount(closestSignal.getEquivalencesCount()
-                                                               + signal.getEquivalencesCount());
-                }
+                closestSignal.setEquivalencesCount(closestSignal.getEquivalencesCount()
+                                                           + signal.getEquivalencesCount());
             }
         }
 

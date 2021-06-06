@@ -310,21 +310,20 @@ public class Spectrum {
      */
     public List<Integer> pickByMultiplicity(final String multiplicity) {
         final List<Integer> matchIndices = new ArrayList<>();
-        if (multiplicity
-                != null) {
-            for (int s = 0; s
-                    < this.getSignalCount(); s++) {
-                if (this.getSignal(s)
-                        .getMultiplicity()
-                        == null
-                        || (this.getSignal(s)
-                                .getMultiplicity()
-                        != null
-                        && this.getSignal(s)
-                               .getMultiplicity()
-                               .equals(multiplicity))) {
-                    matchIndices.add(s);
-                }
+        for (int s = 0; s
+                < this.getSignalCount(); s++) {
+            if ((this.getSignal(s)
+                     .getMultiplicity()
+                    == null
+                    && multiplicity
+                    == null)
+                    || (this.getSignal(s)
+                            .getMultiplicity()
+                    != null
+                    && this.getSignal(s)
+                           .getMultiplicity()
+                           .equals(multiplicity))) {
+                matchIndices.add(s);
             }
         }
 

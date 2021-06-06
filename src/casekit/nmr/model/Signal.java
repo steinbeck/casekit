@@ -92,16 +92,18 @@ public class Signal {
     @Override
     public String toString() {
         return "Signal{"
-                + "shifts="
+                + "nuclei="
+                + Arrays.toString(this.nuclei)
+                + ", shifts="
                 + Arrays.toString(this.shifts)
                 + ", multiplicity='"
                 + this.multiplicity
                 + '\''
-                + ", intensity="
-                + this.intensity
                 + ", kind='"
                 + this.kind
                 + '\''
+                + ", intensity="
+                + this.intensity
                 + ", equivalencesCount="
                 + this.equivalencesCount
                 + ", phase="

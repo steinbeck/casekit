@@ -92,7 +92,29 @@ public class Spectrum {
     }
 
     /**
-     * Adds a signal to this spectrum with pickPrecision of 0.
+     * Simply adds a signal without equivalence checks.
+     *
+     * @param signal signal to add
+     *
+     * @return
+     *
+     * @see #addSignal(Signal, double, boolean)
+     */
+    public boolean addSignalWithoutEquivalenceSearch(final Signal signal) {
+        if ((signal
+                == null)
+                || !this.compareNuclei(signal.getNuclei())) {
+            return false;
+        }
+        // add signal at the end of signal list
+        this.signals.add(signal);
+        this.signalCount++;
+
+        return true;
+    }
+
+    /**
+     * Adds a signal to this spectrum with pickPrecision of 0 and enabled multiplicity check for equivalence search.
      *
      * @param signal signal to add
      *
@@ -133,9 +155,7 @@ public class Spectrum {
         }
 
         if (closestSignalList.isEmpty()) {
-            // add signal at the end of signal list
-            this.signals.add(signal);
-            this.signalCount++;
+            this.addSignalWithoutEquivalenceSearch(signal);
         } else {
             Signal closestSignal;
             for (final Integer closestSignalIndex : closestSignalList) {
@@ -282,7 +302,7 @@ public class Spectrum {
     }
 
     /**
-     * Returns the indices of signals with same multiplicity.
+     * Returns the indices of signals with same multiplicity (even null values).
      *
      * @param multiplicity multiplicity to search for
      *

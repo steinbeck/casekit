@@ -402,7 +402,9 @@ public class Spectrum {
     @Override
     public String toString() {
         return "Spectrum{"
-                + "description='"
+                + "nuclei="
+                + Arrays.toString(this.nuclei)
+                + ", description='"
                 + this.description
                 + '\''
                 + ", specType='"

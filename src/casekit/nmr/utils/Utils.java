@@ -29,13 +29,13 @@ public class Utils {
     public static String getMultiplicityFromProtonsCount(final int protonsCount) {
         switch (protonsCount) {
             case 0:
-                return "S";
+                return "s";
             case 1:
-                return "D";
+                return "d";
             case 2:
-                return "T";
+                return "t";
             case 3:
-                return "Q";
+                return "q";
             default:
                 return null;
         }

@@ -42,37 +42,7 @@ public class Match {
     }
 
     /**
-     * Combines selected dimensions of two spectra while considering possible equivalent signals
-     * via the {@code pickPrecision} parameter and multiplicity comparison.
-     * In {@code spectrum1}, the equivalent signals have to be set.
-     *
-     * @param spectrum1         first spectrum, incl. equivalent signals
-     * @param spectrum2         second spectrum
-     * @param dim1              dimension of first spectrum to combine
-     * @param dim2              dimension of second spectrum to combine
-     * @param pickPrecision     tolerance value used for signal shift matching to
-     *                          find equivalent signals
-     * @param checkMultiplicity indicates whether to compare the multiplicity of matched signals
-     *
-     * @return null if one spectrum does not contain the selected dimension
-     */
-    public static Spectrum combineSpectra(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
-                                          final int dim2, final double pickPrecision, final boolean checkMultiplicity) {
-        if (!Match.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
-            return null;
-        }
-        // create new spectra which is to fill with signals of both spectra
-        final Spectrum combinedSpectrum = spectrum1.buildClone();
-        // fill in signals from spectrum2
-        // consider the possibility of potential equivalent signals here
-        for (final Signal signalSpectrum2 : spectrum2.getSignals()) {
-            combinedSpectrum.addSignal(signalSpectrum2.buildClone(), pickPrecision, checkMultiplicity);
-        }
-        return combinedSpectrum;
-    }
-
-    /**
-     * Calculates the Tanimoto coefficient between two spectra in given dimensions.
+     * Calculates the continuous Tanimoto coefficient between two spectra in given dimensions.
      *
      * @param spectrum1 first spectrum
      * @param spectrum2 second spectrum

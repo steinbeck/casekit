@@ -24,13 +24,19 @@
 package casekit.nmr.utils;
 
 
-import casekit.nmr.Utils;
 import casekit.nmr.hose.HOSECodeBuilder;
+import casekit.nmr.hose.model.ConnectionTree;
+import casekit.nmr.hose.model.ConnectionTreeNode;
+import casekit.nmr.model.Assignment;
+import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.silent.SilentChemObjectBuilder;
+import org.openscience.cdk.tools.CDKHydrogenAdder;
+import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,99 +49,180 @@ import java.util.Map;
 public class Predict {
 
     /**
-     * Predicts a shift value for a central atom based on its HOSE code and a
-     * given HOSE code lookup table. The prediction is done by using the median
-     * of all occurring shifts in lookup table for the given HOSE code. <br>
-     * Specified for carbons (13C) only -> {@link casekit.nmr.utils.Utils#getMultiplicityFromProtonsCount(int)}.
+     * Diastereotopic distinctions are not provided yet.
      *
-     * @param HOSECodeLookupTable HashMap containing HOSE codes as keys and a list of chemical shifts
-     *                            of occurring central atoms as values
-     * @param HOSECode            specific HOSE code to use for shift prediction
+     * @param hoseCodeShiftStatistics
+     * @param structure
+     * @param solvent
+     * @param nucleus
      *
-     * @return null if HOSE code does not exist in lookup table
-     *
-     * @see casekit.nmr.Utils#getMedian(List)
+     * @return
      */
-    public static Double predictShift(final Map<String, ArrayList<Double>> HOSECodeLookupTable, final String HOSECode) {
-        if (HOSECodeLookupTable.containsKey(HOSECode)) {
-            return Utils.getMedian(HOSECodeLookupTable.get(HOSECode));
-        }
+    public static DataSet predict1D(final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
+                                    final IAtomContainer structure, final String solvent, final String nucleus) {
+        final int minMatchingSphere = 1;
+        final Spectrum spectrum = new Spectrum();
+        spectrum.setNuclei(new String[]{nucleus});
+        spectrum.setSolvent(solvent);
+        spectrum.setSignals(new ArrayList<>());
+        final Assignment assignment = new Assignment();
+        assignment.setNuclei(spectrum.getNuclei());
+        assignment.initAssignments(0);
 
-        return null;
-    }
-
-    /**
-     * Predicts a signal for a central atom based on its HOSE code and a
-     * given HOSE code lookup table. The prediction is done by using the mean
-     * of all occurring shifts in lookup table for the given HOSE code. <br>
-     * Specified for carbons (13C) only -> {@link casekit.nmr.utils.Utils#getMultiplicityFromProtonsCount(int)}.
-     *
-     * @param HOSECodeLookupTable HashMap containing HOSE codes as keys and a list of chemical shifts
-     *                            of occurring central atoms as values
-     * @param ac                  structure to predict from
-     * @param atomIndex           index of central atom in structure for HOSE code generation
-     * @param maxSphere           maximum sphere to use for HOSE code generation or null for unlimited
-     * @param nucleus             nucleus (e.g. "13C") for signal creation
-     *
-     * @return null if HOSE code of selected atom does not exist in lookup table
-     *
-     * @throws CDKException
-     * @see #predictShift(Map, String)
-     */
-    public static Signal predictSignal(final Map<String, ArrayList<Double>> HOSECodeLookupTable,
-                                       final IAtomContainer ac, final int atomIndex, final Integer maxSphere,
-                                       final String nucleus) throws Exception {
-        if (!Utils.checkIndexInAtomContainer(ac, atomIndex)) {
-            return null;
-        }
-        final String HOSECode = HOSECodeBuilder.buildHOSECode(ac, atomIndex, maxSphere, false);
-        final Double predictedShift = Predict.predictShift(HOSECodeLookupTable, HOSECode);
-        if (predictedShift
-                == null) {
-            return null;
-        }
-        return new Signal(new String[]{nucleus}, new Double[]{predictedShift},
-                          casekit.nmr.utils.Utils.getMultiplicityFromProtonsCount(ac.getAtom(atomIndex)
-                                                                                    .getImplicitHydrogenCount()),
-                          "signal", null, 1, 0);
-    }
-
-    /**
-     * Predicts a spectrum for a given structure based on HOSE code of atoms with specified nucleus and a
-     * given HOSE code lookup table. <br>
-     * Specified for carbons (13C) only -> {@link casekit.nmr.utils.Utils#getMultiplicityFromProtonsCount(int)}.
-     *
-     * @param HOSECodeLookupTable HashMap containing HOSE codes as keys and a list of chemical shifts
-     *                            of occurring central atoms as values
-     * @param ac                  structure to predict from
-     * @param maxSphere           maximum sphere to use for HOSE code generation or null for unlimited
-     * @param nucleus             nucleus (e.g. "13C") for signal creation
-     *
-     * @return null if a HOSE code of one atom does not exist in lookup table
-     *
-     * @throws org.openscience.cdk.exception.CDKException
-     * @see #predictSignal(Map, IAtomContainer, int, Integer, String)
-     */
-    public static Spectrum predictSpectrum(final HashMap<String, ArrayList<Double>> HOSECodeLookupTable,
-                                           final IAtomContainer ac, final Integer maxSphere,
-                                           final String nucleus) throws Exception {
-        final Spectrum predictedSpectrum = new Spectrum();
-        predictedSpectrum.setNuclei(new String[]{nucleus});
-        predictedSpectrum.setSignals(new ArrayList<>());
+        final CDKHydrogenAdder hydrogenAdder = CDKHydrogenAdder.getInstance(SilentChemObjectBuilder.getInstance());
+        String hoseCode, atomTypeSpectrum;
         Signal signal;
-        for (final IAtom atom : ac.atoms()) {
-            if (atom.getSymbol()
-                    .equals(casekit.nmr.utils.Utils.getAtomTypeFromSpectrum(predictedSpectrum, 0))) {
-                signal = Predict.predictSignal(HOSECodeLookupTable, ac, atom.getIndex(), maxSphere, nucleus);
-                if (signal
-                        == null) {
-                    continue;
-                    //                    return null;
+        Double shift;
+        Integer addedSignalIndex;
+        ConnectionTree connectionTree;
+
+        try {
+            AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
+            casekit.nmr.Utils.convertExplicitToImplicitHydrogens(structure);
+            hydrogenAdder.addImplicitHydrogens(structure);
+            casekit.nmr.Utils.convertImplicitToExplicitHydrogens(structure);
+            casekit.nmr.Utils.setAromaticityAndKekulize(structure);
+
+            for (int i = 0; i
+                    < structure.getAtomCount(); i++) {
+                atomTypeSpectrum = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(nucleus);
+                if (structure.getAtom(i)
+                             .getSymbol()
+                             .equals(atomTypeSpectrum)) {
+                    connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
+                    shift = null;
+                    for (int s = connectionTree.getMaxSphere(); s
+                            >= minMatchingSphere; s--) {
+                        hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, s, false);
+                        if (hoseCodeShiftStatistics.containsKey(hoseCode)
+                                && hoseCodeShiftStatistics.get(hoseCode)
+                                                          .containsKey(solvent)) {
+                            shift = hoseCodeShiftStatistics.get(hoseCode)
+                                                           .get(solvent)[3]; // take median value
+                            break;
+                        }
+                    }
+                    signal = new Signal();
+                    signal.setNuclei(spectrum.getNuclei());
+                    signal.setEquivalencesCount(1);
+                    //                    signal.setMultiplicity();
+                    signal.setKind("signal");
+                    signal.setShifts(new Double[]{shift});
+                    addedSignalIndex = spectrum.addSignal(signal);
+                    if (addedSignalIndex
+                            >= assignment.getSetAssignmentsCount(0)) {
+                        assignment.addAssignment(0, new int[]{i});
+                    } else {
+                        assignment.addAssignmentEquivalence(0, addedSignalIndex, i);
+                    }
                 }
-                predictedSpectrum.addSignal(signal);
+            }
+        } catch (final CDKException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        return new DataSet(structure, spectrum, assignment, new HashMap<>());
+    }
+
+    /**
+     * Predicts a 2D spectrum from two 1D spectra. Each 1D spectra needs to contain the same solvent information.
+     * Diastereotopic distinctions are not provided yet.
+     *
+     * @param hoseCodeShiftStatistics HOSE code shift statistics
+     * @param structure               structure to use for prediction
+     * @param nuclei                  nuclei for 2D spectrum to predict
+     * @param solvent                 solvent
+     * @param minPathLength           minimal path length
+     * @param maxPathLength           maximal path length
+     *
+     * @return
+     */
+    public static DataSet predict2D(final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
+                                    final IAtomContainer structure, final String[] nuclei, final String solvent,
+                                    final int minPathLength, final int maxPathLength) {
+        final DataSet predictionDim1 = predict1D(hoseCodeShiftStatistics, structure, solvent, nuclei[0]);
+        final DataSet predictionDim2 = predict1D(hoseCodeShiftStatistics, structure, solvent, nuclei[1]);
+        return Predict.predict2D(structure, predictionDim1.getSpectrum(), predictionDim2.getSpectrum(),
+                                 predictionDim1.getAssignment(), predictionDim2.getAssignment(), minPathLength,
+                                 maxPathLength);
+    }
+
+    /**
+     * Predicts a 2D spectrum from two 1D spectra. Each 1D spectra needs to contain the same solvent information.
+     * Diastereotopic distinctions are not provided yet.
+     *
+     * @param structure      structure to use for prediction
+     * @param spectrumDim1   1D spectrum of first dimension
+     * @param spectrumDim2   1D spectrum of second dimension
+     * @param assignmentDim1 1D assignment of first dimension
+     * @param assignmentDim2 1D assignment of second dimension
+     * @param minPathLength  minimal path length
+     * @param maxPathLength  maximal path length
+     *
+     * @return
+     */
+    public static DataSet predict2D(final IAtomContainer structure, final Spectrum spectrumDim1,
+                                    final Spectrum spectrumDim2, final Assignment assignmentDim1,
+                                    final Assignment assignmentDim2, final int minPathLength, final int maxPathLength) {
+        if (!spectrumDim1.getSolvent()
+                         .equals(spectrumDim2.getSolvent())) {
+            return null;
+        }
+        final String[] nuclei2D = new String[]{spectrumDim1.getNuclei()[0], spectrumDim2.getNuclei()[0]};
+        final String atomTypeDim1 = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(spectrumDim1.getNuclei()[0]);
+        final String atomTypeDim2 = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(spectrumDim2.getNuclei()[0]);
+
+        final Spectrum predictedSpectrum2D = new Spectrum();
+        predictedSpectrum2D.setNuclei(nuclei2D);
+        predictedSpectrum2D.setSignals(new ArrayList<>());
+        predictedSpectrum2D.setSolvent(spectrumDim1.getSolvent());
+        final Assignment assignment2D = new Assignment();
+        assignment2D.setNuclei(predictedSpectrum2D.getNuclei());
+        assignment2D.initAssignments(0);
+
+        Signal signal2D;
+        IAtom atom;
+        Double shiftDim1, shiftDim2;
+        int addedSignalIndex;
+        ConnectionTree connectionTree;
+        List<ConnectionTreeNode> nodesInSphere;
+        for (int i = 0; i
+                < structure.getAtomCount(); i++) {
+            atom = structure.getAtom(i);
+            if (atom.getSymbol()
+                    .equals(atomTypeDim1)) {
+                connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, maxPathLength);
+                for (int s = minPathLength; s
+                        <= connectionTree.getMaxSphere(); s++) {
+                    nodesInSphere = connectionTree.getNodesInSphere(s, false);
+                    for (final ConnectionTreeNode nodeInSphere : nodesInSphere) {
+                        if (nodeInSphere.getAtom()
+                                        .getSymbol()
+                                        .equals(atomTypeDim2)) {
+                            signal2D = new Signal();
+                            signal2D.setNuclei(nuclei2D);
+                            signal2D.setKind("signal");
+                            signal2D.setEquivalencesCount(1);
+                            shiftDim1 = spectrumDim1.getShift(assignmentDim1.getIndex(0, i), 0);
+                            shiftDim2 = spectrumDim2.getShift(assignmentDim2.getIndex(0, nodeInSphere.getKey()), 0);
+                            signal2D.setShifts(new Double[]{shiftDim1, shiftDim2});
+
+                            addedSignalIndex = predictedSpectrum2D.addSignal(signal2D);
+                            if (addedSignalIndex
+                                    >= assignment2D.getSetAssignmentsCount(0)) {
+                                assignment2D.addAssignment(0, new int[]{i});
+                                assignment2D.addAssignment(1, new int[]{nodeInSphere.getKey()});
+                            } else {
+                                assignment2D.addAssignmentEquivalence(0, addedSignalIndex, i);
+                                assignment2D.addAssignmentEquivalence(1, addedSignalIndex, nodeInSphere.getKey());
+                            }
+                        }
+                    }
+                }
             }
         }
 
-        return predictedSpectrum;
+        return new DataSet(structure, predictedSpectrum2D, assignment2D, new HashMap<>());
     }
 }

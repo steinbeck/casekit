@@ -49,9 +49,6 @@ public class HOSECodeShiftStatistics {
         ConnectionTree connectionTree;
         int maxSphereTemp;
         for (final DataSet dataSet : dataSetList) {
-            System.out.println(dataSet.getSpectrum());
-            System.out.println(Arrays.deepToString(dataSet.getAssignment()
-                                                          .getAssignments()));
             structure = dataSet.getStructure()
                                .toAtomContainer();
             if (Utils.containsExplicitHydrogens(structure)) {

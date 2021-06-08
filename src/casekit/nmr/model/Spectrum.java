@@ -92,13 +92,11 @@ public class Spectrum {
     }
 
     /**
-     * Simply adds a signal without equivalence checks.
+     * Simply adds a signal to the end of the signal list without equivalence checks.
      *
      * @param signal signal to add
      *
      * @return
-     *
-     * @see #addSignal(Signal, double, boolean)
      */
     public boolean addSignalWithoutEquivalenceSearch(final Signal signal) {
         if ((signal
@@ -120,53 +118,55 @@ public class Spectrum {
      *
      * @return
      *
-     * @see #addSignal(Signal, double, boolean)
+     * @see #addSignal(Signal, double[], boolean)
      */
-    public boolean addSignal(final Signal signal) {
-        return this.addSignal(signal, 0.0, true);
+    public Integer addSignal(final Signal signal) {
+        final double[] pickPrecisions = new double[signal.getNDim()];
+        for (int dim = 0; dim
+                < signal.getNDim(); dim++) {
+            pickPrecisions[dim] = 0.0;
+        }
+        return this.addSignal(signal, pickPrecisions, true);
     }
 
     /**
      * Adds a signal to this spectrum and stores an equivalent signal index.
      *
      * @param signal            signal to add
-     * @param pickPrecision     precision to find equivalent signals to store in
+     * @param pickPrecisions    precisions per dimension to find equivalent signals to store in
      * @param checkMultiplicity indicates whether to compare the multiplicity of signal
      *                          to add while searching for equivalences
      *
      * @return
      */
-    public boolean addSignal(final Signal signal, final double pickPrecision, final boolean checkMultiplicity) {
+    public Integer addSignal(final Signal signal, final double[] pickPrecisions, final boolean checkMultiplicity) {
         if ((signal
                 == null)
                 || !this.compareNuclei(signal.getNuclei())) {
-            return false;
+            return null;
         }
 
         // check for equivalent signals in all dimensions
-        final List<Integer> closestSignalList = this.pickByClosestShift(signal.getShift(0), 0, pickPrecision);
+        final List<Integer> closestSignalIndexList = this.pickByClosestShift(signal.getShift(0), 0, pickPrecisions[0]);
         for (int dim = 1; dim
                 < this.getNDim(); dim++) {
-            closestSignalList.retainAll(this.pickByClosestShift(signal.getShift(dim), dim, pickPrecision));
+            closestSignalIndexList.retainAll(this.pickByClosestShift(signal.getShift(dim), dim, pickPrecisions[dim]));
         }
-
         if (checkMultiplicity) {
-            closestSignalList.retainAll(this.pickByMultiplicity(signal.getMultiplicity()));
+            closestSignalIndexList.retainAll(this.pickByMultiplicity(signal.getMultiplicity()));
         }
 
-        if (closestSignalList.isEmpty()) {
+        // if no equivalent signal was found then just add as new signal
+        if (closestSignalIndexList.isEmpty()) {
             this.addSignalWithoutEquivalenceSearch(signal);
-        } else {
-            Signal closestSignal;
-            for (final Integer closestSignalIndex : closestSignalList) {
-                closestSignal = this.getSignal(closestSignalIndex);
-                closestSignal.setEquivalencesCount(closestSignal.getEquivalencesCount()
-                                                           + signal.getEquivalencesCount());
-            }
+            return this.getSignalCount()
+                    - 1;
         }
-
-        return true;
-
+        // otherwise store as equivalence (in first hit only)
+        final Signal closestSignal = this.getSignal(closestSignalIndexList.get(0));
+        closestSignal.setEquivalencesCount(closestSignal.getEquivalencesCount()
+                                                   + signal.getEquivalencesCount());
+        return closestSignalIndexList.get(0);
     }
 
     public boolean removeSignal(final Signal signal) {

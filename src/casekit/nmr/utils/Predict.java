@@ -225,4 +225,46 @@ public class Predict {
 
         return new DataSet(structure, predictedSpectrum2D, assignment2D, new HashMap<>());
     }
+
+    public static DataSet predictHSQC(final IAtomContainer structure, final Spectrum spectrumDim1,
+                                      final Spectrum spectrumDim2, final Assignment assignmentDim1,
+                                      final Assignment assignmentDim2) {
+        return predict2D(structure, spectrumDim1, spectrumDim2, assignmentDim1, assignmentDim2, 1, 1);
+    }
+
+    public static DataSet predictHSQCEdited(final IAtomContainer structure, final Spectrum spectrumDim1,
+                                            final Spectrum spectrumDim2, final Assignment assignmentDim1,
+                                            final Assignment assignmentDim2) {
+        final DataSet dataSet = predictHSQC(structure, spectrumDim1, spectrumDim2, assignmentDim1, assignmentDim2);
+
+        final String atomTypeDim2 = Utils.getAtomTypeFromSpectrum(spectrumDim2, 0);
+        IAtom atom;
+        Integer explicitHydrogensCount;
+        for (int i = 0; i
+                < dataSet.getSpectrum()
+                         .getSignalCount(); i++) {
+            atom = structure.getAtom(dataSet.getAssignment()
+                                            .getAssignment(1, i, 0));
+            if (!atom.getSymbol()
+                     .equals(atomTypeDim2)) {
+                continue;
+            }
+            explicitHydrogensCount = AtomContainerManipulator.countExplicitHydrogens(structure, atom);
+            if (explicitHydrogensCount
+                    == 2) {
+                dataSet.getSpectrum()
+                       .getSignal(i)
+                       .setPhase(-1);
+            } else if (explicitHydrogensCount
+                    == 1
+                    || explicitHydrogensCount
+                    == 3) {
+                dataSet.getSpectrum()
+                       .getSignal(i)
+                       .setPhase(1);
+            }
+        }
+
+        return dataSet;
+    }
 }

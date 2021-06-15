@@ -3,8 +3,8 @@ package casekit.nmr.analysis;
 import casekit.nmr.Utils;
 import casekit.nmr.dbservice.COCONUT;
 import casekit.nmr.dbservice.NMRShiftDB;
+import casekit.nmr.fragmentation.model.ConnectionTree;
 import casekit.nmr.hose.HOSECodeBuilder;
-import casekit.nmr.hose.model.ConnectionTree;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import com.google.gson.Gson;
@@ -110,7 +110,7 @@ public class HOSECodeShiftStatistics {
                         if (maxSphere
                                 == null) {
                             connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
-                            maxSphereTemp = connectionTree.getMaxSphere();
+                            maxSphereTemp = connectionTree.getMaxSphere(true);
                         } else {
                             maxSphereTemp = maxSphere;
                         }

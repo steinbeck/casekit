@@ -9,7 +9,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package casekit.nmr.hose.model;
+package casekit.nmr.fragmentation.model;
 
 import casekit.nmr.hose.Utils;
 import org.openscience.cdk.interfaces.IAtom;
@@ -159,7 +159,13 @@ public class ConnectionTree {
         }
     }
 
-    public int getMaxSphere() {
+    public int getMaxSphere(final boolean withRingClosureNodes) {
+        if (!withRingClosureNodes
+                && this.getNodesInSphere(this.maxSphere, false)
+                       .isEmpty()) {
+            return this.maxSphere
+                    - 1;
+        }
         return this.maxSphere;
     }
 
@@ -176,7 +182,7 @@ public class ConnectionTree {
     public List<Integer> getKeys() {
         final List<Integer> keys = new ArrayList<>();
         for (int s = 0; s
-                <= this.getMaxSphere(); s++) {
+                <= this.getMaxSphere(false); s++) {
             for (final ConnectionTreeNode nodeInSphere : this.getNodesInSphere(s, false)) {
                 keys.add(nodeInSphere.getKey());
             }
@@ -188,7 +194,7 @@ public class ConnectionTree {
     public List<ConnectionTreeNode> getNodes(final boolean withRingClosureNodes) {
         final List<ConnectionTreeNode> nodes = new ArrayList<>();
         for (int s = 0; s
-                <= this.getMaxSphere(); s++) {
+                <= this.getMaxSphere(withRingClosureNodes); s++) {
             nodes.addAll(this.getNodesInSphere(s, withRingClosureNodes));
         }
 

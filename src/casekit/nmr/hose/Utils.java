@@ -12,8 +12,8 @@
 
 package casekit.nmr.hose;
 
-import casekit.nmr.hose.model.ConnectionTree;
-import casekit.nmr.hose.model.ConnectionTreeNode;
+import casekit.nmr.fragmentation.model.ConnectionTree;
+import casekit.nmr.fragmentation.model.ConnectionTreeNode;
 import org.openscience.cdk.interfaces.IBond;
 
 import java.util.ArrayList;
@@ -167,7 +167,7 @@ public class Utils {
     public static void rankChildNodes(final ConnectionTree connectionTree) {
         List<ConnectionTreeNode> nodesInSphere;
         for (int sphere = 0; sphere
-                < connectionTree.getMaxSphere(); sphere++) {
+                < connectionTree.getMaxSphere(true); sphere++) {
             nodesInSphere = connectionTree.getNodesInSphere(sphere, true);
             // for all nodes in sphere
             for (int i = 0; i

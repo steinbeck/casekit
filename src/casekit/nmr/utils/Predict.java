@@ -24,9 +24,9 @@
 package casekit.nmr.utils;
 
 
+import casekit.nmr.fragmentation.model.ConnectionTree;
+import casekit.nmr.fragmentation.model.ConnectionTreeNode;
 import casekit.nmr.hose.HOSECodeBuilder;
-import casekit.nmr.hose.model.ConnectionTree;
-import casekit.nmr.hose.model.ConnectionTreeNode;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
@@ -91,7 +91,7 @@ public class Predict {
                              .equals(atomTypeSpectrum)) {
                     connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
                     shift = null;
-                    for (int s = connectionTree.getMaxSphere(); s
+                    for (int s = connectionTree.getMaxSphere(true); s
                             >= minMatchingSphere; s--) {
                         hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, s, false);
                         if (hoseCodeShiftStatistics.containsKey(hoseCode)
@@ -194,7 +194,7 @@ public class Predict {
                     .equals(atomTypeDim1)) {
                 connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, maxPathLength);
                 for (int s = minPathLength; s
-                        <= connectionTree.getMaxSphere(); s++) {
+                        <= connectionTree.getMaxSphere(false); s++) {
                     nodesInSphere = connectionTree.getNodesInSphere(s, false);
                     for (final ConnectionTreeNode nodeInSphere : nodesInSphere) {
                         if (nodeInSphere.getAtom()

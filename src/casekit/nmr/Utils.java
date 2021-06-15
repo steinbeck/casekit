@@ -506,10 +506,25 @@ public class Utils {
         if (!Utils.checkIndexInAtomContainer(ac, atomIndex)) {
             return null;
         }
-        return Utils.getBondOrderSum(ac, atomIndex, true)
-                    .intValue()
+        return ac.getAtom(atomIndex)
+                 .getValency()
+                != null
+                && Utils.getBondOrderSum(ac, atomIndex, true)
+                        .intValue()
                 >= ac.getAtom(atomIndex)
                      .getValency();
+    }
+
+    public static List<Integer> getUnsaturatedAtomIndices(final IAtomContainer ac) {
+        final List<Integer> unsaturatedAtomIndices = new ArrayList<>();
+        for (int i = 0; i
+                < ac.getAtomCount(); i++) {
+            // set the indices of unsaturated atoms in substructure
+            if (!isSaturated(ac, i)) {
+                unsaturatedAtomIndices.add(i);
+            }
+        }
+        return unsaturatedAtomIndices;
     }
 
     public static void addImplicitHydrogens(final IAtomContainer ac) throws CDKException {

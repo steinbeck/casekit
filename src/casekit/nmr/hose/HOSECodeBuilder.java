@@ -572,11 +572,10 @@ public class HOSECodeBuilder {
      * @return IAtomContainer
      *
      * @see #buildConnectionTree(String, boolean)
-     * @see Fragmentation#buildAtomContainer(ConnectionTree)
+     * @see Fragmentation#toAtomContainer(ConnectionTree)
      */
     public static IAtomContainer buildAtomContainer(final String HOSECode,
                                                     final boolean useBremserElementNotation) throws CDKException {
-        return Fragmentation.buildAtomContainer(
-                HOSECodeBuilder.buildConnectionTree(HOSECode, useBremserElementNotation));
+        return Fragmentation.toAtomContainer(HOSECodeBuilder.buildConnectionTree(HOSECode, useBremserElementNotation));
     }
 }

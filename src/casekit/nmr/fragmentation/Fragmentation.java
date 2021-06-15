@@ -28,6 +28,26 @@ public class Fragmentation {
      *
      * @return connection tree
      */
+    public static IAtomContainer buildFragment(final IAtomContainer ac, final int rootAtomIndex, final int maxSphere,
+                                               final Set<Integer> exclude, final boolean withPseudoAtoms) {
+        return toAtomContainer(BFS(ac, rootAtomIndex, maxSphere, exclude, withPseudoAtoms));
+    }
+
+    /**
+     * Function for extending a given connection tree only containing
+     * its root node (0th sphere) by means of Breadth-First-Search (BFS).
+     * Until a certain maximum sphere, each reachable next neighbor atom
+     * is stored in a parent-child-relationship.
+     * In addition, bonds within rings or between hetero atoms will be kept.
+     *
+     * @param ac              atom container to go through
+     * @param rootAtomIndex   root atom index to start from
+     * @param maxSphere       spherical limit
+     * @param exclude         atom indices which to exclude from search
+     * @param withPseudoAtoms places pseudo atoms in the "outer" sphere
+     *
+     * @return connection tree
+     */
     public static ConnectionTree BFS(final IAtomContainer ac, final int rootAtomIndex, final int maxSphere,
                                      final Set<Integer> exclude, final boolean withPseudoAtoms) {
         // create queue and connection tree for BFS
@@ -110,7 +130,7 @@ public class Fragmentation {
         BFS(ac, connectionTree, queue, visited, exclude, maxSphere, withPseudoAtoms);
     }
 
-    public static boolean keepConnection(final IAtom atom1, final IAtom atom2, final IBond bond) {
+    private static boolean keepConnection(final IAtom atom1, final IAtom atom2, final IBond bond) {
         // hetero-hetero or carbon-hetero
         if ((isHeteroAtom(atom1)
                 && isHeteroAtom(atom2))
@@ -166,13 +186,13 @@ public class Fragmentation {
         //        }
     }
 
-    public static boolean isHeteroAtom(final IAtom atom) {
+    private static boolean isHeteroAtom(final IAtom atom) {
         return !atom.getSymbol()
                     .equals("H")
                 && !isCarbonAtom(atom);
     }
 
-    public static boolean isCarbonAtom(final IAtom atom) {
+    private static boolean isCarbonAtom(final IAtom atom) {
         return atom.getSymbol()
                    .equals("C");
     }
@@ -185,7 +205,7 @@ public class Fragmentation {
      *
      * @return IAtomContainer
      */
-    public static IAtomContainer buildAtomContainer(final ConnectionTree connectionTree) {
+    public static IAtomContainer toAtomContainer(final ConnectionTree connectionTree) {
         // create new atom container and add the connection trees structure, beginning at the root atom
         final IAtomContainer ac = SilentChemObjectBuilder.getInstance()
                                                          .newAtomContainer();

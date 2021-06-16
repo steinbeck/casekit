@@ -14,11 +14,7 @@ import java.util.*;
 public class Fragmentation {
 
     /**
-     * Function for extending a given connection tree only containing
-     * its root node (0th sphere) by means of Breadth-First-Search (BFS).
-     * Until a certain maximum sphere, each reachable next neighbor atom
-     * is stored in a parent-child-relationship.
-     * In addition, bonds within rings or between hetero atoms will be kept.
+     * Creates an atom container from a given connection tree built by using {@link #BFS(IAtomContainer, int, int, Set, boolean)}.
      *
      * @param ac              atom container to go through
      * @param rootAtomIndex   root atom index to start from
@@ -55,7 +51,52 @@ public class Fragmentation {
         queue.add(new int[]{rootAtomIndex, 0});
         final ConnectionTree connectionTree = new ConnectionTree(ac.getAtom(rootAtomIndex), rootAtomIndex);
 
-        BFS(ac, connectionTree, queue, new HashSet<>(), exclude, maxSphere, withPseudoAtoms);
+        BFS(ac, connectionTree, queue, new HashSet<>(), exclude, maxSphere);
+
+        // close rings
+        IBond bond;
+        for (int s = 0; s
+                < connectionTree.getMaxSphere(false); s++) {
+            for (final ConnectionTreeNode nodeInSphere1 : connectionTree.getNodesInSphere(s, false)) {
+                // set connections (parent nodes) in sphere nodes which have to be connected -> ring closures
+                for (final ConnectionTreeNode nodeInSphere2 : connectionTree.getNodesInSphere(s, false)) {
+                    if ((ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom())
+                            != null)
+                            && !ConnectionTree.hasRingClosureParent(nodeInSphere1, nodeInSphere2)
+                            && !ConnectionTree.hasRingClosureParent(nodeInSphere2, nodeInSphere1)) {
+                        bond = ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom());
+                        connectionTree.addRingClosureNode(nodeInSphere1.getKey(), nodeInSphere2.getKey(), bond);
+                        connectionTree.addRingClosureNode(nodeInSphere2.getKey(), nodeInSphere1.getKey(), bond);
+                    }
+                }
+                for (final ConnectionTreeNode nodeInSphere2 : connectionTree.getNodesInSphere(s
+                                                                                                      + 1, false)) {
+                    if ((ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom())
+                            != null)
+                            && !ConnectionTree.hasRingClosureParent(nodeInSphere1, nodeInSphere2)
+                            && !ConnectionTree.hasRingClosureParent(nodeInSphere2, nodeInSphere1)) {
+                        bond = ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom());
+                        connectionTree.addRingClosureNode(nodeInSphere1.getKey(), nodeInSphere2.getKey(), bond);
+                        connectionTree.addRingClosureNode(nodeInSphere2.getKey(), nodeInSphere1.getKey(), bond);
+                    }
+                }
+            }
+        }
+
+        // add pseudo atoms
+        if (withPseudoAtoms) {
+            for (final ConnectionTreeNode node : connectionTree.getNodes(false)) {
+                for (final IAtom connectedAtom : ac.getConnectedAtomsList(node.getAtom())) {
+                    if (connectionTree.getBond(node.getKey(), connectedAtom.getIndex())
+                            == null) {
+                        addPseudoNode(connectionTree, ac.getAtomCount()
+                                              + connectionTree.getNodesCount(false), node.getKey(),
+                                      ac.getBond(node.getAtom(), connectedAtom));
+                    }
+                }
+            }
+        }
+
 
         return connectionTree;
     }
@@ -67,18 +108,16 @@ public class Fragmentation {
      * is stored in a parent-child-relationship.
      * In addition, bonds within rings or between hetero atoms will be kept.
      *
-     * @param ac              atom container to go through
-     * @param connectionTree  connection tree to expand, incl. the root node
-     * @param queue           queue to use containing the atom index of the root node and start sphere
-     * @param visited         atom indices which are already "visited" and
-     *                        should be ignored
-     * @param exclude         atom indices which to exclude from search
-     * @param maxSphere       spherical limit
-     * @param withPseudoAtoms places pseudo atoms in the "outer" sphere
+     * @param ac             atom container to go through
+     * @param connectionTree connection tree to expand, incl. the root node
+     * @param queue          queue to use containing the atom index of the root node and start sphere
+     * @param visited        atom indices which are already "visited" and
+     *                       should be ignored
+     * @param exclude        atom indices which to exclude from search
+     * @param maxSphere      spherical limit
      */
     private static void BFS(final IAtomContainer ac, final ConnectionTree connectionTree, final Queue<int[]> queue,
-                            final Set<Integer> visited, final Set<Integer> exclude, final int maxSphere,
-                            final boolean withPseudoAtoms) {
+                            final Set<Integer> visited, final Set<Integer> exclude, final int maxSphere) {
         // all nodes visited?
         if (queue.isEmpty()) {
             return;
@@ -87,50 +126,50 @@ public class Fragmentation {
         final int atomIndex = queueValue[0];
         final int sphere = queueValue[1];
         final IAtom atom = ac.getAtom(atomIndex);
-        final ConnectionTreeNode node = connectionTree.getNode(atomIndex);
         // mark atom as visited
         visited.add(atomIndex);
 
         IBond bond;
-        ConnectionTreeNode connectedAtomNode;
         // add nodes and bonds in lower spheres
         // go to all child nodes
         int connectedAtomIndex;
         for (final IAtom connectedAtom : ac.getConnectedAtomsList(atom)) {
-            connectedAtomIndex = ac.indexOf(connectedAtom);
+            connectedAtomIndex = connectedAtom.getIndex();
             bond = ac.getBond(atom, connectedAtom);
             // add children to queue if not already visited and connection is allowed or maxSphere is not reached yet
-            if ((keepConnection(node.getAtom(), connectedAtom, bond)
-                    || sphere
-                    < maxSphere)
-                    && !exclude.contains(connectedAtomIndex)) {
-                // and not already waiting in queue
-                if (!visited.contains(connectedAtomIndex)
-                        && !queue.contains(connectedAtomIndex)) {
-                    queue.add(new int[]{connectedAtomIndex, sphere
-                            + 1});
-                    connectionTree.addNode(connectedAtom, connectedAtomIndex, node.getKey(), bond);
-                } else {
-                    // node already exists in tree; add a further parent to connected atom (for ring closures)
-                    connectedAtomNode = connectionTree.getNode(connectedAtomIndex);
-                    if (connectedAtomNode
-                            != null
-                            && !ConnectionTree.hasRingClosureParent(node, connectedAtomNode)
-                            && !ConnectionTree.hasRingClosureParent(connectedAtomNode, node)) {
-                        connectionTree.addRingClosureNode(connectedAtomIndex, node.getKey(), bond);
-                        connectionTree.addRingClosureNode(node.getKey(), connectedAtomIndex, bond);
+            if (!exclude.contains(connectedAtomIndex)) {
+                if (keepBond(atom, connectedAtom, bond)
+                        || sphere
+                        < maxSphere) {
+                    // add children to queue if not already visited and not already waiting in queue
+                    if (!visited.contains(connectedAtomIndex)
+                            && !queue.contains(connectedAtomIndex)) {
+                        queue.add(new int[]{connectedAtomIndex, sphere
+                                + 1});
+                        connectionTree.addNode(connectedAtom, connectedAtomIndex, atomIndex, bond);
                     }
                 }
-            } else if (withPseudoAtoms) {
-                connectionTree.addNode(new PseudoAtom(connectedAtom), connectedAtomIndex, node.getKey(), bond);
             }
         }
 
         // further extension of connection tree
-        BFS(ac, connectionTree, queue, visited, exclude, maxSphere, withPseudoAtoms);
+        BFS(ac, connectionTree, queue, visited, exclude, maxSphere);
     }
 
-    private static boolean keepConnection(final IAtom atom1, final IAtom atom2, final IBond bond) {
+    private static boolean addPseudoNode(final ConnectionTree connectionTree, final int pseudoNodeKey,
+                                         final int parentNodeKey, final IBond bondToParent) {
+        if (!connectionTree.addNode(new PseudoAtom("R"), pseudoNodeKey, parentNodeKey, bondToParent)) {
+            return false;
+        }
+        final ConnectionTreeNode pseudoNode = connectionTree.getNode(pseudoNodeKey);
+        pseudoNode.setIsPseudoNode(true);
+        //                pseudoNode.getAtom()
+        //                          .setImplicitHydrogenCount(connectedAtom.getImplicitHydrogenCount());
+
+        return true;
+    }
+
+    private static boolean keepBond(final IAtom atom1, final IAtom atom2, final IBond bond) {
         // hetero-hetero or carbon-hetero
         if ((isHeteroAtom(atom1)
                 && isHeteroAtom(atom2))
@@ -140,50 +179,55 @@ public class Fragmentation {
                 && isCarbonAtom(atom2))) {
             return true;
         }
-        // do not cut ring bonds
-        if (bond.isInRing()) {
+
+        //        // do not cut ring bonds
+        //        if (bond.isInRing()) {
+        //            return true;
+        //        }
+
+        // carbon-carbon or carbon-hetero with higher bond order
+        if (
+            //                ((isCarbonAtom(atom1)
+            //                && isHeteroAtom(atom2))
+            //                || (isHeteroAtom(atom1)
+            //                && isCarbonAtom(atom2))
+            //                || (isCarbonAtom(atom1)
+            //                && isCarbonAtom(atom2)))
+            //                &&
+                bond.getOrder()
+                    .numeric()
+                        >= 3
+            //                && !bond.isAromatic()
+        ) {
             return true;
         }
-        // carbon-carbon or carbon-hetero with higher bond order
-        return ((isCarbonAtom(atom1)
-                && isHeteroAtom(atom2))
-                || (isHeteroAtom(atom1)
-                && isCarbonAtom(atom2))
-                || (isCarbonAtom(atom1)
-                && isCarbonAtom(atom2)))
-                && bond.getOrder()
-                       .numeric()
-                >= 2
-                && !bond.isAromatic();
 
-        //        // one carbon has bonds to multiple hetero atoms
-        //        if (isCarbonAtom(atom1)
-        //                && isHeteroAtom(atom2)) {
-        //            int heteroAtomCount = 0;
-        //            for (final IAtom atom3 : atom1.getContainer()
-        //                                          .getConnectedAtomsList(atom1)) {
-        //                if (isHeteroAtom(atom3)) {
-        //                    heteroAtomCount++;
-        //                }
-        //            }
-        //            if (heteroAtomCount
-        //                    >= 2) {
-        //                return true;
-        //            }
-        //        } else if (isHeteroAtom(atom1)
-        //                && isCarbonAtom(atom2)) {
-        //            int heteroAtomCount = 0;
-        //            for (final IAtom atom3 : atom2.getContainer()
-        //                                          .getConnectedAtomsList(atom2)) {
-        //                if (isHeteroAtom(atom3)) {
-        //                    heteroAtomCount++;
-        //                }
-        //            }
-        //            if (heteroAtomCount
-        //                    >= 2) {
-        //                return true;
-        //            }
-        //        }
+        // one carbon has bonds to multiple hetero atoms
+        if (isCarbonAtom(atom1)
+                && isHeteroAtom(atom2)) {
+            int heteroAtomCount = 0;
+            for (final IAtom atom3 : atom1.getContainer()
+                                          .getConnectedAtomsList(atom1)) {
+                if (isHeteroAtom(atom3)) {
+                    heteroAtomCount++;
+                }
+            }
+            return heteroAtomCount
+                    >= 2;
+        } else if (isHeteroAtom(atom1)
+                && isCarbonAtom(atom2)) {
+            int heteroAtomCount = 0;
+            for (final IAtom atom3 : atom2.getContainer()
+                                          .getConnectedAtomsList(atom2)) {
+                if (isHeteroAtom(atom3)) {
+                    heteroAtomCount++;
+                }
+            }
+            return heteroAtomCount
+                    >= 2;
+        }
+
+        return false;
     }
 
     private static boolean isHeteroAtom(final IAtom atom) {

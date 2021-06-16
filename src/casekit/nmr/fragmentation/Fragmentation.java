@@ -14,7 +14,7 @@ import java.util.*;
 public class Fragmentation {
 
     /**
-     * Creates an atom container from a given connection tree built by using {@link #BFS(IAtomContainer, int, int, Set, boolean)}.
+     * Creates an atom container from a given connection tree built by using {@link #buildConnectionTree(IAtomContainer, int, int, Set, boolean)}.
      *
      * @param ac              atom container to go through
      * @param rootAtomIndex   root atom index to start from
@@ -26,7 +26,7 @@ public class Fragmentation {
      */
     public static IAtomContainer buildFragment(final IAtomContainer ac, final int rootAtomIndex, final int maxSphere,
                                                final Set<Integer> exclude, final boolean withPseudoAtoms) {
-        return toAtomContainer(BFS(ac, rootAtomIndex, maxSphere, exclude, withPseudoAtoms));
+        return toAtomContainer(buildConnectionTree(ac, rootAtomIndex, maxSphere, exclude, withPseudoAtoms));
     }
 
     /**
@@ -44,8 +44,9 @@ public class Fragmentation {
      *
      * @return connection tree
      */
-    public static ConnectionTree BFS(final IAtomContainer ac, final int rootAtomIndex, final int maxSphere,
-                                     final Set<Integer> exclude, final boolean withPseudoAtoms) {
+    public static ConnectionTree buildConnectionTree(final IAtomContainer ac, final int rootAtomIndex,
+                                                     final int maxSphere, final Set<Integer> exclude,
+                                                     final boolean withPseudoAtoms) {
         // create queue and connection tree for BFS
         final Queue<int[]> queue = new LinkedList<>();
         queue.add(new int[]{rootAtomIndex, 0});
@@ -55,34 +56,26 @@ public class Fragmentation {
 
         // close rings
         IBond bond;
+        final int maxSphereTree = connectionTree.getMaxSphere(false);
         for (int s = 0; s
-                < connectionTree.getMaxSphere(false); s++) {
+                <= maxSphereTree; s++) {
             for (final ConnectionTreeNode nodeInSphere1 : connectionTree.getNodesInSphere(s, false)) {
                 // set connections (parent nodes) in sphere nodes which have to be connected -> ring closures
-                for (final ConnectionTreeNode nodeInSphere2 : connectionTree.getNodesInSphere(s, false)) {
-                    if ((ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom())
-                            != null)
-                            && !ConnectionTree.hasRingClosureParent(nodeInSphere1, nodeInSphere2)
-                            && !ConnectionTree.hasRingClosureParent(nodeInSphere2, nodeInSphere1)) {
-                        bond = ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom());
-                        connectionTree.addRingClosureNode(nodeInSphere1.getKey(), nodeInSphere2.getKey(), bond);
-                        connectionTree.addRingClosureNode(nodeInSphere2.getKey(), nodeInSphere1.getKey(), bond);
-                    }
-                }
-                for (final ConnectionTreeNode nodeInSphere2 : connectionTree.getNodesInSphere(s
-                                                                                                      + 1, false)) {
-                    if ((ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom())
-                            != null)
-                            && !ConnectionTree.hasRingClosureParent(nodeInSphere1, nodeInSphere2)
-                            && !ConnectionTree.hasRingClosureParent(nodeInSphere2, nodeInSphere1)) {
-                        bond = ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom());
-                        connectionTree.addRingClosureNode(nodeInSphere1.getKey(), nodeInSphere2.getKey(), bond);
-                        connectionTree.addRingClosureNode(nodeInSphere2.getKey(), nodeInSphere1.getKey(), bond);
+                for (int s2 = s; s2
+                        <= maxSphereTree; s2++) {
+                    for (final ConnectionTreeNode nodeInSphere2 : connectionTree.getNodesInSphere(s2, false)) {
+                        if ((ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom())
+                                != null)
+                                && !ConnectionTree.hasRingClosureParent(nodeInSphere1, nodeInSphere2)
+                                && !ConnectionTree.hasRingClosureParent(nodeInSphere2, nodeInSphere1)) {
+                            bond = ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom());
+                            connectionTree.addRingClosureNode(nodeInSphere1.getKey(), nodeInSphere2.getKey(), bond);
+                            connectionTree.addRingClosureNode(nodeInSphere2.getKey(), nodeInSphere1.getKey(), bond);
+                        }
                     }
                 }
             }
         }
-
         // add pseudo atoms
         if (withPseudoAtoms) {
             for (final ConnectionTreeNode node : connectionTree.getNodes(false)) {
@@ -96,7 +89,6 @@ public class Fragmentation {
                 }
             }
         }
-
 
         return connectionTree;
     }
@@ -334,5 +326,11 @@ public class Fragmentation {
                 }
             }
         }
+    }
+
+    public static List<Integer> buildFragmentAtomIndicesList(final IAtomContainer structure, final int rootAtomIndex,
+                                                             final Integer maxSphere, final Set<Integer> exclude,
+                                                             final boolean withPseudoAtoms) {
+        return buildConnectionTree(structure, rootAtomIndex, maxSphere, exclude, withPseudoAtoms).getKeys();
     }
 }

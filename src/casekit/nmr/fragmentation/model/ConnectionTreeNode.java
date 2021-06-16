@@ -33,7 +33,7 @@ public class ConnectionTreeNode {
     private int sphere;
     private boolean isRingClosure;
     private ConnectionTreeNode ringClosureParent;
-
+    private boolean isPseudoNode;
 
     /**
      * Pre-defined constructor for creating a non-ring closure node.
@@ -52,6 +52,7 @@ public class ConnectionTreeNode {
         this.children = new ArrayList<>();
         this.bondsToChildren = new ArrayList<>();
         this.isRingClosure = false;
+        this.isPseudoNode = false;
     }
 
     /**
@@ -69,6 +70,7 @@ public class ConnectionTreeNode {
         this.bondsToChildren = new ArrayList<>();
         this.isRingClosure = true;
         this.ringClosureParent = ringClosurePartner;
+        this.isPseudoNode = false;
     }
 
     public IAtom getAtom() {
@@ -125,6 +127,14 @@ public class ConnectionTreeNode {
 
     public void setRingClosureParent(final ConnectionTreeNode ringClosureParent) {
         this.ringClosureParent = ringClosureParent;
+    }
+
+    public void setIsPseudoNode(final boolean isPseudoNode) {
+        this.isPseudoNode = isPseudoNode;
+    }
+
+    public boolean isPseudoNode() {
+        return this.isPseudoNode;
     }
 
     public boolean addChildNode(final ConnectionTreeNode childNode, final IBond bondToChild) {

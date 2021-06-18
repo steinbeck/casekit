@@ -2,30 +2,119 @@ package casekit.nmr.fragmentation;
 
 import casekit.nmr.fragmentation.model.ConnectionTree;
 import casekit.nmr.fragmentation.model.ConnectionTreeNode;
+import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.graph.Cycles;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IBond;
+import org.openscience.cdk.interfaces.IRingSet;
 import org.openscience.cdk.silent.Bond;
 import org.openscience.cdk.silent.PseudoAtom;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
+import org.openscience.cdk.smiles.SmilesGenerator;
 
 import java.util.*;
 
 public class Fragmentation {
 
+    public static List<IAtomContainer> buildFragments(final IAtomContainer structure, final Integer maxSphere,
+                                                      final Integer maxSphereRing, final boolean withPseudoAtoms) {
+        final List<IAtomContainer> fragments = new ArrayList<>();
+        try {
+            // build fragments from detected rings and extend by given maximum sphere for rings
+            final Set<String> smilesSet = new HashSet<>();
+            String smiles;
+            ConnectionTree connectionTreeRing, connectionTreeOuterSphere, subtreeToAdd;
+            final IRingSet ringSet = Cycles.all(structure)//essential(structure)
+                                           .toRingSet();
+            List<Integer> atomIndicesInRing;
+            Set<Integer> atomIndicesOutOfRing;
+            IAtomContainer ringAtomContainer;
+            for (int i = 0; i
+                    < ringSet.getAtomContainerCount(); i++) {
+                ringAtomContainer = ringSet.getAtomContainer(i);
+                // add already "visited" ring nodes
+                atomIndicesInRing = new ArrayList<>();
+                for (int k = 0; k
+                        < ringAtomContainer.getAtomCount(); k++) {
+                    atomIndicesInRing.add(structure.indexOf(ringAtomContainer.getAtom(k)));
+                }
+                atomIndicesOutOfRing = new HashSet<>();
+                for (int j = 0; j
+                        < structure.getAtomCount(); j++) {
+                    if (!atomIndicesInRing.contains(j)) {
+                        atomIndicesOutOfRing.add(j);
+                    }
+                }
+                connectionTreeRing = buildConnectionTree(structure, atomIndicesInRing.get(0), null,
+                                                         atomIndicesOutOfRing, false);
+                // add missing outer sphere nodes to ring
+                for (int k = 0; k
+                        < ringAtomContainer.getAtomCount(); k++) {
+                    connectionTreeOuterSphere = Fragmentation.buildConnectionTree(structure, structure.indexOf(
+                            ringAtomContainer.getAtom(k)), maxSphereRing, new HashSet<>(atomIndicesInRing), false);
+                    if (connectionTreeOuterSphere.getMaxSphere(false)
+                            == 0) {
+                        continue;
+                    }
+                    for (final int key : connectionTreeOuterSphere.getNodeKeysInSphere(1)) {
+                        subtreeToAdd = ConnectionTree.buildSubtree(connectionTreeOuterSphere, key);
+                        if (!addToConnectionTree(connectionTreeRing, connectionTreeOuterSphere.getRootNode()
+                                                                                              .getKey(), subtreeToAdd,
+                                                 connectionTreeOuterSphere.getBond(
+                                                         connectionTreeOuterSphere.getRootNode()
+                                                                                  .getKey(), key))) {
+                            continue;
+                        }
+                        atomIndicesInRing.addAll(subtreeToAdd.getKeys());
+                    }
+                }
+                // close rings
+                closeRings(connectionTreeRing, structure);
+                // attach pseudo atoms if desired
+                if (withPseudoAtoms) {
+                    attachPseudoAtoms(connectionTreeRing, structure);
+                }
+                smiles = SmilesGenerator.absolute()
+                                        .create(ringAtomContainer);
+                if (!smilesSet.contains(smiles)) {
+                    smilesSet.add(smiles);
+                    fragments.add(toAtomContainer(connectionTreeRing));
+                }
+            }
+            // build fragment for each non-ring atom
+            for (int i = 0; i
+                    < structure.getAtomCount(); i++) {
+                final IAtomContainer fragment = Fragmentation.buildFragment(structure, i, maxSphere, new HashSet<>(),
+                                                                            withPseudoAtoms);
+                smiles = SmilesGenerator.absolute()
+                                        .create(fragment);
+                if (!smilesSet.contains(smiles)) {
+                    smilesSet.add(smiles);
+                    fragments.add(fragment);
+                }
+            }
+        } catch (final CDKException e) {
+            e.printStackTrace();
+        }
+
+        return fragments;
+    }
+
     /**
-     * Creates an atom container from a given connection tree built by using {@link #buildConnectionTree(IAtomContainer, int, int, Set, boolean)}.
+     * Creates an atom container from a given connection tree built by using {@link #buildConnectionTree(IAtomContainer, int, Integer, Set, boolean)}.
      *
      * @param ac              atom container to go through
      * @param rootAtomIndex   root atom index to start from
-     * @param maxSphere       spherical limit
+     * @param maxSphere       spherical limit, a null value means no limit
      * @param exclude         atom indices which to exclude from search
      * @param withPseudoAtoms places pseudo atoms in the "outer" sphere
      *
      * @return connection tree
      */
-    public static IAtomContainer buildFragment(final IAtomContainer ac, final int rootAtomIndex, final int maxSphere,
-                                               final Set<Integer> exclude, final boolean withPseudoAtoms) {
+    public static IAtomContainer buildFragment(final IAtomContainer ac, final int rootAtomIndex,
+                                               final Integer maxSphere, final Set<Integer> exclude,
+                                               final boolean withPseudoAtoms) {
         return toAtomContainer(buildConnectionTree(ac, rootAtomIndex, maxSphere, exclude, withPseudoAtoms));
     }
 
@@ -36,24 +125,35 @@ public class Fragmentation {
      * is stored in a parent-child-relationship.
      * In addition, bonds within rings or between hetero atoms will be kept.
      *
-     * @param ac              atom container to go through
+     * @param structure       atom container to go through
      * @param rootAtomIndex   root atom index to start from
-     * @param maxSphere       spherical limit
+     * @param maxSphere       spherical limit, a null value means no limit
      * @param exclude         atom indices which to exclude from search
      * @param withPseudoAtoms places pseudo atoms in the "outer" sphere
      *
      * @return connection tree
      */
-    public static ConnectionTree buildConnectionTree(final IAtomContainer ac, final int rootAtomIndex,
-                                                     final int maxSphere, final Set<Integer> exclude,
+    public static ConnectionTree buildConnectionTree(final IAtomContainer structure, final int rootAtomIndex,
+                                                     final Integer maxSphere, final Set<Integer> exclude,
                                                      final boolean withPseudoAtoms) {
         // create queue and connection tree for BFS
         final Queue<int[]> queue = new LinkedList<>();
         queue.add(new int[]{rootAtomIndex, 0});
-        final ConnectionTree connectionTree = new ConnectionTree(ac.getAtom(rootAtomIndex), rootAtomIndex);
+        final ConnectionTree connectionTree = new ConnectionTree(structure.getAtom(rootAtomIndex), rootAtomIndex);
 
-        BFS(ac, connectionTree, queue, new HashSet<>(), exclude, maxSphere);
+        BFS(structure, connectionTree, queue, new HashSet<>(), exclude, maxSphere);
 
+        // close rings
+        closeRings(connectionTree, structure);
+        // add pseudo atoms
+        if (withPseudoAtoms) {
+            attachPseudoAtoms(connectionTree, structure);
+        }
+
+        return connectionTree;
+    }
+
+    public static void closeRings(final ConnectionTree connectionTree, final IAtomContainer structure) {
         // close rings
         IBond bond;
         final int maxSphereTree = connectionTree.getMaxSphere(false);
@@ -64,11 +164,10 @@ public class Fragmentation {
                 for (int s2 = s; s2
                         <= maxSphereTree; s2++) {
                     for (final ConnectionTreeNode nodeInSphere2 : connectionTree.getNodesInSphere(s2, false)) {
-                        if ((ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom())
+                        if ((structure.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom())
                                 != null)
-                                && !ConnectionTree.hasRingClosureParent(nodeInSphere1, nodeInSphere2)
-                                && !ConnectionTree.hasRingClosureParent(nodeInSphere2, nodeInSphere1)) {
-                            bond = ac.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom());
+                                && !ConnectionTree.nodesFormRingClosure(nodeInSphere1, nodeInSphere2)) {
+                            bond = structure.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom());
                             connectionTree.addRingClosureNode(nodeInSphere1.getKey(), nodeInSphere2.getKey(), bond);
                             connectionTree.addRingClosureNode(nodeInSphere2.getKey(), nodeInSphere1.getKey(), bond);
                         }
@@ -76,21 +175,23 @@ public class Fragmentation {
                 }
             }
         }
-        // add pseudo atoms
-        if (withPseudoAtoms) {
-            for (final ConnectionTreeNode node : connectionTree.getNodes(false)) {
-                for (final IAtom connectedAtom : ac.getConnectedAtomsList(node.getAtom())) {
-                    if (connectionTree.getBond(node.getKey(), connectedAtom.getIndex())
-                            == null) {
-                        addPseudoNode(connectionTree, ac.getAtomCount()
-                                              + connectionTree.getNodesCount(false), node.getKey(),
-                                      ac.getBond(node.getAtom(), connectedAtom));
-                    }
+    }
+
+    public static void attachPseudoAtoms(final ConnectionTree connectionTree, final IAtomContainer structure) {
+        int atomIndexInStructure;
+        for (final ConnectionTreeNode node : connectionTree.getNodes(false)) {
+            for (final IAtom connectedAtom : structure.getConnectedAtomsList(node.getAtom())) {
+                atomIndexInStructure = structure.indexOf(connectedAtom);
+                if (connectionTree.getBond(node.getKey(), atomIndexInStructure)
+                        == null
+                        && connectionTree.getBond(atomIndexInStructure, node.getKey())
+                        == null) {
+                    addPseudoNode(connectionTree, structure.getAtomCount()
+                                          + connectionTree.getNodesCount(false), node.getKey(),
+                                  structure.getBond(node.getAtom(), connectedAtom));
                 }
             }
         }
-
-        return connectionTree;
     }
 
     /**
@@ -106,10 +207,10 @@ public class Fragmentation {
      * @param visited        atom indices which are already "visited" and
      *                       should be ignored
      * @param exclude        atom indices which to exclude from search
-     * @param maxSphere      spherical limit
+     * @param maxSphere      spherical limit, a null value means no limit
      */
     private static void BFS(final IAtomContainer ac, final ConnectionTree connectionTree, final Queue<int[]> queue,
-                            final Set<Integer> visited, final Set<Integer> exclude, final int maxSphere) {
+                            final Set<Integer> visited, final Set<Integer> exclude, final Integer maxSphere) {
         // all nodes visited?
         if (queue.isEmpty()) {
             return;
@@ -126,11 +227,13 @@ public class Fragmentation {
         // go to all child nodes
         int connectedAtomIndex;
         for (final IAtom connectedAtom : ac.getConnectedAtomsList(atom)) {
-            connectedAtomIndex = connectedAtom.getIndex();
+            connectedAtomIndex = ac.indexOf(connectedAtom);
             bond = ac.getBond(atom, connectedAtom);
             // add children to queue if not already visited and connection is allowed or maxSphere is not reached yet
             if (!exclude.contains(connectedAtomIndex)) {
                 if (keepBond(atom, connectedAtom, bond)
+                        || maxSphere
+                        == null
                         || sphere
                         < maxSphere) {
                     // add children to queue if not already visited and not already waiting in queue
@@ -248,6 +351,19 @@ public class Fragmentation {
         addToAtomContainer(connectionTree, ac, null, null);
 
         return ac;
+    }
+
+    /**
+     * Adds a subtree to a node in another connection tree.
+     *
+     * @param connectionTree connection tree
+     * @param parentNodeKey  parent node key in connection tree
+     * @param subtree        subtree to add
+     * @param bondToLink     bond
+     */
+    public static boolean addToConnectionTree(final ConnectionTree connectionTree, final int parentNodeKey,
+                                              final ConnectionTree subtree, final IBond bondToLink) {
+        return ConnectionTree.addSubtree(connectionTree, parentNodeKey, subtree, bondToLink);
     }
 
     /**

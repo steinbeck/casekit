@@ -26,8 +26,8 @@ public class ConnectionTreeNode {
 
     private final List<ConnectionTreeNode> children;
     private final List<IBond> bondsToChildren;
-    private final ConnectionTreeNode parent;
-    private final IBond bondToParent;
+    private ConnectionTreeNode parent;
+    private IBond bondToParent;
     private IAtom atom;
     private Integer key;
     private int sphere;
@@ -85,8 +85,16 @@ public class ConnectionTreeNode {
         return this.parent;
     }
 
+    public void setParent(final ConnectionTreeNode parent) {
+        this.parent = parent;
+    }
+
     public IBond getBondToParent() {
         return this.bondToParent;
+    }
+
+    public void setBondToParent(final IBond bondToParent) {
+        this.bondToParent = bondToParent;
     }
 
     public List<ConnectionTreeNode> getChildNodes() {
@@ -196,5 +204,32 @@ public class ConnectionTreeNode {
 
     public boolean hasChildren() {
         return !this.children.isEmpty();
+    }
+
+    @Override
+    public String toString() {
+        return "ConnectionTreeNode{"
+                + "key="
+                + this.key
+                + ", sphere="
+                + this.sphere
+                + ", isRingClosure="
+                + this.isRingClosure
+                + ", isPseudoNode="
+                + this.isPseudoNode
+                + ", ..."
+                //                + ", children="
+                //                + this.children
+                //                + ", bondsToChildren="
+                //                + this.bondsToChildren
+                //                + ", parent="
+                //                + this.parent
+                //                + ", bondToParent="
+                //                + this.bondToParent
+                //                + ", atom="
+                //                + this.atom
+                //                + ", ringClosureParent="
+                //                + this.ringClosureParent
+                + '}';
     }
 }

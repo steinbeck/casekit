@@ -118,6 +118,72 @@ public class ConnectionTree {
         }
     }
 
+    public static boolean addSubtree(final ConnectionTree connectionTree, final int parentNodeKey,
+                                     final ConnectionTree subtree, final IBond bondToLink) {
+        if (!connectionTree.containsKey(parentNodeKey)) {
+            return false;
+        }
+        for (final int key : subtree.getKeys()) {
+            if (connectionTree.containsKey(key)) {
+                return false;
+            }
+        }
+        // check ring closure nodes in subtree whether their ring closure parents (on the other side) still exist
+        for (final ConnectionTreeNode node : subtree.getNodes(true)) {
+            if (node.isRingClosureNode()
+                    && !subtree.containsKey(node.getRingClosureParent()
+                                                .getKey())
+                //            && !connectionTree.containsKey(node.getRingClosureParent()
+                //                                     .getKey())
+            ) {
+                if (node.getRingClosureParent()
+                        != null) {
+                    node.getRingClosureParent()
+                        .setRingClosureParent(null);
+                }
+                node.getParent()
+                    .removeChildNode(node);
+            }
+        }
+
+        final ConnectionTreeNode parentNode = connectionTree.getNode(parentNodeKey);
+        for (final ConnectionTreeNode subtreeNode : subtree.getNodes(true)) {
+            if (subtreeNode
+                    == subtree.getRootNode()) {
+                parentNode.addChildNode(subtree.getRootNode(), bondToLink);
+                subtree.getRootNode()
+                       .setParent(parentNode);
+                subtree.getRootNode()
+                       .setBondToParent(bondToLink);
+                connectionTree.addKey(subtree.getRootNode()
+                                             .getKey());
+                subtree.getRootNode()
+                       .setSphere(parentNode.getSphere()
+                                          + 1);
+                continue;
+            }
+            if (!subtreeNode.isRingClosureNode()
+                    && !connectionTree.containsKey(subtreeNode.getKey())) {
+                connectionTree.addKey(subtreeNode.getKey());
+            } else {
+                continue;
+            }
+            subtreeNode.setSphere(parentNode.getSphere()
+                                          + subtreeNode.getSphere()
+                                          + 1);
+            if (subtreeNode.getSphere()
+                    > connectionTree.getMaxSphere(true)) {
+                connectionTree.maxSphere = subtreeNode.getSphere();
+            }
+        }
+
+        return true;
+    }
+
+    public boolean addKey(final int key) {
+        return this.keySet.add(key);
+    }
+
     public ConnectionTreeNode getRootNode() {
         return this.root;
     }
@@ -425,7 +491,15 @@ public class ConnectionTree {
                     treeStringBuilder.append(nodeInSphere.getAtom()
                                                          .getSymbol());
                 }
-                treeStringBuilder.append(" {");
+                if (s
+                        > 0) {
+                    treeStringBuilder.append(" (");
+                    treeStringBuilder.append(nodeInSphere.getParent()
+                                                         .getKey());
+                    treeStringBuilder.append(") {");
+                } else {
+                    treeStringBuilder.append(" {");
+                }
                 if (nodeInSphere.isRingClosureNode()) {
                     treeStringBuilder.append(nodeInSphere.getRingClosureParent()
                                                          .getKey());

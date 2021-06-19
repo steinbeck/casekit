@@ -2,6 +2,8 @@ package casekit.nmr.fragmentation;
 
 import casekit.nmr.fragmentation.model.ConnectionTree;
 import casekit.nmr.fragmentation.model.ConnectionTreeNode;
+import casekit.nmr.model.*;
+import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.graph.Cycles;
 import org.openscience.cdk.interfaces.IAtom;
@@ -11,19 +13,110 @@ import org.openscience.cdk.interfaces.IRingSet;
 import org.openscience.cdk.silent.Bond;
 import org.openscience.cdk.silent.PseudoAtom;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
-import org.openscience.cdk.smiles.SmilesGenerator;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Fragmentation {
 
+    public static List<DataSet> buildFragments(final DataSet dataSet, final Integer maxSphere,
+                                               final Integer maxSphereRing, final boolean withPseudoAtoms) {
+        final List<DataSet> fragmentDataSetList = new ArrayList<>();
+        final List<ConnectionTree> fragmentTrees = buildFragmentTrees(dataSet.getStructure()
+                                                                             .toAtomContainer(), maxSphere,
+                                                                      maxSphereRing, withPseudoAtoms);
+        final IAtomContainer structure = dataSet.getStructure()
+                                                .toAtomContainer();
+        final String spectrumAtomType = Utils.getAtomTypeFromSpectrum(dataSet.getSpectrum(), 0);
+        List<Integer> substructureAtomIndices;
+        Spectrum subspectrum;
+        Assignment subassignment;
+        IAtom atomInStructure;
+        Signal signal;
+        DataSet subDataSet;
+        for (final ConnectionTree fragmentTree : fragmentTrees) {
+            substructureAtomIndices = fragmentTree.getKeys();
+            subspectrum = new Spectrum();
+            subspectrum.setNuclei(dataSet.getSpectrum()
+                                         .getNuclei());
+            subspectrum.setSignals(new ArrayList<>());
+            subassignment = new Assignment();
+            subassignment.setNuclei(subspectrum.getNuclei());
+            subassignment.initAssignments(0);
+            for (int j = 0; j
+                    < substructureAtomIndices.size(); j++) {
+                atomInStructure = structure.getAtom(substructureAtomIndices.get(j));
+                if (atomInStructure.getSymbol()
+                                   .equals(spectrumAtomType)) {
+                    if (dataSet.getAssignment()
+                               .getIndex(0, substructureAtomIndices.get(j))
+                            == null
+                            || dataSet.getSpectrum()
+                                      .getSignal(dataSet.getAssignment()
+                                                        .getIndex(0, substructureAtomIndices.get(j)))
+                            == null) {
+                        return null;
+                    }
+
+                    signal = dataSet.getSpectrum()
+                                    .getSignal(dataSet.getAssignment()
+                                                      .getIndex(0, substructureAtomIndices.get(j)));
+                    if (signal
+                            != null) {
+                        signal = signal.buildClone();
+                        final int atomIndex = j;
+                        final List<Integer> closestSignalIndexList = subspectrum.checkForEquivalences(signal,
+                                                                                                      new double[]{0.0},
+                                                                                                      true);
+                        if (closestSignalIndexList.isEmpty()) {
+                            signal.setEquivalencesCount(1);
+                            subspectrum.addSignal(signal);
+                            subassignment.addAssignment(0, new int[]{atomIndex});
+                        } else {
+                            final int signalIndex = closestSignalIndexList.get(0);
+                            if (Arrays.stream(subassignment.getAssignment(0, signalIndex))
+                                      .noneMatch(equiv -> equiv
+                                              == atomIndex)) {
+                                subspectrum.getSignal(signalIndex)
+                                           .setEquivalencesCount(subspectrum.getSignal(signalIndex)
+                                                                            .getEquivalencesCount()
+                                                                         + 1); // + 1 because we add one atom only
+                                subassignment.addAssignmentEquivalence(0, signalIndex, atomIndex);
+                            }
+                        }
+                    }
+                }
+            }
+            subspectrum.setSolvent(dataSet.getSpectrum()
+                                          .getSolvent());
+            subspectrum.setSpectrometerFrequency(dataSet.getSpectrum()
+                                                        .getSpectrometerFrequency());
+
+            subDataSet = new DataSet();
+            subDataSet.setStructure(new ExtendedConnectionMatrix(toAtomContainer(fragmentTree)));
+            subDataSet.setSpectrum(subspectrum);
+            subDataSet.setAssignment(subassignment);
+
+            fragmentDataSetList.add(subDataSet);
+        }
+
+        return fragmentDataSetList;
+    }
+
     public static List<IAtomContainer> buildFragments(final IAtomContainer structure, final Integer maxSphere,
                                                       final Integer maxSphereRing, final boolean withPseudoAtoms) {
-        final List<IAtomContainer> fragments = new ArrayList<>();
+        final List<ConnectionTree> fragmentTrees = buildFragmentTrees(structure, maxSphere, maxSphereRing,
+                                                                      withPseudoAtoms);
+        return fragmentTrees.stream()
+                            .map(Fragmentation::toAtomContainer)
+                            .collect(Collectors.toList());
+    }
+
+    public static List<ConnectionTree> buildFragmentTrees(final IAtomContainer structure, final Integer maxSphere,
+                                                          final Integer maxSphereRing, final boolean withPseudoAtoms) {
+        final List<ConnectionTree> fragments = new ArrayList<>();
         try {
             // build fragments from detected rings and extend by given maximum sphere for rings
-            final Set<String> smilesSet = new HashSet<>();
-            String smiles;
             ConnectionTree connectionTreeRing, connectionTreeOuterSphere, subtreeToAdd;
             final IRingSet ringSet = Cycles.all(structure)//essential(structure)
                                            .toRingSet();
@@ -46,12 +139,12 @@ public class Fragmentation {
                         atomIndicesOutOfRing.add(j);
                     }
                 }
-                connectionTreeRing = buildConnectionTree(structure, atomIndicesInRing.get(0), null,
-                                                         atomIndicesOutOfRing, false);
+                connectionTreeRing = buildFragmentTree(structure, atomIndicesInRing.get(0), null, atomIndicesOutOfRing,
+                                                       false);
                 // add missing outer sphere nodes to ring
                 for (int k = 0; k
                         < ringAtomContainer.getAtomCount(); k++) {
-                    connectionTreeOuterSphere = Fragmentation.buildConnectionTree(structure, structure.indexOf(
+                    connectionTreeOuterSphere = Fragmentation.buildFragmentTree(structure, structure.indexOf(
                             ringAtomContainer.getAtom(k)), maxSphereRing, new HashSet<>(atomIndicesInRing), false);
                     if (connectionTreeOuterSphere.getMaxSphere(false)
                             == 0) {
@@ -75,24 +168,13 @@ public class Fragmentation {
                 if (withPseudoAtoms) {
                     attachPseudoAtoms(connectionTreeRing, structure);
                 }
-                smiles = SmilesGenerator.absolute()
-                                        .create(ringAtomContainer);
-                if (!smilesSet.contains(smiles)) {
-                    smilesSet.add(smiles);
-                    fragments.add(toAtomContainer(connectionTreeRing));
-                }
+                fragments.add(connectionTreeRing);
             }
             // build fragment for each non-ring atom
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
-                final IAtomContainer fragment = Fragmentation.buildFragment(structure, i, maxSphere, new HashSet<>(),
-                                                                            withPseudoAtoms);
-                smiles = SmilesGenerator.absolute()
-                                        .create(fragment);
-                if (!smilesSet.contains(smiles)) {
-                    smilesSet.add(smiles);
-                    fragments.add(fragment);
-                }
+                fragments.add(
+                        Fragmentation.buildFragmentTree(structure, i, maxSphere, new HashSet<>(), withPseudoAtoms));
             }
         } catch (final CDKException e) {
             e.printStackTrace();
@@ -102,7 +184,7 @@ public class Fragmentation {
     }
 
     /**
-     * Creates an atom container from a given connection tree built by using {@link #buildConnectionTree(IAtomContainer, int, Integer, Set, boolean)}.
+     * Creates an atom container from a given connection tree built by using {@link #buildFragmentTree(IAtomContainer, int, Integer, Set, boolean)}.
      *
      * @param ac              atom container to go through
      * @param rootAtomIndex   root atom index to start from
@@ -115,7 +197,7 @@ public class Fragmentation {
     public static IAtomContainer buildFragment(final IAtomContainer ac, final int rootAtomIndex,
                                                final Integer maxSphere, final Set<Integer> exclude,
                                                final boolean withPseudoAtoms) {
-        return toAtomContainer(buildConnectionTree(ac, rootAtomIndex, maxSphere, exclude, withPseudoAtoms));
+        return toAtomContainer(buildFragmentTree(ac, rootAtomIndex, maxSphere, exclude, withPseudoAtoms));
     }
 
     /**
@@ -133,9 +215,9 @@ public class Fragmentation {
      *
      * @return connection tree
      */
-    public static ConnectionTree buildConnectionTree(final IAtomContainer structure, final int rootAtomIndex,
-                                                     final Integer maxSphere, final Set<Integer> exclude,
-                                                     final boolean withPseudoAtoms) {
+    public static ConnectionTree buildFragmentTree(final IAtomContainer structure, final int rootAtomIndex,
+                                                   final Integer maxSphere, final Set<Integer> exclude,
+                                                   final boolean withPseudoAtoms) {
         // create queue and connection tree for BFS
         final Queue<int[]> queue = new LinkedList<>();
         queue.add(new int[]{rootAtomIndex, 0});
@@ -447,6 +529,6 @@ public class Fragmentation {
     public static List<Integer> buildFragmentAtomIndicesList(final IAtomContainer structure, final int rootAtomIndex,
                                                              final Integer maxSphere, final Set<Integer> exclude,
                                                              final boolean withPseudoAtoms) {
-        return buildConnectionTree(structure, rootAtomIndex, maxSphere, exclude, withPseudoAtoms).getKeys();
+        return buildFragmentTree(structure, rootAtomIndex, maxSphere, exclude, withPseudoAtoms).getKeys();
     }
 }

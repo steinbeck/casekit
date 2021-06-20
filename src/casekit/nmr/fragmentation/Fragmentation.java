@@ -45,6 +45,11 @@ public class Fragmentation {
             subassignment.initAssignments(0);
             for (int j = 0; j
                     < substructureAtomIndices.size(); j++) {
+                if (substructureAtomIndices.get(j)
+                        >= structure.getAtomCount()) {
+                    // current node/atom is pseudo
+                    continue;
+                }
                 atomInStructure = structure.getAtom(substructureAtomIndices.get(j));
                 if (atomInStructure.getSymbol()
                                    .equals(spectrumAtomType)) {

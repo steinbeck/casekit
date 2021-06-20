@@ -119,9 +119,9 @@ public class Fragmentation {
 
     public static List<ConnectionTree> buildFragmentTrees(final IAtomContainer structure, final Integer maxSphere,
                                                           final Integer maxSphereRing, final boolean withPseudoAtoms) {
-        final List<ConnectionTree> fragments = new ArrayList<>();
+        final List<ConnectionTree> fragmentTrees = new ArrayList<>();
         try {
-            // build fragments from detected rings and extend by given maximum sphere for rings
+            // build fragmentTrees from detected rings and extend by given maximum sphere for rings
             ConnectionTree connectionTreeRing, connectionTreeOuterSphere, subtreeToAdd;
             final IRingSet ringSet = Cycles.all(structure)//essential(structure)
                                            .toRingSet();
@@ -173,19 +173,42 @@ public class Fragmentation {
                 if (withPseudoAtoms) {
                     attachPseudoAtoms(connectionTreeRing, structure);
                 }
-                fragments.add(connectionTreeRing);
+                fragmentTrees.add(connectionTreeRing);
             }
             // build fragment for each non-ring atom
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
-                fragments.add(
+                fragmentTrees.add(
                         Fragmentation.buildFragmentTree(structure, i, maxSphere, new HashSet<>(), withPseudoAtoms));
             }
         } catch (final CDKException e) {
             e.printStackTrace();
         }
+        removeDuplicates(fragmentTrees);
 
-        return fragments;
+        return fragmentTrees;
+    }
+
+    public static void removeDuplicates(final List<ConnectionTree> fragmentTrees) {
+        final List<Set<Integer>> keySets = new ArrayList<>();
+        final List<ConnectionTree> fragmentsToRemove = new ArrayList<>();
+        for (final ConnectionTree fragment : fragmentTrees) {
+            // ignore pseudo nodes
+            final Set<Integer> keySet = fragment.getNodes(false)
+                                                .stream()
+                                                .filter(node -> !node.isPseudoNode())
+                                                .map(ConnectionTreeNode::getKey)
+                                                .collect(Collectors.toSet());
+            if (keySets.stream()
+                       .noneMatch(keySetTemp -> keySetTemp.size()
+                               == keySet.size()
+                               && keySetTemp.containsAll(keySet))) {
+                keySets.add(keySet);
+            } else {
+                fragmentsToRemove.add(fragment);
+            }
+        }
+        fragmentTrees.removeAll(fragmentsToRemove);
     }
 
     /**

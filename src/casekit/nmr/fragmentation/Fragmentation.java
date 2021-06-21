@@ -20,6 +20,19 @@ import java.util.stream.Collectors;
 
 public class Fragmentation {
 
+    /**
+     * Builds connection trees starting at each atom in structure, including ring atoms.
+     * Duplicates will be removed and subspectra and assignments set.
+     *
+     * @param dataSet         dataset with structure to build the fragments from
+     * @param maxSphere       maximum spherical limit for single atom fragment creation
+     * @param maxSphereRing   maximum spherical limit for ring atom fragment creation
+     * @param withPseudoAtoms whether to place pseudo atoms in "outer" sphere
+     *
+     * @return
+     *
+     * @see #buildFragmentTrees(IAtomContainer, Integer, Integer, boolean)
+     */
     public static List<DataSet> buildFragments(final DataSet dataSet, final Integer maxSphere,
                                                final Integer maxSphereRing, final boolean withPseudoAtoms) {
         final List<DataSet> fragmentDataSetList = new ArrayList<>();
@@ -109,6 +122,20 @@ public class Fragmentation {
         return fragmentDataSetList;
     }
 
+    /**
+     * Builds fragments as atom containers starting at each atom in structure, including ring atoms.
+     * Duplicates will be removed.
+     *
+     * @param structure       structure to build the fragments from
+     * @param maxSphere       maximum spherical limit for single atom fragment creation
+     * @param maxSphereRing   maximum spherical limit for ring atom fragment creation
+     * @param withPseudoAtoms whether to place pseudo atoms in "outer" sphere
+     *
+     * @return
+     *
+     * @see #buildFragmentTrees(IAtomContainer, Integer, Integer, boolean)
+     * @see #toAtomContainer(ConnectionTree)
+     */
     public static List<IAtomContainer> buildFragments(final IAtomContainer structure, final Integer maxSphere,
                                                       final Integer maxSphereRing, final boolean withPseudoAtoms) {
         final List<ConnectionTree> fragmentTrees = buildFragmentTrees(structure, maxSphere, maxSphereRing,
@@ -118,11 +145,12 @@ public class Fragmentation {
                             .collect(Collectors.toList());
     }
 
-    public static List<ConnectionTree> buildFragmentTrees(final IAtomContainer structure, final Integer maxSphere,
-                                                          final Integer maxSphereRing, final boolean withPseudoAtoms) {
-        final List<ConnectionTree> fragmentTrees = new ArrayList<>();
+    public static List<ConnectionTree> buildRingFragmentTrees(final IAtomContainer structure,
+                                                              final Integer maxSphereRing,
+                                                              final boolean withPseudoAtoms) {
+        final List<ConnectionTree> ringFragmentTrees = new ArrayList<>();
         try {
-            // build fragmentTrees from detected rings and extend by given maximum sphere for rings
+            // build ring fragment trees from detected rings and extend by given maximum sphere for rings
             ConnectionTree connectionTreeRing, connectionTreeOuterSphere, subtreeToAdd;
             final IRingSet ringSet = Cycles.all(structure)//essential(structure)
                                            .toRingSet();
@@ -182,16 +210,39 @@ public class Fragmentation {
                 if (withPseudoAtoms) {
                     attachPseudoAtoms(connectionTreeRing, structure);
                 }
-                fragmentTrees.add(connectionTreeRing);
-            }
-            // build fragment for each non-ring atom
-            for (int i = 0; i
-                    < structure.getAtomCount(); i++) {
-                fragmentTrees.add(
-                        Fragmentation.buildFragmentTree(structure, i, maxSphere, new HashSet<>(), withPseudoAtoms));
+                ringFragmentTrees.add(connectionTreeRing);
             }
         } catch (final CDKException e) {
             e.printStackTrace();
+        }
+
+        return ringFragmentTrees;
+    }
+
+    /**
+     * Builds connection trees starting at each atom in structure, including ring atoms.
+     * Duplicates are removed.
+     *
+     * @param structure       structure to build the fragments from
+     * @param maxSphere       maximum spherical limit for single atom fragment creation
+     * @param maxSphereRing   maximum spherical limit for ring atom fragment creation
+     * @param withPseudoAtoms whether to place pseudo atoms in "outer" sphere
+     *
+     * @return
+     *
+     * @see #buildRingFragmentTrees(IAtomContainer, Integer, boolean)
+     * @see #buildFragmentTree(IAtomContainer, int, Integer, Set, boolean)
+     * @see #removeDuplicates(List)
+     */
+    public static List<ConnectionTree> buildFragmentTrees(final IAtomContainer structure, final Integer maxSphere,
+                                                          final Integer maxSphereRing, final boolean withPseudoAtoms) {
+        // build fragment trees for rings
+        final List<ConnectionTree> fragmentTrees = buildRingFragmentTrees(structure, maxSphereRing, withPseudoAtoms);
+        // build fragment for each single atom
+        for (int i = 0; i
+                < structure.getAtomCount(); i++) {
+            fragmentTrees.add(
+                    Fragmentation.buildFragmentTree(structure, i, maxSphere, new HashSet<>(), withPseudoAtoms));
         }
         removeDuplicates(fragmentTrees);
 
@@ -238,11 +289,11 @@ public class Fragmentation {
     }
 
     /**
-     * Function for extending a given connection tree only containing
-     * its root node (0th sphere) by means of Breadth-First-Search (BFS).
+     * Builds a fragment as connection tree from a given structure. <br>
      * Until a certain maximum sphere, each reachable next neighbor atom
-     * is stored in a parent-child-relationship.
-     * In addition, bonds within rings or between hetero atoms will be kept.
+     * is stored in a parent-child-relationship. <br>
+     * And in addition, bonds between hetero atoms or carbon-hetero bonds will be kept. In such cases
+     * the maximum spherical limit will be ignored.
      *
      * @param structure       atom container to go through
      * @param rootAtomIndex   root atom index to start from

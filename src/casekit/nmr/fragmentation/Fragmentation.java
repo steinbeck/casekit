@@ -10,6 +10,7 @@ import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.interfaces.IRingSet;
+import org.openscience.cdk.ringsearch.RingSearch;
 import org.openscience.cdk.silent.Bond;
 import org.openscience.cdk.silent.PseudoAtom;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
@@ -125,12 +126,20 @@ public class Fragmentation {
             ConnectionTree connectionTreeRing, connectionTreeOuterSphere, subtreeToAdd;
             final IRingSet ringSet = Cycles.all(structure)//essential(structure)
                                            .toRingSet();
+            final List<IAtomContainer> ringFragments = new ArrayList<>();
+            for (int i = 0; i
+                    < ringSet.getAtomContainerCount(); i++) {
+                ringFragments.add(ringSet.getAtomContainer(i));
+            }
+            // add missing fused rings
+            final RingSearch ringSearch = new RingSearch(structure);
+            ringFragments.addAll(ringSearch.fusedRingFragments());
             List<Integer> atomIndicesInRing;
             Set<Integer> atomIndicesOutOfRing;
             IAtomContainer ringAtomContainer;
             for (int i = 0; i
-                    < ringSet.getAtomContainerCount(); i++) {
-                ringAtomContainer = ringSet.getAtomContainer(i);
+                    < ringFragments.size(); i++) {
+                ringAtomContainer = ringFragments.get(i);
                 // add already "visited" ring nodes
                 atomIndicesInRing = new ArrayList<>();
                 for (int k = 0; k

@@ -323,6 +323,14 @@ public class Fragmentation {
         return connectionTree;
     }
 
+    public static IAtomContainer closeRings(final IAtomContainer substructure, final IAtomContainer structure) {
+        final ConnectionTree fragmentTree = Fragmentation.buildFragmentTree(substructure, 0, null, new HashSet<>(),
+                                                                            false);
+        Fragmentation.closeRings(fragmentTree, structure);
+
+        return Fragmentation.toAtomContainer(fragmentTree);
+    }
+
     public static void closeRings(final ConnectionTree connectionTree, final IAtomContainer structure) {
         // close rings
         IBond bond;

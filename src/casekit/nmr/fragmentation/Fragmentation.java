@@ -11,9 +11,7 @@ import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.interfaces.IRingSet;
 import org.openscience.cdk.ringsearch.RingSearch;
-import org.openscience.cdk.silent.Bond;
 import org.openscience.cdk.silent.PseudoAtom;
-import org.openscience.cdk.silent.SilentChemObjectBuilder;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,12 +31,18 @@ public class Fragmentation {
      *
      * @see #buildFragmentTrees(IAtomContainer, Integer, Integer, boolean)
      */
-    public static List<DataSet> buildFragments(final DataSet dataSet, final Integer maxSphere,
-                                               final Integer maxSphereRing, final boolean withPseudoAtoms) {
-        final List<DataSet> fragmentDataSetList = new ArrayList<>();
+    public static List<DataSet> buildFragmentDataSets(final DataSet dataSet, final Integer maxSphere,
+                                                      final Integer maxSphereRing, final boolean withPseudoAtoms) {
+
         final List<ConnectionTree> fragmentTrees = buildFragmentTrees(dataSet.getStructure()
                                                                              .toAtomContainer(), maxSphere,
                                                                       maxSphereRing, withPseudoAtoms);
+        return fragmentTreesToSubDataSets(dataSet, fragmentTrees);
+    }
+
+    public static List<DataSet> fragmentTreesToSubDataSets(final DataSet dataSet,
+                                                           final List<ConnectionTree> fragmentTrees) {
+        final List<DataSet> fragmentDataSetList = new ArrayList<>();
         final IAtomContainer structure = dataSet.getStructure()
                                                 .toAtomContainer();
         final String spectrumAtomType = Utils.getAtomTypeFromSpectrum(dataSet.getSpectrum(), 0);
@@ -112,7 +116,7 @@ public class Fragmentation {
                                                         .getSpectrometerFrequency());
 
             subDataSet = new DataSet();
-            subDataSet.setStructure(new ExtendedConnectionMatrix(toAtomContainer(fragmentTree)));
+            subDataSet.setStructure(new ExtendedConnectionMatrix(FragmentationUtils.toAtomContainer(fragmentTree)));
             subDataSet.setSpectrum(subspectrum);
             subDataSet.setAssignment(subassignment);
 
@@ -134,14 +138,14 @@ public class Fragmentation {
      * @return
      *
      * @see #buildFragmentTrees(IAtomContainer, Integer, Integer, boolean)
-     * @see #toAtomContainer(ConnectionTree)
+     * @see FragmentationUtils#toAtomContainer(ConnectionTree)
      */
     public static List<IAtomContainer> buildFragments(final IAtomContainer structure, final Integer maxSphere,
                                                       final Integer maxSphereRing, final boolean withPseudoAtoms) {
         final List<ConnectionTree> fragmentTrees = buildFragmentTrees(structure, maxSphere, maxSphereRing,
                                                                       withPseudoAtoms);
         return fragmentTrees.stream()
-                            .map(Fragmentation::toAtomContainer)
+                            .map(FragmentationUtils::toAtomContainer)
                             .collect(Collectors.toList());
     }
 
@@ -194,18 +198,19 @@ public class Fragmentation {
                     }
                     for (final int key : connectionTreeOuterSphere.getNodeKeysInSphere(1)) {
                         subtreeToAdd = ConnectionTree.buildSubtree(connectionTreeOuterSphere, key);
-                        if (!addToConnectionTree(connectionTreeRing, connectionTreeOuterSphere.getRootNode()
-                                                                                              .getKey(), subtreeToAdd,
-                                                 connectionTreeOuterSphere.getBond(
-                                                         connectionTreeOuterSphere.getRootNode()
-                                                                                  .getKey(), key))) {
+                        if (!FragmentationUtils.addToConnectionTree(connectionTreeRing,
+                                                                    connectionTreeOuterSphere.getRootNode()
+                                                                                             .getKey(), subtreeToAdd,
+                                                                    connectionTreeOuterSphere.getBond(
+                                                                            connectionTreeOuterSphere.getRootNode()
+                                                                                                     .getKey(), key))) {
                             continue;
                         }
                         atomIndicesInRing.addAll(subtreeToAdd.getKeys());
                     }
                 }
                 // close rings
-                closeRings(connectionTreeRing, structure);
+                FragmentationUtils.closeRings(connectionTreeRing, structure);
                 // attach pseudo atoms if desired
                 if (withPseudoAtoms) {
                     attachPseudoAtoms(connectionTreeRing, structure);
@@ -232,7 +237,7 @@ public class Fragmentation {
      *
      * @see #buildRingFragmentTrees(IAtomContainer, Integer, boolean)
      * @see #buildFragmentTree(IAtomContainer, int, Integer, Set, boolean)
-     * @see #removeDuplicates(List)
+     * @see FragmentationUtils#removeDuplicates(List)
      */
     public static List<ConnectionTree> buildFragmentTrees(final IAtomContainer structure, final Integer maxSphere,
                                                           final Integer maxSphereRing, final boolean withPseudoAtoms) {
@@ -244,31 +249,9 @@ public class Fragmentation {
             fragmentTrees.add(
                     Fragmentation.buildFragmentTree(structure, i, maxSphere, new HashSet<>(), withPseudoAtoms));
         }
-        removeDuplicates(fragmentTrees);
+        FragmentationUtils.removeDuplicates(fragmentTrees);
 
         return fragmentTrees;
-    }
-
-    public static void removeDuplicates(final List<ConnectionTree> fragmentTrees) {
-        final List<Set<Integer>> keySets = new ArrayList<>();
-        final List<ConnectionTree> fragmentsToRemove = new ArrayList<>();
-        for (final ConnectionTree fragment : fragmentTrees) {
-            // ignore pseudo nodes
-            final Set<Integer> keySet = fragment.getNodes(false)
-                                                .stream()
-                                                .filter(node -> !node.isPseudoNode())
-                                                .map(ConnectionTreeNode::getKey)
-                                                .collect(Collectors.toSet());
-            if (keySets.stream()
-                       .noneMatch(keySetTemp -> keySetTemp.size()
-                               == keySet.size()
-                               && keySetTemp.containsAll(keySet))) {
-                keySets.add(keySet);
-            } else {
-                fragmentsToRemove.add(fragment);
-            }
-        }
-        fragmentTrees.removeAll(fragmentsToRemove);
     }
 
     /**
@@ -285,7 +268,8 @@ public class Fragmentation {
     public static IAtomContainer buildFragment(final IAtomContainer ac, final int rootAtomIndex,
                                                final Integer maxSphere, final Set<Integer> exclude,
                                                final boolean withPseudoAtoms) {
-        return toAtomContainer(buildFragmentTree(ac, rootAtomIndex, maxSphere, exclude, withPseudoAtoms));
+        return FragmentationUtils.toAtomContainer(
+                buildFragmentTree(ac, rootAtomIndex, maxSphere, exclude, withPseudoAtoms));
     }
 
     /**
@@ -314,7 +298,7 @@ public class Fragmentation {
         BFS(structure, connectionTree, queue, new HashSet<>(), exclude, maxSphere);
 
         // close rings
-        closeRings(connectionTree, structure);
+        FragmentationUtils.closeRings(connectionTree, structure);
         // add pseudo atoms
         if (withPseudoAtoms) {
             attachPseudoAtoms(connectionTree, structure);
@@ -323,39 +307,7 @@ public class Fragmentation {
         return connectionTree;
     }
 
-    public static IAtomContainer closeRings(final IAtomContainer substructure, final IAtomContainer structure) {
-        final ConnectionTree fragmentTree = Fragmentation.buildFragmentTree(substructure, 0, null, new HashSet<>(),
-                                                                            false);
-        Fragmentation.closeRings(fragmentTree, structure);
-
-        return Fragmentation.toAtomContainer(fragmentTree);
-    }
-
-    public static void closeRings(final ConnectionTree connectionTree, final IAtomContainer structure) {
-        // close rings
-        IBond bond;
-        final int maxSphereTree = connectionTree.getMaxSphere(false);
-        for (int s = 0; s
-                <= maxSphereTree; s++) {
-            for (final ConnectionTreeNode nodeInSphere1 : connectionTree.getNodesInSphere(s, false)) {
-                // set connections (parent nodes) in sphere nodes which have to be connected -> ring closures
-                for (int s2 = s; s2
-                        <= maxSphereTree; s2++) {
-                    for (final ConnectionTreeNode nodeInSphere2 : connectionTree.getNodesInSphere(s2, false)) {
-                        if ((structure.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom())
-                                != null)
-                                && !ConnectionTree.nodesFormRingClosure(nodeInSphere1, nodeInSphere2)) {
-                            bond = structure.getBond(nodeInSphere1.getAtom(), nodeInSphere2.getAtom());
-                            connectionTree.addRingClosureNode(nodeInSphere1.getKey(), nodeInSphere2.getKey(), bond);
-                            connectionTree.addRingClosureNode(nodeInSphere2.getKey(), nodeInSphere1.getKey(), bond);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    public static void attachPseudoAtoms(final ConnectionTree connectionTree, final IAtomContainer structure) {
+    private static void attachPseudoAtoms(final ConnectionTree connectionTree, final IAtomContainer structure) {
         int atomIndexInStructure;
         for (final ConnectionTreeNode node : connectionTree.getNodes(false)) {
             for (final IAtom connectedAtom : structure.getConnectedAtomsList(node.getAtom())) {
@@ -436,8 +388,6 @@ public class Fragmentation {
         }
         final ConnectionTreeNode pseudoNode = connectionTree.getNode(pseudoNodeKey);
         pseudoNode.setIsPseudoNode(true);
-        //                pseudoNode.getAtom()
-        //                          .setImplicitHydrogenCount(connectedAtom.getImplicitHydrogenCount());
 
         return true;
     }
@@ -512,114 +462,6 @@ public class Fragmentation {
     private static boolean isCarbonAtom(final IAtom atom) {
         return atom.getSymbol()
                    .equals("C");
-    }
-
-    /**
-     * Reconstructs a structure from a given connection tree,
-     * including ring closures.
-     *
-     * @param connectionTree connection tree
-     *
-     * @return IAtomContainer
-     */
-    public static IAtomContainer toAtomContainer(final ConnectionTree connectionTree) {
-        // create new atom container and add the connection trees structure, beginning at the root atom
-        final IAtomContainer ac = SilentChemObjectBuilder.getInstance()
-                                                         .newAtomContainer();
-        addToAtomContainer(connectionTree, ac, null, null);
-
-        return ac;
-    }
-
-    /**
-     * Adds a subtree to a node in another connection tree.
-     *
-     * @param connectionTree connection tree
-     * @param parentNodeKey  parent node key in connection tree
-     * @param subtree        subtree to add
-     * @param bondToLink     bond
-     */
-    public static boolean addToConnectionTree(final ConnectionTree connectionTree, final int parentNodeKey,
-                                              final ConnectionTree subtree, final IBond bondToLink) {
-        return ConnectionTree.addSubtree(connectionTree, parentNodeKey, subtree, bondToLink);
-    }
-
-    /**
-     * Adds the substructure of a connection tree to an atom container. <br>
-     * The substructure can be linked via a bond and an atom index in the container, but this is optional.
-     * If both, the bond and atom index to link, are not given (null) then the substructure will just be added
-     * to the atom container without linkage.
-     *
-     * @param connectionTree
-     * @param ac
-     * @param atomIndexInStructureToLink
-     * @param bondToLink
-     */
-    public static void addToAtomContainer(final ConnectionTree connectionTree, final IAtomContainer ac,
-                                          final Integer atomIndexInStructureToLink, final IBond bondToLink) {
-        List<ConnectionTreeNode> nodesInSphere;
-        ConnectionTreeNode nodeInSphere, parentNode, partnerNode;
-        IBond bond, bondToParent;
-        // add root atom to given atom container and link it via a given linking bond
-        ac.addAtom(connectionTree.getRootNode()
-                                 .getAtom());
-        if ((atomIndexInStructureToLink
-                != null)
-                && (bondToLink
-                != null)) {
-            final IBond bondToAdd = new Bond(ac.getAtom(atomIndexInStructureToLink), ac.getAtom(ac.getAtomCount()
-                                                                                                        - 1));
-            bondToAdd.setOrder(bondToLink.getOrder());
-            bondToAdd.setIsInRing(bondToLink.isInRing());
-            bondToAdd.setIsAromatic(bondToLink.isAromatic());
-            bondToAdd.setAtom(ac.getAtom(atomIndexInStructureToLink), 0);
-            bondToAdd.setAtom(ac.getAtom(ac.getAtomCount()
-                                                 - 1), 1);
-            ac.addBond(bondToAdd);
-        }
-        // for each sphere: add the atom which is stored as node to atom container and set bonds between parent nodes
-        for (int s = 1; s
-                <= connectionTree.getMaxSphere(false); s++) {
-            // first add all atoms and its parents (previous sphere only, incl. bonds) to structure
-            nodesInSphere = connectionTree.getNodesInSphere(s, false);
-            for (int i = 0; i
-                    < nodesInSphere.size(); i++) {
-                nodeInSphere = nodesInSphere.get(i);
-                if (nodeInSphere.isRingClosureNode()) {
-                    continue;
-                }
-                ac.addAtom(nodeInSphere.getAtom());
-                parentNode = nodeInSphere.getParent();
-                bondToParent = nodeInSphere.getBondToParent();
-                bond = new Bond(nodeInSphere.getAtom(), parentNode.getAtom(), bondToParent.getOrder());
-                bond.setIsInRing(bondToParent.isInRing());
-                bond.setIsAromatic(bondToParent.isAromatic());
-                ac.addBond(bond);
-            }
-        }
-        for (int s = 1; s
-                <= connectionTree.getMaxSphere(true); s++) {
-            // and as second add the remaining bonds (ring closures) to structure
-            nodesInSphere = connectionTree.getNodesInSphere(s, true);
-            for (int i = 0; i
-                    < nodesInSphere.size(); i++) {
-                nodeInSphere = nodesInSphere.get(i);
-                if (!nodeInSphere.isRingClosureNode()) {
-                    continue;
-                }
-                parentNode = nodeInSphere.getParent();
-                partnerNode = nodeInSphere.getRingClosureParent();
-                if (ac.getBond(ac.getAtom(ac.indexOf(partnerNode.getAtom())),
-                               ac.getAtom(ac.indexOf(parentNode.getAtom())))
-                        == null) {
-                    bondToParent = nodeInSphere.getBondToParent();
-                    bond = new Bond(parentNode.getAtom(), partnerNode.getAtom(), bondToParent.getOrder());
-                    bond.setIsInRing(bondToParent.isInRing());
-                    bond.setIsAromatic(bondToParent.isAromatic());
-                    ac.addBond(bond);
-                }
-            }
-        }
     }
 
     public static List<Integer> buildFragmentAtomIndicesList(final IAtomContainer structure, final int rootAtomIndex,

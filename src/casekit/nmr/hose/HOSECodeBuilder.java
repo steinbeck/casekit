@@ -12,7 +12,7 @@
 package casekit.nmr.hose;
 
 
-import casekit.nmr.fragmentation.Fragmentation;
+import casekit.nmr.fragmentation.FragmentationUtils;
 import casekit.nmr.fragmentation.model.ConnectionTree;
 import casekit.nmr.fragmentation.model.ConnectionTreeNode;
 import org.openscience.cdk.exception.CDKException;
@@ -572,10 +572,11 @@ public class HOSECodeBuilder {
      * @return IAtomContainer
      *
      * @see #buildConnectionTree(String, boolean)
-     * @see Fragmentation#toAtomContainer(ConnectionTree)
+     * @see FragmentationUtils#toAtomContainer(ConnectionTree)
      */
     public static IAtomContainer buildAtomContainer(final String HOSECode,
                                                     final boolean useBremserElementNotation) throws CDKException {
-        return Fragmentation.toAtomContainer(HOSECodeBuilder.buildConnectionTree(HOSECode, useBremserElementNotation));
+        return FragmentationUtils.toAtomContainer(
+                HOSECodeBuilder.buildConnectionTree(HOSECode, useBremserElementNotation));
     }
 }

@@ -1,7 +1,6 @@
 package casekit.nmr.fragmentation;
 
 import casekit.nmr.fragmentation.model.ConnectionTree;
-import casekit.nmr.fragmentation.model.ConnectionTreeNode;
 import casekit.nmr.model.*;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
@@ -11,7 +10,6 @@ import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.interfaces.IRingSet;
 import org.openscience.cdk.ringsearch.RingSearch;
-import org.openscience.cdk.silent.PseudoAtom;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -213,7 +211,7 @@ public class Fragmentation {
                 FragmentationUtils.closeRings(connectionTreeRing, structure);
                 // attach pseudo atoms if desired
                 if (withPseudoAtoms) {
-                    attachPseudoAtoms(connectionTreeRing, structure);
+                    FragmentationUtils.attachPseudoAtoms(connectionTreeRing, structure);
                 }
                 ringFragmentTrees.add(connectionTreeRing);
             }
@@ -301,27 +299,10 @@ public class Fragmentation {
         FragmentationUtils.closeRings(connectionTree, structure);
         // add pseudo atoms
         if (withPseudoAtoms) {
-            attachPseudoAtoms(connectionTree, structure);
+            FragmentationUtils.attachPseudoAtoms(connectionTree, structure);
         }
 
         return connectionTree;
-    }
-
-    private static void attachPseudoAtoms(final ConnectionTree connectionTree, final IAtomContainer structure) {
-        int atomIndexInStructure;
-        for (final ConnectionTreeNode node : connectionTree.getNodes(false)) {
-            for (final IAtom connectedAtom : structure.getConnectedAtomsList(node.getAtom())) {
-                atomIndexInStructure = structure.indexOf(connectedAtom);
-                if (connectionTree.getBond(node.getKey(), atomIndexInStructure)
-                        == null
-                        && connectionTree.getBond(atomIndexInStructure, node.getKey())
-                        == null) {
-                    addPseudoNode(connectionTree, structure.getAtomCount()
-                                          + connectionTree.getNodesCount(false), node.getKey(),
-                                  structure.getBond(node.getAtom(), connectedAtom));
-                }
-            }
-        }
     }
 
     /**
@@ -379,17 +360,6 @@ public class Fragmentation {
 
         // further extension of connection tree
         BFS(ac, connectionTree, queue, visited, exclude, maxSphere);
-    }
-
-    private static boolean addPseudoNode(final ConnectionTree connectionTree, final int pseudoNodeKey,
-                                         final int parentNodeKey, final IBond bondToParent) {
-        if (!connectionTree.addNode(new PseudoAtom("R"), pseudoNodeKey, parentNodeKey, bondToParent)) {
-            return false;
-        }
-        final ConnectionTreeNode pseudoNode = connectionTree.getNode(pseudoNodeKey);
-        pseudoNode.setIsPseudoNode(true);
-
-        return true;
     }
 
     private static boolean keepBond(final IAtom atom1, final IAtom atom2, final IBond bond) {

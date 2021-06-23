@@ -2,9 +2,11 @@ package casekit.nmr.fragmentation;
 
 import casekit.nmr.fragmentation.model.ConnectionTree;
 import casekit.nmr.fragmentation.model.ConnectionTreeNode;
+import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.silent.Bond;
+import org.openscience.cdk.silent.PseudoAtom;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 
 import java.util.ArrayList;
@@ -15,9 +17,7 @@ import java.util.stream.Collectors;
 
 public class FragmentationUtils {
 
-    public static boolean replaceNodeKeys(final ConnectionTree fragmentTree, final IAtomContainer structure) {
-        System.out.println("before: "
-                                   + fragmentTree.getKeys());
+    public static boolean adjustNodeKeys(final ConnectionTree fragmentTree, final IAtomContainer structure) {
         int atomIndex;
         for (final ConnectionTreeNode node : fragmentTree.getNodes(false)) {
             atomIndex = structure.indexOf(node.getAtom());
@@ -28,8 +28,6 @@ public class FragmentationUtils {
             node.setKey(atomIndex);
         }
         fragmentTree.initKeySet();
-        System.out.println("after: "
-                                   + fragmentTree.getKeys());
 
         return true;
     }
@@ -194,5 +192,33 @@ public class FragmentationUtils {
                 }
             }
         }
+    }
+
+    public static void attachPseudoAtoms(final ConnectionTree connectionTree, final IAtomContainer structure) {
+        int atomIndexInStructure;
+        for (final ConnectionTreeNode node : connectionTree.getNodes(false)) {
+            for (final IAtom connectedAtom : structure.getConnectedAtomsList(node.getAtom())) {
+                atomIndexInStructure = structure.indexOf(connectedAtom);
+                if (connectionTree.getBond(node.getKey(), atomIndexInStructure)
+                        == null
+                        && connectionTree.getBond(atomIndexInStructure, node.getKey())
+                        == null) {
+                    addPseudoNode(connectionTree, structure.getAtomCount()
+                                          + connectionTree.getNodesCount(false), node.getKey(),
+                                  structure.getBond(node.getAtom(), connectedAtom));
+                }
+            }
+        }
+    }
+
+    private static boolean addPseudoNode(final ConnectionTree connectionTree, final int pseudoNodeKey,
+                                         final int parentNodeKey, final IBond bondToParent) {
+        if (!connectionTree.addNode(new PseudoAtom("R"), pseudoNodeKey, parentNodeKey, bondToParent)) {
+            return false;
+        }
+        final ConnectionTreeNode pseudoNode = connectionTree.getNode(pseudoNodeKey);
+        pseudoNode.setIsPseudoNode(true);
+
+        return true;
     }
 }

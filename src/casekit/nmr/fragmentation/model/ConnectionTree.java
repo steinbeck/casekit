@@ -16,6 +16,7 @@ import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IBond;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Represents a tree of connected atoms (nodes) of a molecule
@@ -178,6 +179,14 @@ public class ConnectionTree {
         }
 
         return true;
+    }
+
+    public void initKeySet() {
+        this.keySet.clear();
+        this.keySet.addAll(this.getNodes(false)
+                               .stream()
+                               .map(ConnectionTreeNode::getKey)
+                               .collect(Collectors.toSet()));
     }
 
     public boolean addKey(final int key) {

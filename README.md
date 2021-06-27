@@ -2,10 +2,6 @@
 
 # The Computer-Assisted-Structure-Elucidation Kit (CASEkit)
 
-Copyright 2017 Christoph Steinbeck
-
-License: MIT, see doc/mit.license
-
 ## Introduction
 
 This project depends on the Chemistry Development Project (CDK), hosted under https://cdk.github.io/

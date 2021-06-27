@@ -45,11 +45,14 @@ public class Fragmentation {
                                                 .toAtomContainer();
         final String spectrumAtomType = Utils.getAtomTypeFromSpectrum(dataSet.getSpectrum(), 0);
         List<Integer> substructureAtomIndices;
+        IAtomContainer substructure;
         Spectrum subspectrum;
         Assignment subassignment;
         IAtom atomInStructure;
         Signal signal;
         DataSet subDataSet;
+        Map<String, String> meta;
+        String smiles;
         for (final ConnectionTree fragmentTree : fragmentTrees) {
             substructureAtomIndices = fragmentTree.getKeys();
             subspectrum = new Spectrum();
@@ -68,23 +71,22 @@ public class Fragmentation {
                 }
                 atomInStructure = structure.getAtom(substructureAtomIndices.get(j));
                 if (atomInStructure.getSymbol()
-                                   .equals(spectrumAtomType)) {
-                    if (dataSet.getAssignment()
-                               .getIndex(0, substructureAtomIndices.get(j))
+                                   .equals(spectrumAtomType)
+                        || (spectrumAtomType.equals("H")
+                        && atomInStructure.getImplicitHydrogenCount()
+                        > 0)) {
+                    final List<Integer> indices = dataSet.getAssignment()
+                                                         .getIndices(0, substructureAtomIndices.get(j));
+                    if (indices
                             == null
-                            || dataSet.getSpectrum()
-                                      .getSignal(dataSet.getAssignment()
-                                                        .getIndex(0, substructureAtomIndices.get(j)))
-                            == null) {
+                            || indices.isEmpty()) {
                         return null;
                     }
 
-                    signal = dataSet.getSpectrum()
-                                    .getSignal(dataSet.getAssignment()
-                                                      .getIndex(0, substructureAtomIndices.get(j)));
-                    if (signal
-                            != null) {
-                        signal = signal.buildClone();
+                    for (final int index : indices) {
+                        signal = dataSet.getSpectrum()
+                                        .getSignal(index)
+                                        .buildClone();
                         final int atomIndex = j;
                         final List<Integer> closestSignalIndexList = subspectrum.checkForEquivalences(signal,
                                                                                                       new double[]{0.0},
@@ -113,10 +115,27 @@ public class Fragmentation {
             subspectrum.setSpectrometerFrequency(dataSet.getSpectrum()
                                                         .getSpectrometerFrequency());
 
+            substructure = FragmentationUtils.toAtomContainer(fragmentTree);
             subDataSet = new DataSet();
-            subDataSet.setStructure(new ExtendedConnectionMatrix(FragmentationUtils.toAtomContainer(fragmentTree)));
+            subDataSet.setStructure(new ExtendedConnectionMatrix(substructure));
             subDataSet.setSpectrum(subspectrum);
             subDataSet.setAssignment(subassignment);
+
+            meta = new HashMap<>();
+            try {
+                smiles = casekit.nmr.utils.Utils.getSmilesFromAtomContainer(substructure);
+                meta.put("smiles", smiles);
+
+            } catch (final CDKException e) {
+                e.printStackTrace();
+            }
+            meta.put("title", dataSet.getMeta()
+                                     .get("title"));
+            meta.put("id", dataSet.getMeta()
+                                  .get("id"));
+            meta.put("mf", casekit.nmr.Utils.molecularFormularToString(
+                    casekit.nmr.Utils.getMolecularFormulaFromAtomContainer(substructure)));
+            subDataSet.setMeta(meta);
 
             fragmentDataSetList.add(subDataSet);
         }

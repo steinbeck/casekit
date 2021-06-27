@@ -697,6 +697,17 @@ public class Utils {
         Kekulization.kekulize(ac);
     }
 
+    public static void setAromaticity(final IAtomContainer ac, final Aromaticity aromaticity) throws CDKException {
+        AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(ac);
+        aromaticity.apply(ac);
+    }
+
+    public static void setAromaticityAndKekulize(final IAtomContainer ac,
+                                                 final Aromaticity aromaticity) throws CDKException {
+        Utils.setAromaticity(ac, aromaticity);
+        Kekulization.kekulize(ac);
+    }
+
 
     /**
      * Removes atoms from a given atom type from an atom container.

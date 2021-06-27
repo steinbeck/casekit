@@ -139,4 +139,45 @@ public class Utils {
 
         return counts;
     }
+
+    public static int getAtomTypeCount(final IAtomContainer structure, final String atomType) {
+        return casekit.nmr.Utils.getAtomTypeIndicesByElement(structure, atomType)
+                                .size();
+    }
+
+    public static int getAtomTypeCount(final String mf, final String atomType) {
+        return MolecularFormulaManipulator.getElementCount(getMolecularFormulaFromString(mf), atomType);
+    }
+
+    public static boolean compareWithMolecularFormulaLessOrEqual(final IAtomContainer structure, final String mf) {
+        if (mf
+                != null
+                && !mf.trim()
+                      .isEmpty()) {
+            for (final String atomType : casekit.nmr.Utils.getAtomTypesInAtomContainer(structure)) {
+                if (getAtomTypeCount(structure, atomType)
+                        > getAtomTypeCount(mf, atomType)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public static boolean compareWithMolecularFormulaEqual(final IAtomContainer structure, final String mf) {
+        if (mf
+                != null
+                && !mf.trim()
+                      .isEmpty()) {
+            for (final String atomType : casekit.nmr.Utils.getAtomTypesInAtomContainer(structure)) {
+                if (getAtomTypeCount(structure, atomType)
+                        != getAtomTypeCount(mf, atomType)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
 }

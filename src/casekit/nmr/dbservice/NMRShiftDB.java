@@ -420,7 +420,11 @@ public class NMRShiftDB {
                     < spectrumStringArray.length; i++) {
                 shift = Double.parseDouble(spectrumStringArray[i][0]);
                 intensity = Double.parseDouble(spectrumStringArray[i][1]);
-                multiplicity = spectrumStringArray[i][2].toLowerCase();
+                multiplicity = spectrumStringArray[i][2].trim()
+                                                        .isEmpty()
+                               ? null
+                               : spectrumStringArray[i][2].trim()
+                                                          .toLowerCase();
                 spectrum.addSignal(
                         new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 1,
                                    0));
@@ -452,7 +456,11 @@ public class NMRShiftDB {
             // just to be sure that we take the right signal if equivalences are present
             closestSignalList = spectrum.pickByClosestShift(Double.parseDouble(NMRShiftDBSpectrumStringArray[i][0]), 0,
                                                             0.0);
-            multiplicity = NMRShiftDBSpectrumStringArray[i][2].toLowerCase();
+            multiplicity = NMRShiftDBSpectrumStringArray[i][2].trim()
+                                                              .isEmpty()
+                           ? null
+                           : NMRShiftDBSpectrumStringArray[i][2].trim()
+                                                                .toLowerCase();
             closestSignalList.retainAll(spectrum.pickByMultiplicity(multiplicity));
             signalIndex = closestSignalList.get(0);
 

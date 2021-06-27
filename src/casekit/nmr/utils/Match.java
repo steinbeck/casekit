@@ -253,8 +253,14 @@ public class Match {
                 passed = true;
                 // @TODO maybe consider further parameters to check ? e.g. intensity
                 if (checkMultiplicity) {
-                    passed = spectrum1.getMultiplicity(i)
-                                      .equals(spectrum2.getMultiplicity(pickedSignalIndexSpectrum2));
+                    passed = (spectrum1.getMultiplicity(i)
+                            == null
+                            && spectrum2.getMultiplicity(pickedSignalIndexSpectrum2)
+                            == null)
+                            || (spectrum1.getMultiplicity(i)
+                            != null
+                            && spectrum1.getMultiplicity(i)
+                                        .equals(spectrum2.getMultiplicity(pickedSignalIndexSpectrum2)));
                 }
                 if (passed
                         && checkEquivalencesCount) {
@@ -293,8 +299,8 @@ public class Match {
      * N here means the number of dimensions in both spectra. <br>
      * Despite intensities are expected, they are still not considered here.
      *
-     * @param spectrum1                   first spectrum
-     * @param spectrum2                   second spectrum (query as exact or subspectrum to check)
+     * @param spectrum1                   first spectrum (possible subspectrum)
+     * @param spectrum2                   second spectrum
      * @param shiftTols                   tolerance values [ppm] per each dimension used during spectra shift
      *                                    comparisons
      * @param checkMultiplicity           indicates whether to compare the multiplicity of matched signals

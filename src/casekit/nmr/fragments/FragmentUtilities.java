@@ -1,14 +1,12 @@
 package casekit.nmr.fragments;
 
+import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.interfaces.IAtomContainer;
-import org.openscience.cdk.interfaces.IMolecularFormula;
-import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
-import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -76,55 +74,42 @@ public class FragmentUtilities {
         }
     }
 
-    public static List<DataSet> findMatches(final List<DataSet> dataSetList, final Spectrum querySpectrum,
-                                            final String mf, final double shiftTol, final double maxAverageDeviation,
-                                            final boolean checkMultiplicity) {
+    public static Map<String, List<DataSet>> getGoodlistAndBadlist(final List<DataSet> dataSetList,
+                                                                   final Spectrum querySpectrum, final String mf,
+                                                                   final double shiftTol,
+                                                                   final double maxAverageDeviation,
+                                                                   final boolean checkMultiplicity) {
         final List<DataSet> matches = new ArrayList<>();
+        final List<DataSet> nonMatches = new ArrayList<>();
         for (final DataSet dataSet : dataSetList) {
-            if (isValidMatch(dataSet, querySpectrum, mf, shiftTol, maxAverageDeviation, checkMultiplicity)) {
+            if (isMatch(dataSet, querySpectrum, mf, shiftTol, maxAverageDeviation, checkMultiplicity)) {
                 matches.add(dataSet);
+            } else if (isNonMatch(dataSet, querySpectrum, mf, shiftTol, checkMultiplicity)) {
+                nonMatches.add(dataSet);
             }
         }
+        final Map<String, List<DataSet>> lists = new HashMap<>();
+        lists.put("goodlist", matches);
+        lists.put("badlist", nonMatches);
 
-        return matches;
+        return lists;
     }
 
-    public static boolean isValidMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
-                                       final double shiftTol, final double maxAverageDeviation,
-                                       final boolean checkMultiplicity) {
-        final IMolecularFormula iMolecularFormula = MolecularFormulaManipulator.getMolecularFormula(mf,
-                                                                                                    SilentChemObjectBuilder.getInstance());
-        final IAtomContainer group = dataSet.getStructure()
-                                            .toAtomContainer();
-
+    public static boolean isMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
+                                  final double shiftTol, final double maxAverageDeviation,
+                                  final boolean checkMultiplicity) {
+        // check for nuclei
         if (!dataSet.getSpectrum()
                     .getNuclei()[0].equals(querySpectrum.getNuclei()[0])) {
             return false;
         }
-        final String atomTypeInSpectrum = Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
-                                                                              .getNuclei()[0]);
-        if (atomTypeInSpectrum.equals("H")) {
-            if (AtomContainerManipulator.getImplicitHydrogenCount(dataSet.getStructure()
-                                                                         .toAtomContainer())
-                    > MolecularFormulaManipulator.getElementCount(iMolecularFormula, atomTypeInSpectrum)) {
-                return false;
-            }
-        } else {
-            // check molecular formula with atom types in group
-            if (!Utils.compareWithMolecularFormulaLessOrEqual(group, mf)) {
-                return false;
-            }
-            // do not allow unsaturated fragments with different size than given molecular formula
-            if (Utils.getUnsaturatedAtomIndices(group)
-                     .isEmpty()
-                    && !Utils.compareWithMolecularFormulaEqual(group, mf)) {
-                return false;
-            }
+        // check for structural problems in fragment regarding the molecular formula
+        if (!isStructuralMatch(dataSet, mf)) {
+            return false;
         }
         // check average deviation
         final Double averageDeviation = Similarity.calculateAverageDeviation(dataSet.getSpectrum(), querySpectrum, 0, 0,
                                                                              shiftTol, checkMultiplicity, true, true);
-
         if (averageDeviation
                 == null
                 || averageDeviation
@@ -139,5 +124,44 @@ public class FragmentUtilities {
                .put("rmsd", Double.toString(rmsd));
 
         return true;
+    }
+
+    public static boolean isNonMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
+                                     final double shiftTol, final boolean checkMultiplicity) {
+        boolean isSpectralMatch = false;
+        if (dataSet.getSpectrum()
+                   .getNuclei()[0].equals(querySpectrum.getNuclei()[0])) {
+            final Assignment matchAssigment = Similarity.matchSpectra(dataSet.getSpectrum(), querySpectrum, 0, 0,
+                                                                      shiftTol, checkMultiplicity, true, true);
+            if (matchAssigment
+                    != null
+                    && matchAssigment.getSetAssignmentsCount(0)
+                    > 0) {
+                isSpectralMatch = true;
+            }
+        }
+
+        return !isSpectralMatch
+                && !isStructuralMatch(dataSet, mf);
+    }
+
+    public static boolean isStructuralMatch(final DataSet dataSet, final String mf) {
+        final IAtomContainer fragment = dataSet.getStructure()
+                                               .toAtomContainer();
+        if (Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
+                                                .getNuclei()[0])
+                 .equals("H")) {
+            return AtomContainerManipulator.getImplicitHydrogenCount(fragment)
+                    <= Utils.getAtomTypeCount(mf, "H");
+        } else {
+            // check molecular formula with atom types in group
+            if (!Utils.compareWithMolecularFormulaLessOrEqual(fragment, mf)) {
+                return false;
+            }
+            // do not allow unsaturated fragments with different size than given molecular formula
+            return !Utils.getUnsaturatedAtomIndices(fragment)
+                         .isEmpty()
+                    || Utils.compareWithMolecularFormulaEqual(fragment, mf);
+        }
     }
 }

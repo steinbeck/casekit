@@ -12,8 +12,8 @@
 
 package casekit.nmr.hose;
 
-import casekit.nmr.fragmentation.model.ConnectionTree;
-import casekit.nmr.fragmentation.model.ConnectionTreeNode;
+import casekit.nmr.fragments.model.ConnectionTree;
+import casekit.nmr.fragments.model.ConnectionTreeNode;
 import org.openscience.cdk.interfaces.IBond;
 
 import java.util.ArrayList;

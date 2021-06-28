@@ -24,8 +24,8 @@
 package casekit.nmr.utils;
 
 
-import casekit.nmr.fragmentation.model.ConnectionTree;
-import casekit.nmr.fragmentation.model.ConnectionTreeNode;
+import casekit.nmr.fragments.model.ConnectionTree;
+import casekit.nmr.fragments.model.ConnectionTreeNode;
 import casekit.nmr.hose.HOSECodeBuilder;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;

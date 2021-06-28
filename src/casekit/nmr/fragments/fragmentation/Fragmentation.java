@@ -1,6 +1,6 @@
-package casekit.nmr.fragmentation;
+package casekit.nmr.fragments.fragmentation;
 
-import casekit.nmr.fragmentation.model.ConnectionTree;
+import casekit.nmr.fragments.model.ConnectionTree;
 import casekit.nmr.model.*;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
@@ -115,7 +115,7 @@ public class Fragmentation {
             subspectrum.setSpectrometerFrequency(dataSet.getSpectrum()
                                                         .getSpectrometerFrequency());
 
-            substructure = FragmentationUtils.toAtomContainer(fragmentTree);
+            substructure = FragmentationUtilities.toAtomContainer(fragmentTree);
             subDataSet = new DataSet();
             subDataSet.setStructure(new ExtendedConnectionMatrix(substructure));
             subDataSet.setSpectrum(subspectrum);
@@ -154,14 +154,14 @@ public class Fragmentation {
      * @return
      *
      * @see #buildFragmentTrees(IAtomContainer, Integer, Integer, boolean)
-     * @see FragmentationUtils#toAtomContainer(ConnectionTree)
+     * @see FragmentationUtilities#toAtomContainer(ConnectionTree)
      */
     public static List<IAtomContainer> buildFragments(final IAtomContainer structure, final Integer maxSphere,
                                                       final Integer maxSphereRing, final boolean withPseudoAtoms) {
         final List<ConnectionTree> fragmentTrees = buildFragmentTrees(structure, maxSphere, maxSphereRing,
                                                                       withPseudoAtoms);
         return fragmentTrees.stream()
-                            .map(FragmentationUtils::toAtomContainer)
+                            .map(FragmentationUtilities::toAtomContainer)
                             .collect(Collectors.toList());
     }
 
@@ -214,22 +214,22 @@ public class Fragmentation {
                     }
                     for (final int key : connectionTreeOuterSphere.getNodeKeysInSphere(1)) {
                         subtreeToAdd = ConnectionTree.buildSubtree(connectionTreeOuterSphere, key);
-                        if (!FragmentationUtils.addToConnectionTree(connectionTreeRing,
-                                                                    connectionTreeOuterSphere.getRootNode()
-                                                                                             .getKey(), subtreeToAdd,
-                                                                    connectionTreeOuterSphere.getBond(
-                                                                            connectionTreeOuterSphere.getRootNode()
-                                                                                                     .getKey(), key))) {
+                        if (!FragmentationUtilities.addToConnectionTree(connectionTreeRing,
+                                                                        connectionTreeOuterSphere.getRootNode()
+                                                                                                 .getKey(),
+                                                                        subtreeToAdd, connectionTreeOuterSphere.getBond(
+                                        connectionTreeOuterSphere.getRootNode()
+                                                                 .getKey(), key))) {
                             continue;
                         }
                         atomIndicesInRing.addAll(subtreeToAdd.getKeys());
                     }
                 }
                 // close rings
-                FragmentationUtils.closeRings(connectionTreeRing, structure);
+                FragmentationUtilities.closeRings(connectionTreeRing, structure);
                 // attach pseudo atoms if desired
                 if (withPseudoAtoms) {
-                    FragmentationUtils.attachPseudoAtoms(connectionTreeRing, structure);
+                    FragmentationUtilities.attachPseudoAtoms(connectionTreeRing, structure);
                 }
                 ringFragmentTrees.add(connectionTreeRing);
             }
@@ -253,7 +253,7 @@ public class Fragmentation {
      *
      * @see #buildRingFragmentTrees(IAtomContainer, Integer, boolean)
      * @see #buildFragmentTree(IAtomContainer, int, Integer, Set, boolean)
-     * @see FragmentationUtils#removeDuplicates(List)
+     * @see FragmentationUtilities#removeDuplicates(List)
      */
     public static List<ConnectionTree> buildFragmentTrees(final IAtomContainer structure, final Integer maxSphere,
                                                           final Integer maxSphereRing, final boolean withPseudoAtoms) {
@@ -265,7 +265,7 @@ public class Fragmentation {
             fragmentTrees.add(
                     Fragmentation.buildFragmentTree(structure, i, maxSphere, new HashSet<>(), withPseudoAtoms));
         }
-        FragmentationUtils.removeDuplicates(fragmentTrees);
+        FragmentationUtilities.removeDuplicates(fragmentTrees);
 
         return fragmentTrees;
     }
@@ -284,7 +284,7 @@ public class Fragmentation {
     public static IAtomContainer buildFragment(final IAtomContainer ac, final int rootAtomIndex,
                                                final Integer maxSphere, final Set<Integer> exclude,
                                                final boolean withPseudoAtoms) {
-        return FragmentationUtils.toAtomContainer(
+        return FragmentationUtilities.toAtomContainer(
                 buildFragmentTree(ac, rootAtomIndex, maxSphere, exclude, withPseudoAtoms));
     }
 
@@ -314,10 +314,10 @@ public class Fragmentation {
         BFS(structure, connectionTree, queue, new HashSet<>(), exclude, maxSphere);
 
         // close rings
-        FragmentationUtils.closeRings(connectionTree, structure);
+        FragmentationUtilities.closeRings(connectionTree, structure);
         // add pseudo atoms
         if (withPseudoAtoms) {
-            FragmentationUtils.attachPseudoAtoms(connectionTree, structure);
+            FragmentationUtilities.attachPseudoAtoms(connectionTree, structure);
         }
 
         return connectionTree;

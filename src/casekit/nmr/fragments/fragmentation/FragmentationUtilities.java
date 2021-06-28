@@ -1,7 +1,7 @@
-package casekit.nmr.fragmentation;
+package casekit.nmr.fragments.fragmentation;
 
-import casekit.nmr.fragmentation.model.ConnectionTree;
-import casekit.nmr.fragmentation.model.ConnectionTreeNode;
+import casekit.nmr.fragments.model.ConnectionTree;
+import casekit.nmr.fragments.model.ConnectionTreeNode;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IBond;
@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class FragmentationUtils {
+public class FragmentationUtilities {
 
     public static boolean adjustNodeKeys(final ConnectionTree fragmentTree, final IAtomContainer structure) {
         int atomIndex;

@@ -2,7 +2,7 @@ package casekit.nmr.analysis;
 
 import casekit.nmr.dbservice.COCONUT;
 import casekit.nmr.dbservice.NMRShiftDB;
-import casekit.nmr.fragmentation.model.ConnectionTree;
+import casekit.nmr.fragments.model.ConnectionTree;
 import casekit.nmr.hose.HOSECodeBuilder;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;

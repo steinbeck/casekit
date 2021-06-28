@@ -44,7 +44,7 @@ public class Fragmentation {
         final IAtomContainer structure = dataSet.getStructure()
                                                 .toAtomContainer();
         final String spectrumAtomType = Utils.getAtomTypeFromSpectrum(dataSet.getSpectrum(), 0);
-        List<Integer> substructureAtomIndices;
+        List<Integer> substructureAtomIndices, signalIndices;
         IAtomContainer substructure;
         Spectrum subspectrum;
         Assignment subassignment;
@@ -75,15 +75,15 @@ public class Fragmentation {
                         || (spectrumAtomType.equals("H")
                         && atomInStructure.getImplicitHydrogenCount()
                         > 0)) {
-                    final List<Integer> indices = dataSet.getAssignment()
-                                                         .getIndices(0, substructureAtomIndices.get(j));
-                    if (indices
+                    signalIndices = dataSet.getAssignment()
+                                           .getIndices(0, substructureAtomIndices.get(j));
+                    if (signalIndices
                             == null
-                            || indices.isEmpty()) {
+                            || signalIndices.isEmpty()) {
                         return null;
                     }
 
-                    for (final int index : indices) {
+                    for (final int index : signalIndices) {
                         signal = dataSet.getSpectrum()
                                         .getSignal(index)
                                         .buildClone();

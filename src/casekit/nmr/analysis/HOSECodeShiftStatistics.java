@@ -48,6 +48,7 @@ public class HOSECodeShiftStatistics {
         Map<Integer, Integer> atomIndexMap; // from explicit H to heavy atom
         ConnectionTree connectionTree;
         int maxSphereTemp;
+        List<Integer> signalIndices;
         for (final DataSet dataSet : dataSetList) {
             structure = dataSet.getStructure()
                                .toAtomContainer();
@@ -90,42 +91,46 @@ public class HOSECodeShiftStatistics {
                                                                                      .getNuclei()[0]);
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
-                signal = null;
+                signalIndices = null;
                 if (structure.getAtom(i)
                              .getSymbol()
                              .equals(atomTypeSpectrum)) {
                     if (atomTypeSpectrum.equals("H")) {
-                        signal = dataSet.getSpectrum()
-                                        .getSignal(dataSet.getAssignment()
-                                                          .getIndex(0, atomIndexMap.get(i)));
+                        // could be multiple signals
+                        signalIndices = dataSet.getAssignment()
+                                               .getIndices(0, atomIndexMap.get(i));
                     } else {
-                        signal = dataSet.getSpectrum()
-                                        .getSignal(dataSet.getAssignment()
-                                                          .getIndex(0, i));
+                        // should be one only
+                        signalIndices = dataSet.getAssignment()
+                                               .getIndices(0, i);
                     }
                 }
-                if (signal
+                if (signalIndices
                         != null) {
-                    try {
-                        if (maxSphere
-                                == null) {
-                            connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
-                            maxSphereTemp = connectionTree.getMaxSphere(true);
-                        } else {
-                            maxSphereTemp = maxSphere;
+                    for (final Integer signalIndex : signalIndices) {
+                        signal = dataSet.getSpectrum()
+                                        .getSignal(signalIndex);
+                        try {
+                            if (maxSphere
+                                    == null) {
+                                connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
+                                maxSphereTemp = connectionTree.getMaxSphere(true);
+                            } else {
+                                maxSphereTemp = maxSphere;
+                            }
+                            for (int sphere = 1; sphere
+                                    <= maxSphereTemp; sphere++) {
+                                hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
+                                hoseCodeShifts.putIfAbsent(hoseCode, new HashMap<>());
+                                hoseCodeShifts.get(hoseCode)
+                                              .putIfAbsent(solvent, new ArrayList<>());
+                                hoseCodeShifts.get(hoseCode)
+                                              .get(solvent)
+                                              .add(signal.getShift(0));
+                            }
+                        } catch (final CDKException e) {
+                            e.printStackTrace();
                         }
-                        for (int sphere = 1; sphere
-                                <= maxSphereTemp; sphere++) {
-                            hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
-                            hoseCodeShifts.putIfAbsent(hoseCode, new HashMap<>());
-                            hoseCodeShifts.get(hoseCode)
-                                          .putIfAbsent(solvent, new ArrayList<>());
-                            hoseCodeShifts.get(hoseCode)
-                                          .get(solvent)
-                                          .add(signal.getShift(0));
-                        }
-                    } catch (final CDKException e) {
-                        e.printStackTrace();
                     }
                 }
             }

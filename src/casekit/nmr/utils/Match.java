@@ -113,25 +113,6 @@ public class Match {
     }
 
     /**
-     * Returns the average of all deviations within a given input array.
-     *
-     * @param deviations array of deviations
-     *
-     * @return
-     */
-    public static Double calculateAverageDeviation(final Double[] deviations) {
-        // every signal has to have a match
-        for (final Double deviation : deviations) {
-            if (deviation
-                    == null) {
-                return null;
-            }
-        }
-
-        return Statistics.getMean(deviations);
-    }
-
-    /**
      * Returns the average of all deviations of matched shifts between two
      * spectra.
      *
@@ -148,35 +129,16 @@ public class Match {
      * @return
      *
      * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
-     * @see #calculateAverageDeviation(Double[])
+     * @see Statistics#calculateAverageDeviation(Double[])
      */
     public static Double calculateAverageDeviation(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                                    final int dim2, final double shiftTol,
                                                    final boolean checkMultiplicity,
                                                    final boolean checkEquivalencesCount,
                                                    final boolean allowLowerEquivalencesCount) {
-        return Match.calculateAverageDeviation(
+        return Statistics.calculateAverageDeviation(
                 Match.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
                                     checkEquivalencesCount, allowLowerEquivalencesCount));
-    }
-
-    /**
-     * Returns the average of all deviations within a given input array.
-     *
-     * @param data array of deviations
-     *
-     * @return
-     */
-    public static Double calculateRMSD(final Double[] data) {
-        // every signal has to have a match
-        for (final Double value : data) {
-            if (value
-                    == null) {
-                return null;
-            }
-        }
-
-        return Statistics.getRMSD(data);
     }
 
     /**
@@ -196,14 +158,15 @@ public class Match {
      * @return
      *
      * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
-     * @see #calculateAverageDeviation(Double[])
+     * @see Statistics#calculateAverageDeviation(Double[])
      */
     public static Double calculateRMSD(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                        final int dim2, final double shiftTol, final boolean checkMultiplicity,
                                        final boolean checkEquivalencesCount,
                                        final boolean allowLowerEquivalencesCount) {
-        return Match.calculateRMSD(Match.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
-                                                       checkEquivalencesCount, allowLowerEquivalencesCount));
+        return Statistics.calculateRMSD(
+                Match.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
+                                    checkEquivalencesCount, allowLowerEquivalencesCount));
     }
 
     /**

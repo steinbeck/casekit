@@ -268,4 +268,42 @@ public class Statistics {
                 - nullCounter))
                : null;
     }
+
+    /**
+     * Returns the average of all deviations within a given input array.
+     *
+     * @param deviations array of deviations
+     *
+     * @return
+     */
+    public static Double calculateAverageDeviation(final Double[] deviations) {
+        // every signal has to have a match
+        for (final Double deviation : deviations) {
+            if (deviation
+                    == null) {
+                return null;
+            }
+        }
+
+        return getMean(deviations);
+    }
+
+    /**
+     * Returns the average of all deviations within a given input array.
+     *
+     * @param data array of deviations
+     *
+     * @return
+     */
+    public static Double calculateRMSD(final Double[] data) {
+        // every signal has to have a match
+        for (final Double value : data) {
+            if (value
+                    == null) {
+                return null;
+            }
+        }
+
+        return getRMSD(data);
+    }
 }

@@ -4,7 +4,7 @@ import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
-import casekit.nmr.utils.Match;
+import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
@@ -138,7 +138,7 @@ public class RankedResultSDFParser {
             dataSet = new DataSet(structure, predictedSpectrum, assignment, meta);
             dataSet.addMetaInfo("rmsd", String.valueOf(Statistics.calculateRMSD(deviations)));
             dataSet.addMetaInfo("tanimoto", String.valueOf(
-                    Match.calculateTanimotoCoefficient(dataSet.getSpectrum(), experimentalSpectrum, 0, 0)));
+                    Similarity.calculateTanimotoCoefficient(dataSet.getSpectrum(), experimentalSpectrum, 0, 0)));
 
             dataSetList.add(dataSet);
         }

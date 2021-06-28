@@ -1,6 +1,14 @@
 package casekit.nmr.fragments;
 
 import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Spectrum;
+import casekit.nmr.similarity.Similarity;
+import casekit.nmr.utils.Utils;
+import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.interfaces.IMolecularFormula;
+import org.openscience.cdk.silent.SilentChemObjectBuilder;
+import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
+import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -66,5 +74,70 @@ public class FragmentUtilities {
         for (final String keyCollection2 : keysToRemove) {
             smilesCollection2.remove(keyCollection2);
         }
+    }
+
+    public static List<DataSet> findMatches(final List<DataSet> dataSetList, final Spectrum querySpectrum,
+                                            final String mf, final double shiftTol, final double maxAverageDeviation,
+                                            final boolean checkMultiplicity) {
+        final List<DataSet> matches = new ArrayList<>();
+        for (final DataSet dataSet : dataSetList) {
+            if (isValidMatch(dataSet, querySpectrum, mf, shiftTol, maxAverageDeviation, checkMultiplicity)) {
+                matches.add(dataSet);
+            }
+        }
+
+        return matches;
+    }
+
+    public static boolean isValidMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
+                                       final double shiftTol, final double maxAverageDeviation,
+                                       final boolean checkMultiplicity) {
+        final IMolecularFormula iMolecularFormula = MolecularFormulaManipulator.getMolecularFormula(mf,
+                                                                                                    SilentChemObjectBuilder.getInstance());
+        final IAtomContainer group = dataSet.getStructure()
+                                            .toAtomContainer();
+
+        if (!dataSet.getSpectrum()
+                    .getNuclei()[0].equals(querySpectrum.getNuclei()[0])) {
+            return false;
+        }
+        final String atomTypeInSpectrum = Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
+                                                                              .getNuclei()[0]);
+        if (atomTypeInSpectrum.equals("H")) {
+            if (AtomContainerManipulator.getImplicitHydrogenCount(dataSet.getStructure()
+                                                                         .toAtomContainer())
+                    > MolecularFormulaManipulator.getElementCount(iMolecularFormula, atomTypeInSpectrum)) {
+                return false;
+            }
+        } else {
+            // check molecular formula with atom types in group
+            if (!Utils.compareWithMolecularFormulaLessOrEqual(group, mf)) {
+                return false;
+            }
+            // do not allow unsaturated fragments with different size than given molecular formula
+            if (Utils.getUnsaturatedAtomIndices(group)
+                     .isEmpty()
+                    && !Utils.compareWithMolecularFormulaEqual(group, mf)) {
+                return false;
+            }
+        }
+        // check average deviation
+        final Double averageDeviation = Similarity.calculateAverageDeviation(dataSet.getSpectrum(), querySpectrum, 0, 0,
+                                                                             shiftTol, checkMultiplicity, true, true);
+
+        if (averageDeviation
+                == null
+                || averageDeviation
+                > maxAverageDeviation) {
+            return false;
+        }
+        final Double rmsd = Similarity.calculateRMSD(dataSet.getSpectrum(), querySpectrum, 0, 0, shiftTol,
+                                                     checkMultiplicity, true, true);
+        dataSet.getMeta()
+               .put("avgDev", Double.toString(averageDeviation));
+        dataSet.getMeta()
+               .put("rmsd", Double.toString(rmsd));
+
+        return true;
     }
 }

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package casekit.nmr.utils;
+package casekit.nmr.prediction;
 
 
 import casekit.nmr.fragments.model.ConnectionTree;
@@ -31,6 +31,7 @@ import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
@@ -46,7 +47,7 @@ import java.util.Map;
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Predict {
+public class Prediction {
 
     /**
      * Diastereotopic distinctions are not provided yet.
@@ -146,9 +147,9 @@ public class Predict {
                                     final int minPathLength, final int maxPathLength) {
         final DataSet predictionDim1 = predict1D(hoseCodeShiftStatistics, structure, solvent, nuclei[0]);
         final DataSet predictionDim2 = predict1D(hoseCodeShiftStatistics, structure, solvent, nuclei[1]);
-        return Predict.predict2D(structure, predictionDim1.getSpectrum(), predictionDim2.getSpectrum(),
-                                 predictionDim1.getAssignment(), predictionDim2.getAssignment(), minPathLength,
-                                 maxPathLength);
+        return Prediction.predict2D(structure, predictionDim1.getSpectrum(), predictionDim2.getSpectrum(),
+                                    predictionDim1.getAssignment(), predictionDim2.getAssignment(), minPathLength,
+                                    maxPathLength);
     }
 
     /**

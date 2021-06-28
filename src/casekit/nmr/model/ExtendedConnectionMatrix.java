@@ -11,7 +11,7 @@
  */
 package casekit.nmr.model;
 
-import casekit.nmr.Utils;
+import casekit.nmr.utils.Utils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

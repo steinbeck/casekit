@@ -133,8 +133,7 @@ public class Fragmentation {
                                      .get("title"));
             meta.put("id", dataSet.getMeta()
                                   .get("id"));
-            meta.put("mf", casekit.nmr.Utils.molecularFormularToString(
-                    casekit.nmr.Utils.getMolecularFormulaFromAtomContainer(substructure)));
+            meta.put("mf", Utils.molecularFormularToString(Utils.getMolecularFormulaFromAtomContainer(substructure)));
             subDataSet.setMeta(meta);
 
             fragmentDataSetList.add(subDataSet);

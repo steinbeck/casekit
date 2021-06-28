@@ -5,6 +5,7 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Match;
+import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
@@ -56,12 +57,12 @@ public class RankedResultSDFParser {
             structure = iterator.next();
             AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
             hydrogenAdder.addImplicitHydrogens(structure);
-            casekit.nmr.Utils.setAromaticityAndKekulize(structure);
+            Utils.setAromaticityAndKekulize(structure);
             meta = new HashMap<>();
             meta.put("title", structure.getTitle());
             meta.put("id", structure.getProperty("nmrshiftdb2 ID"));
-            mf = casekit.nmr.Utils.getMolecularFormulaFromAtomContainer(structure);
-            meta.put("mf", casekit.nmr.Utils.molecularFormularToString(mf));
+            mf = Utils.getMolecularFormulaFromAtomContainer(structure);
+            meta.put("mf", Utils.molecularFormularToString(mf));
             try {
                 final String smiles = casekit.nmr.utils.Utils.getSmilesFromAtomContainer(structure);
                 meta.put("smiles", smiles);
@@ -124,13 +125,13 @@ public class RankedResultSDFParser {
             }
             for (final int signalIndex : signalShiftList.keySet()) {
                 predictedSpectrum.getSignal(signalIndex)
-                                 .setShift(casekit.nmr.Utils.getMedian(signalShiftList.get(signalIndex)), 0);
+                                 .setShift(Statistics.getMedian(signalShiftList.get(signalIndex)), 0);
                 predictedSpectrum.getSignal(signalIndex)
                                  .setEquivalencesCount(signalShiftList.get(signalIndex)
                                                                       .size());
             }
             // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
-            if (casekit.nmr.Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(predictedSpectrum, mf, 0)
+            if (Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(predictedSpectrum, mf, 0)
                     != 0) {
                 continue;
             }

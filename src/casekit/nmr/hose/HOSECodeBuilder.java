@@ -55,19 +55,19 @@ public class HOSECodeBuilder {
             bond = nodeInPrevSphere.getBondsToChildren()
                                    .get(j);
             position = "";
-            if (Utils.getSymbolForBond(bond)
+            if (HOSECodeUtilities.getSymbolForBond(bond)
                     == null) {
                 throw new CDKException(Thread.currentThread()
                                              .getStackTrace()[1].getMethodName()
                                                + ": no bond information");
             }
-            position += Utils.getSymbolForBond(bond);
+            position += HOSECodeUtilities.getSymbolForBond(bond);
             if (nodeInSphere.isRingClosureNode()) {
                 position += "&";
             } else {
                 if (useBremserElementNotation) {
-                    position += Utils.toHOSECodeSymbol(nodeInSphere.getAtom()
-                                                                   .getSymbol());
+                    position += HOSECodeUtilities.toHOSECodeSymbol(nodeInSphere.getAtom()
+                                                                               .getSymbol());
                 } else {
                     position += nodeInSphere.getAtom()
                                             .getSymbol();
@@ -274,7 +274,7 @@ public class HOSECodeBuilder {
         final ConnectionTree connectionTree = new ConnectionTree(ac.getAtom(rootAtomIndex), rootAtomIndex);
         BFS(ac, connectionTree, queue, new HashSet<>(visited), maxSphere);
 
-        Utils.rankChildNodes(connectionTree);
+        HOSECodeUtilities.rankChildNodes(connectionTree);
 
         return connectionTree;
     }
@@ -295,7 +295,7 @@ public class HOSECodeBuilder {
     public static ConnectionTree buildConnectionTree(final String HOSECode,
                                                      final boolean useBremserElementNotation) throws CDKException {
         final Map<Integer, ArrayList<Object[]>> ringClosures = new HashMap<>();
-        final List<String> sphereStrings = Utils.splitHOSECodeIntoSpheres(HOSECode);
+        final List<String> sphereStrings = HOSECodeUtilities.splitHOSECodeIntoSpheres(HOSECode);
         IAtom atom;
         IBond bond;
         final int maxSphere;
@@ -306,7 +306,7 @@ public class HOSECodeBuilder {
         maxSphere = sphereStrings.size()
                 - 1;
         // zeroth sphere
-        positionsInSphere = Utils.splitHOSECodeSphereIntoPositions(sphereStrings.get(0), true);
+        positionsInSphere = HOSECodeUtilities.splitHOSECodeSphereIntoPositions(sphereStrings.get(0), true);
         // create root atom
         atom = new Atom(positionsInSphere.get(0)
                                          .get(0));
@@ -318,7 +318,7 @@ public class HOSECodeBuilder {
         for (int sphere = 1; sphere
                 <= maxSphere; sphere++) {
             // get positions (sections separated by comma) of current sphere
-            positionsInSphere = Utils.splitHOSECodeSphereIntoPositions(sphereStrings.get(sphere), false);
+            positionsInSphere = HOSECodeUtilities.splitHOSECodeSphereIntoPositions(sphereStrings.get(sphere), false);
             // for all positions
             for (final int positionIndex : positionsInSphere.keySet()) {
                 // for each child elements (symbols) in position
@@ -351,7 +351,7 @@ public class HOSECodeBuilder {
                         }
                         bond = SilentChemObjectBuilder.getInstance()
                                                       .newBond();
-                        bond.setOrder(Utils.getBondOrderForSymbol(bondTypeString));
+                        bond.setOrder(HOSECodeUtilities.getBondOrderForSymbol(bondTypeString));
                         if (bondTypeString.equals("*")) {
                             bond.setIsInRing(true);
                             bond.setIsAromatic(true);
@@ -383,7 +383,7 @@ public class HOSECodeBuilder {
                         //                        bond = SilentChemObjectBuilder.getInstance().newBond();
                         //                        bond.setAtom(parentNodeInPrevSphere.getAtom(), 0);
                         //                        bond.setAtom(parentNodeInSphere.getAtom(), 1);
-                        //                        bond.setOrder(Utils.getBondOrderForSymbol(bondTypeString));
+                        //                        bond.setOrder(HOSECodeUtilities.getBondOrderForSymbol(bondTypeString));
                         //                        if (bondTypeString.equals("*")) {
                         //                            bond.setIsAromatic(true);
                         //                        } else {
@@ -395,7 +395,7 @@ public class HOSECodeBuilder {
                         //                        parentNodeInSphere.addParentNode(parentNodeInPrevSphere, bond);
                         //                        connectionTree.addNode(null, -1 * parentNodeInSphere.getKey(), parentNodeInSphere.getKey(), bond, sphere + 1, true);
 
-                    } else if (Utils.countAtoms(childElementCore)
+                    } else if (HOSECodeUtilities.countAtoms(childElementCore)
                             == 1) { // each position contains either ring closures (&) or one element (e.g. C, Br), plus the bond information
                         if (childElementCore.length()
                                 == 3) { // in case of bond type and an element with two letters, e.g. *Cl or =Br
@@ -424,7 +424,7 @@ public class HOSECodeBuilder {
                         bond = SilentChemObjectBuilder.getInstance()
                                                       .newBond();
                         if (useBremserElementNotation) {
-                            atomTypeString = Utils.toElementSymbol(atomTypeString);
+                            atomTypeString = HOSECodeUtilities.toElementSymbol(atomTypeString);
                         }
                         atom = new Atom(atomTypeString);
                         bond.setAtom(atom, 0);
@@ -432,7 +432,7 @@ public class HOSECodeBuilder {
                                                                              - 1, true)
                                                    .get(positionIndex)
                                                    .getAtom(), 1);
-                        bond.setOrder(Utils.getBondOrderForSymbol(bondTypeString));
+                        bond.setOrder(HOSECodeUtilities.getBondOrderForSymbol(bondTypeString));
                         bond.setIsAromatic(bondTypeString.equals("*"));
                         // set formal charge to atom
                         if (childElement.contains("-")) {
@@ -475,7 +475,7 @@ public class HOSECodeBuilder {
         //            System.out.println(" -> number of ring closures in sphere: " + sphere + " -> " + ringClosures.get(sphere).size());
         //        }
 
-        Utils.rankChildNodes(connectionTree);
+        HOSECodeUtilities.rankChildNodes(connectionTree);
 
         return connectionTree;
     }

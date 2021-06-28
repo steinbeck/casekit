@@ -11,7 +11,7 @@
  */
 package casekit.nmr.fragmentation.model;
 
-import casekit.nmr.hose.Utils;
+import casekit.nmr.hose.HOSECodeUtilities;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IBond;
 
@@ -492,7 +492,7 @@ public class ConnectionTree {
                                      .append(": ");
                 }
                 if (nodeInSphere.hasAParent()) {
-                    treeStringBuilder.append(Utils.getSymbolForBond(nodeInSphere.getBondToParent()));
+                    treeStringBuilder.append(HOSECodeUtilities.getSymbolForBond(nodeInSphere.getBondToParent()));
                 }
                 if (nodeInSphere.isRingClosureNode()) {
                     treeStringBuilder.append("&");

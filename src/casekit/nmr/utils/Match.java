@@ -12,7 +12,6 @@
 
 package casekit.nmr.utils;
 
-import casekit.nmr.Utils;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
@@ -129,7 +128,7 @@ public class Match {
             }
         }
 
-        return Utils.getMean(deviations);
+        return Statistics.getMean(deviations);
     }
 
     /**
@@ -177,7 +176,7 @@ public class Match {
             }
         }
 
-        return casekit.nmr.utils.Utils.getRMSD(data);
+        return Statistics.getRMSD(data);
     }
 
     /**

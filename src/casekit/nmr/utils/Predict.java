@@ -78,10 +78,10 @@ public class Predict {
 
         try {
             AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
-            casekit.nmr.Utils.convertExplicitToImplicitHydrogens(structure);
+            Utils.convertExplicitToImplicitHydrogens(structure);
             hydrogenAdder.addImplicitHydrogens(structure);
-            casekit.nmr.Utils.convertImplicitToExplicitHydrogens(structure);
-            casekit.nmr.Utils.setAromaticityAndKekulize(structure);
+            Utils.convertImplicitToExplicitHydrogens(structure);
+            Utils.setAromaticityAndKekulize(structure);
 
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {

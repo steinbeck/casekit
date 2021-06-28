@@ -1,6 +1,5 @@
 package casekit.nmr.fragmentation.functionalgroup;
 
-import casekit.nmr.Utils;
 import casekit.nmr.dbservice.NMRShiftDB;
 import casekit.nmr.fragmentation.Fragmentation;
 import casekit.nmr.fragmentation.FragmentationUtils;
@@ -8,6 +7,7 @@ import casekit.nmr.fragmentation.model.ConnectionTree;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Match;
+import casekit.nmr.utils.Utils;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
 import org.openscience.cdk.exception.CDKException;
@@ -64,8 +64,8 @@ public class ErtlFunctionalGroupsUtilities {
                                     == 0) {
                                 continue;
                             }
-                        } else if (Utils.getAtomTypeIndicesByElement(group, atomTypeInSpectrum)
-                                        .isEmpty()) {
+                        } else if (casekit.nmr.utils.Utils.getAtomTypeIndicesByElement(group, atomTypeInSpectrum)
+                                                          .isEmpty()) {
                             continue;
                         }
                         fragmentTree = Fragmentation.buildFragmentTree(group, 0, null, new HashSet<>(), false);
@@ -183,8 +183,8 @@ public class ErtlFunctionalGroupsUtilities {
                 return false;
             }
             // do not allow unsaturated fragments with different size than given molecular formula
-            if (Utils.getUnsaturatedAtomIndices(group)
-                     .isEmpty()
+            if (casekit.nmr.utils.Utils.getUnsaturatedAtomIndices(group)
+                                       .isEmpty()
                     && !casekit.nmr.utils.Utils.compareWithMolecularFormulaEqual(group, mf)) {
                 return false;
             }
@@ -225,7 +225,7 @@ public class ErtlFunctionalGroupsUtilities {
                 < groups.size(); i++) {
             group = groups.get(i);
             // convert explicit hydrogens back to implicit
-            Utils.convertExplicitToImplicitHydrogens(group);
+            casekit.nmr.utils.Utils.convertExplicitToImplicitHydrogens(group);
             atomList = new ArrayList<>();
             // create a list (copy) of all atoms of the group because of atom removals and additions in group atom container
             group.atoms()

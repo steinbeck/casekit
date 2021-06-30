@@ -50,6 +50,8 @@ public class Similarity {
      * @param dim2      dimension in second spectrum to take the shifts from
      *
      * @return
+     *
+     * @deprecated
      */
     public static Float calculateTanimotoCoefficient(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                                      final int dim2) {
@@ -74,6 +76,37 @@ public class Similarity {
     }
 
     /**
+     * Returns deviations between two already matched spectra.
+     *
+     * @param spectrum1   first spectrum
+     * @param spectrum2   second spectrum
+     * @param dim1        dimension in first spectrum to take the shifts from
+     * @param dim2        dimension in second spectrum to take the shifts from
+     * @param assignments assignments from previous matching
+     *
+     * @return
+     */
+    public static Double[] getDeviations(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                         final int dim2, final Assignment assignments) {
+        final Double[] deviations = new Double[spectrum1.getSignalCount()];
+        Signal matchedSignalInSpectrum2;
+        for (int i = 0; i
+                < spectrum1.getSignalCount(); i++) {
+            if (assignments.getAssignment(0, i).length
+                    == 0) {
+                deviations[i] = null;
+            } else {
+                matchedSignalInSpectrum2 = spectrum2.getSignal(assignments.getAssignment(0, i)[0]);
+                deviations[i] = Math.abs(spectrum1.getSignal(i)
+                                                  .getShift(dim1)
+                                                 - matchedSignalInSpectrum2.getShift(dim2));
+            }
+        }
+
+        return deviations;
+    }
+
+    /**
      * Returns deviations between matched shifts of two spectra.
      * The matching procedure is already included here.
      *
@@ -94,23 +127,10 @@ public class Similarity {
                                          final int dim2, final double shiftTol, final boolean checkMultiplicity,
                                          final boolean checkEquivalencesCount,
                                          final boolean allowLowerEquivalencesCount) {
-        final Double[] deviations = new Double[spectrum1.getSignalCount()];
         final Assignment matchAssignments = matchSpectra(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
                                                          checkEquivalencesCount, allowLowerEquivalencesCount);
-        Signal matchedSignalInSpectrum2;
-        for (int i = 0; i
-                < spectrum1.getSignalCount(); i++) {
-            if (matchAssignments.getAssignment(0, i).length
-                    == 0) {
-                deviations[i] = null;
-            } else {
-                matchedSignalInSpectrum2 = spectrum2.getSignal(matchAssignments.getAssignment(0, i)[0]);
-                deviations[i] = Math.abs(spectrum1.getSignal(i)
-                                                  .getShift(dim1)
-                                                 - matchedSignalInSpectrum2.getShift(dim2));
-            }
-        }
-        return deviations;
+
+        return getDeviations(spectrum1, spectrum2, dim1, dim2, matchAssignments);
     }
 
     /**
@@ -146,6 +166,27 @@ public class Similarity {
      * Returns the average of all deviations of matched shifts between two
      * spectra.
      *
+     * @param spectrum1   first spectrum
+     * @param spectrum2   second spectrum
+     * @param dim1        dimension in first spectrum to take the shifts from
+     * @param dim2        dimension in second spectrum to take the shifts from
+     * @param assignments assignments from previous matching
+     *
+     * @return
+     *
+     * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
+     * @see Statistics#calculateAverageDeviation(Double[])
+     */
+    public static Double calculateAverageDeviation(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                                   final int dim2, final Assignment assignments) {
+        return Statistics.calculateAverageDeviation(
+                Similarity.getDeviations(spectrum1, spectrum2, dim1, dim2, assignments));
+    }
+
+    /**
+     * Returns the average of all deviations of matched shifts between two
+     * spectra.
+     *
      * @param spectrum1                   first spectrum
      * @param spectrum2                   second spectrum
      * @param dim1                        dimension in first spectrum to take the shifts from
@@ -168,6 +209,26 @@ public class Similarity {
         return Statistics.calculateRMSD(
                 Similarity.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
                                          checkEquivalencesCount, allowLowerEquivalencesCount));
+    }
+
+    /**
+     * Returns the average of all deviations of matched shifts between two
+     * spectra.
+     *
+     * @param spectrum1   first spectrum
+     * @param spectrum2   second spectrum
+     * @param dim1        dimension in first spectrum to take the shifts from
+     * @param dim2        dimension in second spectrum to take the shifts from
+     * @param assignments assignments from previous matching
+     *
+     * @return
+     *
+     * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
+     * @see Statistics#calculateAverageDeviation(Double[])
+     */
+    public static Double calculateRMSD(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                       final int dim2, final Assignment assignments) {
+        return Statistics.calculateRMSD(Similarity.getDeviations(spectrum1, spectrum2, dim1, dim2, assignments));
     }
 
     /**

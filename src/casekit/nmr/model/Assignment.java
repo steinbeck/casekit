@@ -28,7 +28,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
@@ -135,20 +137,21 @@ public class Assignment {
         this.setAssignment(dim, index, equivalenceIndices);
     }
 
-    public Integer getIndex(final int dim, final int assignment) {
+    public List<Integer> getIndices(final int dim, final int assignment) {
         if (!this.containsDim(dim)) {
             return null;
         }
+        final List<Integer> indices = new ArrayList<>();
         for (int index = 0; index
                 < this.assignments[dim].length; index++) {
             if (Arrays.stream(this.getAssignment(dim, index))
-                      .anyMatch(value -> value
+                      .anyMatch(equiv -> equiv
                               == assignment)) {
-                return index;
+                indices.add(index);
             }
         }
 
-        return -1;
+        return indices;
     }
 
     public int[][] getAssignments(final int dim) {

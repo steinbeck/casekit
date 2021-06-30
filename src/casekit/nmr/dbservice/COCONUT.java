@@ -43,16 +43,16 @@ public class COCONUT {
         while (iterator.hasNext()) {
             structure = iterator.next();
             AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
-            if (!casekit.nmr.Utils.containsExplicitHydrogens(structure)) {
+            if (!Utils.containsExplicitHydrogens(structure)) {
                 hydrogenAdder.addImplicitHydrogens(structure);
             }
-            casekit.nmr.Utils.setAromaticityAndKekulize(structure);
+            Utils.setAromaticityAndKekulize(structure);
 
             meta = new HashMap<>();
             meta.put("title", structure.getTitle());
             meta.put("id", structure.getProperty("ID"));
-            mf = casekit.nmr.Utils.getMolecularFormulaFromAtomContainer(structure);
-            meta.put("mf", casekit.nmr.Utils.molecularFormularToString(mf));
+            mf = Utils.getMolecularFormulaFromAtomContainer(structure);
+            meta.put("mf", Utils.molecularFormularToString(mf));
             try {
                 final String smiles = casekit.nmr.utils.Utils.getSmilesFromAtomContainer(structure);
                 meta.put("smiles", smiles);
@@ -62,7 +62,7 @@ public class COCONUT {
 
             for (final String nucleus : nuclei) {
                 final String atomType = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(nucleus);
-                final List<Integer> atomIndices = casekit.nmr.Utils.getAtomTypeIndicesByElement(structure, atomType);
+                final List<Integer> atomIndices = Utils.getAtomTypeIndicesByElement(structure, atomType);
                 //                spectrumPropertyString = ((String) structure.getProperty("CNMR_CALC_SHIFTS")).replaceAll("[\\n\\r]",
                 //                                                                                                         "");
                 //                split = spectrumPropertyString.split("\\d+:");
@@ -127,7 +127,7 @@ public class COCONUT {
                 //                                           + structure.getTitle());
                 //                System.out.println("// ???");
                 //                System.out.println("// "
-                //                                           + casekit.nmr.Utils.molecularFormularToString(mf));
+                //                                           + casekit.nmr.HOSECodeUtilities.molecularFormularToString(mf));
                 //                for (int i = 0; i
                 //                        < spectrum.getSignalCount(); i++) {
                 //                    System.out.println(nucleus
@@ -143,7 +143,7 @@ public class COCONUT {
                 //                }
 
                 // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
-                if (casekit.nmr.Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, mf, 0)
+                if (Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, mf, 0)
                         != 0) {
                     continue;
                 }

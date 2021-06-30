@@ -12,8 +12,8 @@
 
 package casekit.nmr.hose;
 
-import casekit.nmr.hose.model.ConnectionTree;
-import casekit.nmr.hose.model.ConnectionTreeNode;
+import casekit.nmr.fragments.model.ConnectionTree;
+import casekit.nmr.fragments.model.ConnectionTreeNode;
 import org.openscience.cdk.interfaces.IBond;
 
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Utils {
+public class HOSECodeUtilities {
 
     /**
      * Returns the summed subtree weight starting at a specific node in a connection
@@ -64,7 +64,7 @@ public class Utils {
      * @return the priority weight for node; plus the weight of
      * the bond to its parent node if the parent node is not null
      *
-     * @see Utils#getSymbolPriorityWeight(String)
+     * @see HOSECodeUtilities#getSymbolPriorityWeight(String)
      */
     public static Integer getNodeWeight(final ConnectionTreeNode node, final ConnectionTreeNode parentNode) {
         int weight = 0;
@@ -87,9 +87,6 @@ public class Utils {
         } else {
             weight += getSymbolPriorityWeight(node.getAtom()
                                                   .getSymbol());
-            //            weight -= node.getAtom()
-            //                          .getImplicitHydrogenCount()
-            //                    * getSymbolPriorityWeight("H");
         }
 
         return weight;
@@ -167,7 +164,7 @@ public class Utils {
     public static void rankChildNodes(final ConnectionTree connectionTree) {
         List<ConnectionTreeNode> nodesInSphere;
         for (int sphere = 0; sphere
-                < connectionTree.getMaxSphere(); sphere++) {
+                < connectionTree.getMaxSphere(true); sphere++) {
             nodesInSphere = connectionTree.getNodesInSphere(sphere, true);
             // for all nodes in sphere
             for (int i = 0; i

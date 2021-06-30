@@ -130,6 +130,30 @@ public class Spectrum {
     }
 
     /**
+     * Checks for equivalent signals in all dimensions.
+     *
+     * @param signal            signal
+     * @param pickPrecisions    picking precision per dimension
+     * @param checkMultiplicity whether multiplicity has to be checked too
+     *
+     * @return
+     */
+    public List<Integer> checkForEquivalences(final Signal signal, final double[] pickPrecisions,
+                                              final boolean checkMultiplicity) {
+        // check for equivalent signals in all dimensions
+        final List<Integer> closestSignalIndexList = this.pickByClosestShift(signal.getShift(0), 0, pickPrecisions[0]);
+        for (int dim = 1; dim
+                < this.getNDim(); dim++) {
+            closestSignalIndexList.retainAll(this.pickByClosestShift(signal.getShift(dim), dim, pickPrecisions[dim]));
+        }
+        if (checkMultiplicity) {
+            closestSignalIndexList.retainAll(this.pickByMultiplicity(signal.getMultiplicity()));
+        }
+
+        return closestSignalIndexList;
+    }
+
+    /**
      * Adds a signal to this spectrum and stores an equivalent signal index.
      *
      * @param signal            signal to add
@@ -146,16 +170,8 @@ public class Spectrum {
             return null;
         }
 
-        // check for equivalent signals in all dimensions
-        final List<Integer> closestSignalIndexList = this.pickByClosestShift(signal.getShift(0), 0, pickPrecisions[0]);
-        for (int dim = 1; dim
-                < this.getNDim(); dim++) {
-            closestSignalIndexList.retainAll(this.pickByClosestShift(signal.getShift(dim), dim, pickPrecisions[dim]));
-        }
-        if (checkMultiplicity) {
-            closestSignalIndexList.retainAll(this.pickByMultiplicity(signal.getMultiplicity()));
-        }
-
+        final List<Integer> closestSignalIndexList = this.checkForEquivalences(signal, pickPrecisions,
+                                                                               checkMultiplicity);
         // if no equivalent signal was found then just add as new signal
         if (closestSignalIndexList.isEmpty()) {
             this.addSignalWithoutEquivalenceSearch(signal);

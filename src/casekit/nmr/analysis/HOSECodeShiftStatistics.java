@@ -1,12 +1,13 @@
 package casekit.nmr.analysis;
 
-import casekit.nmr.Utils;
 import casekit.nmr.dbservice.COCONUT;
 import casekit.nmr.dbservice.NMRShiftDB;
+import casekit.nmr.fragments.model.ConnectionTree;
 import casekit.nmr.hose.HOSECodeBuilder;
-import casekit.nmr.hose.model.ConnectionTree;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
+import casekit.nmr.utils.Statistics;
+import casekit.nmr.utils.Utils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
@@ -48,10 +49,11 @@ public class HOSECodeShiftStatistics {
         Map<Integer, Integer> atomIndexMap; // from explicit H to heavy atom
         ConnectionTree connectionTree;
         int maxSphereTemp;
+        List<Integer> signalIndices;
         for (final DataSet dataSet : dataSetList) {
             structure = dataSet.getStructure()
                                .toAtomContainer();
-            if (Utils.containsExplicitHydrogens(structure)) {
+            if (casekit.nmr.utils.Utils.containsExplicitHydrogens(structure)) {
                 System.out.println("!!!Dataset skipped because of previously set explicit hydrogens!!!");
                 continue;
             }
@@ -73,8 +75,8 @@ public class HOSECodeShiftStatistics {
                     }
                 }
 
-                casekit.nmr.Utils.convertImplicitToExplicitHydrogens(structure);
-                casekit.nmr.Utils.setAromaticityAndKekulize(structure);
+                casekit.nmr.utils.Utils.convertImplicitToExplicitHydrogens(structure);
+                Utils.setAromaticityAndKekulize(structure);
             } catch (final CDKException e) {
                 e.printStackTrace();
                 continue;
@@ -90,42 +92,46 @@ public class HOSECodeShiftStatistics {
                                                                                      .getNuclei()[0]);
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
-                signal = null;
+                signalIndices = null;
                 if (structure.getAtom(i)
                              .getSymbol()
                              .equals(atomTypeSpectrum)) {
                     if (atomTypeSpectrum.equals("H")) {
-                        signal = dataSet.getSpectrum()
-                                        .getSignal(dataSet.getAssignment()
-                                                          .getIndex(0, atomIndexMap.get(i)));
+                        // could be multiple signals
+                        signalIndices = dataSet.getAssignment()
+                                               .getIndices(0, atomIndexMap.get(i));
                     } else {
-                        signal = dataSet.getSpectrum()
-                                        .getSignal(dataSet.getAssignment()
-                                                          .getIndex(0, i));
+                        // should be one only
+                        signalIndices = dataSet.getAssignment()
+                                               .getIndices(0, i);
                     }
                 }
-                if (signal
+                if (signalIndices
                         != null) {
-                    try {
-                        if (maxSphere
-                                == null) {
-                            connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
-                            maxSphereTemp = connectionTree.getMaxSphere();
-                        } else {
-                            maxSphereTemp = maxSphere;
+                    for (final Integer signalIndex : signalIndices) {
+                        signal = dataSet.getSpectrum()
+                                        .getSignal(signalIndex);
+                        try {
+                            if (maxSphere
+                                    == null) {
+                                connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
+                                maxSphereTemp = connectionTree.getMaxSphere(true);
+                            } else {
+                                maxSphereTemp = maxSphere;
+                            }
+                            for (int sphere = 1; sphere
+                                    <= maxSphereTemp; sphere++) {
+                                hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
+                                hoseCodeShifts.putIfAbsent(hoseCode, new HashMap<>());
+                                hoseCodeShifts.get(hoseCode)
+                                              .putIfAbsent(solvent, new ArrayList<>());
+                                hoseCodeShifts.get(hoseCode)
+                                              .get(solvent)
+                                              .add(signal.getShift(0));
+                            }
+                        } catch (final CDKException e) {
+                            e.printStackTrace();
                         }
-                        for (int sphere = 1; sphere
-                                <= maxSphereTemp; sphere++) {
-                            hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
-                            hoseCodeShifts.putIfAbsent(hoseCode, new HashMap<>());
-                            hoseCodeShifts.get(hoseCode)
-                                          .putIfAbsent(solvent, new ArrayList<>());
-                            hoseCodeShifts.get(hoseCode)
-                                          .get(solvent)
-                                          .add(signal.getShift(0));
-                        }
-                    } catch (final CDKException e) {
-                        e.printStackTrace();
                     }
                 }
             }
@@ -143,13 +149,13 @@ public class HOSECodeShiftStatistics {
             hoseCodeShiftStatistics.put(hoseCodes.getKey(), new HashMap<>());
             for (final Map.Entry<String, List<Double>> solvents : hoseCodes.getValue()
                                                                            .entrySet()) {
-                values = solvents.getValue(); //casekit.nmr.Utils.removeOutliers(solvents.getValue(), 1.5);
+                values = solvents.getValue(); //casekit.nmr.HOSECodeUtilities.removeOutliers(solvents.getValue(), 1.5);
                 hoseCodeShiftStatistics.get(hoseCodes.getKey())
                                        .put(solvents.getKey(),
                                             new Double[]{(double) values.size(), Collections.min(values),
-                                                         casekit.nmr.Utils.getMean(values),
-                                                         // casekit.nmr.Utils.getRMS(values),
-                                                         casekit.nmr.Utils.getMedian(values), Collections.max(values)});
+                                                         Statistics.getMean(values),
+                                                         // casekit.nmr.HOSECodeUtilities.getRMS(values),
+                                                         Statistics.getMedian(values), Collections.max(values)});
             }
         }
 

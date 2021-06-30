@@ -12,11 +12,11 @@
 
 package casekit.nmr.dbservice;
 
-import casekit.nmr.Utils;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IMolecularFormula;
@@ -114,23 +114,23 @@ public class NMRShiftDB {
         while (iterator.hasNext()) {
             structure = iterator.next();
             AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
-            explicitHydrogenIndices = Utils.getExplicitHydrogenIndices(structure);
+            explicitHydrogenIndices = casekit.nmr.utils.Utils.getExplicitHydrogenIndices(structure);
             Collections.sort(explicitHydrogenIndices);
             if (!explicitHydrogenIndices.isEmpty()) {
                 // remove explicit hydrogens
                 Utils.removeAtoms(structure, "H");
             }
             hydrogenAdder.addImplicitHydrogens(structure);
-            Utils.setAromaticityAndKekulize(structure);
+            casekit.nmr.utils.Utils.setAromaticityAndKekulize(structure);
 
             meta = new HashMap<>();
             meta.put("title", structure.getTitle());
             meta.put("id", structure.getProperty("nmrshiftdb2 ID"));
-            mf = Utils.getMolecularFormulaFromAtomContainer(structure);
-            meta.put("mfOriginal", Utils.molecularFormularToString(mf));
+            mf = casekit.nmr.utils.Utils.getMolecularFormulaFromAtomContainer(structure);
+            meta.put("mfOriginal", casekit.nmr.utils.Utils.molecularFormularToString(mf));
             mfAlphabetic = new StringBuilder();
-            mfAlphabeticMap = new TreeMap<>(
-                    casekit.nmr.utils.Utils.getMolecularFormulaElementCounts(Utils.molecularFormularToString(mf)));
+            mfAlphabeticMap = new TreeMap<>(casekit.nmr.utils.Utils.getMolecularFormulaElementCounts(
+                    casekit.nmr.utils.Utils.molecularFormularToString(mf)));
             for (final Map.Entry<String, Integer> entry : mfAlphabeticMap.entrySet()) {
                 mfAlphabetic.append(entry.getKey());
                 if (entry.getValue()
@@ -160,7 +160,8 @@ public class NMRShiftDB {
                     // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
                     if ((spectrum
                             == null)
-                            || Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, mf, 0)
+                            || casekit.nmr.utils.Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, mf,
+                                                                                                         0)
                             != 0) {
                         continue;
                     }
@@ -320,7 +321,7 @@ public class NMRShiftDB {
     //        final HashSet<String> atomTypes = new HashSet<>();
     //        final IteratingSDFReader iterator = new IteratingSDFReader(new FileReader(pathToDB), SilentChemObjectBuilder.getInstance());
     //        while (iterator.hasNext()) {
-    //            atomTypes.addAll(Utils.getAtomTypesInAtomContainer(iterator.next()));
+    //            atomTypes.addAll(HOSECodeUtilities.getAtomTypesInAtomContainer(iterator.next()));
     //        }
     //
     //        return atomTypes;
@@ -420,7 +421,11 @@ public class NMRShiftDB {
                     < spectrumStringArray.length; i++) {
                 shift = Double.parseDouble(spectrumStringArray[i][0]);
                 intensity = Double.parseDouble(spectrumStringArray[i][1]);
-                multiplicity = spectrumStringArray[i][2].toLowerCase();
+                multiplicity = spectrumStringArray[i][2].trim()
+                                                        .isEmpty()
+                               ? null
+                               : spectrumStringArray[i][2].trim()
+                                                          .toLowerCase();
                 spectrum.addSignal(
                         new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 1,
                                    0));
@@ -452,7 +457,11 @@ public class NMRShiftDB {
             // just to be sure that we take the right signal if equivalences are present
             closestSignalList = spectrum.pickByClosestShift(Double.parseDouble(NMRShiftDBSpectrumStringArray[i][0]), 0,
                                                             0.0);
-            multiplicity = NMRShiftDBSpectrumStringArray[i][2].toLowerCase();
+            multiplicity = NMRShiftDBSpectrumStringArray[i][2].trim()
+                                                              .isEmpty()
+                           ? null
+                           : NMRShiftDBSpectrumStringArray[i][2].trim()
+                                                                .toLowerCase();
             closestSignalList.retainAll(spectrum.pickByMultiplicity(multiplicity));
             signalIndex = closestSignalList.get(0);
 

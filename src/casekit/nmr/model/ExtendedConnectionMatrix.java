@@ -11,7 +11,7 @@
  */
 package casekit.nmr.model;
 
-import casekit.nmr.Utils;
+import casekit.nmr.utils.Utils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,6 +23,7 @@ import org.openscience.cdk.interfaces.IAtomType.Hybridization;
 import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.silent.Atom;
 import org.openscience.cdk.silent.Bond;
+import org.openscience.cdk.silent.PseudoAtom;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 
 import java.util.Arrays;
@@ -370,7 +371,11 @@ public class ExtendedConnectionMatrix {
         IAtom atom;
         for (int i = 0; i
                 < this.connectionMatrix.length; i++) {
-            atom = new Atom(this.atomTypes[i]);
+            if (this.atomTypes[i].equals("R")) {
+                atom = new PseudoAtom("R");
+            } else {
+                atom = new Atom(this.atomTypes[i]);
+            }
             atom.setImplicitHydrogenCount(this.atomPropertiesNumeric[i][0]);
             atom.setValency(this.atomPropertiesNumeric[i][1]);
             atom.setFormalCharge(this.atomPropertiesNumeric[i][2]);

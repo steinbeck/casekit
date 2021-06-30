@@ -9,13 +9,14 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package casekit.nmr.hose.model;
+package casekit.nmr.fragments.model;
 
-import casekit.nmr.hose.Utils;
+import casekit.nmr.hose.HOSECodeUtilities;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IBond;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Represents a tree of connected atoms (nodes) of a molecule
@@ -118,6 +119,80 @@ public class ConnectionTree {
         }
     }
 
+    public static boolean addSubtree(final ConnectionTree connectionTree, final int parentNodeKey,
+                                     final ConnectionTree subtree, final IBond bondToLink) {
+        if (!connectionTree.containsKey(parentNodeKey)) {
+            return false;
+        }
+        for (final int key : subtree.getKeys()) {
+            if (connectionTree.containsKey(key)) {
+                return false;
+            }
+        }
+        // check ring closure nodes in subtree whether their ring closure parents (on the other side) still exist
+        for (final ConnectionTreeNode node : subtree.getNodes(true)) {
+            if (node.isRingClosureNode()
+                    && !subtree.containsKey(node.getRingClosureParent()
+                                                .getKey())
+                //            && !connectionTree.containsKey(node.getRingClosureParent()
+                //                                     .getKey())
+            ) {
+                if (node.getRingClosureParent()
+                        != null) {
+                    node.getRingClosureParent()
+                        .setRingClosureParent(null);
+                }
+                node.getParent()
+                    .removeChildNode(node);
+            }
+        }
+
+        final ConnectionTreeNode parentNode = connectionTree.getNode(parentNodeKey);
+        for (final ConnectionTreeNode subtreeNode : subtree.getNodes(true)) {
+            if (subtreeNode
+                    == subtree.getRootNode()) {
+                parentNode.addChildNode(subtree.getRootNode(), bondToLink);
+                subtree.getRootNode()
+                       .setParent(parentNode);
+                subtree.getRootNode()
+                       .setBondToParent(bondToLink);
+                connectionTree.addKey(subtree.getRootNode()
+                                             .getKey());
+                subtree.getRootNode()
+                       .setSphere(parentNode.getSphere()
+                                          + 1);
+                continue;
+            }
+            if (!subtreeNode.isRingClosureNode()
+                    && !connectionTree.containsKey(subtreeNode.getKey())) {
+                connectionTree.addKey(subtreeNode.getKey());
+            } else {
+                continue;
+            }
+            subtreeNode.setSphere(parentNode.getSphere()
+                                          + subtreeNode.getSphere()
+                                          + 1);
+            if (subtreeNode.getSphere()
+                    > connectionTree.getMaxSphere(true)) {
+                connectionTree.maxSphere = subtreeNode.getSphere();
+            }
+        }
+
+        return true;
+    }
+
+    public void initKeySet() {
+        this.keySet.clear();
+        this.keySet.addAll(this.getNodes(false)
+                               .stream()
+                               .map(ConnectionTreeNode::getKey)
+                               .collect(Collectors.toSet()));
+    }
+
+    public boolean addKey(final int key) {
+        return this.keySet.add(key);
+    }
+
     public ConnectionTreeNode getRootNode() {
         return this.root;
     }
@@ -159,7 +234,13 @@ public class ConnectionTree {
         }
     }
 
-    public int getMaxSphere() {
+    public int getMaxSphere(final boolean withRingClosureNodes) {
+        if (!withRingClosureNodes
+                && this.getNodesInSphere(this.maxSphere, false)
+                       .isEmpty()) {
+            return this.maxSphere
+                    - 1;
+        }
         return this.maxSphere;
     }
 
@@ -176,7 +257,7 @@ public class ConnectionTree {
     public List<Integer> getKeys() {
         final List<Integer> keys = new ArrayList<>();
         for (int s = 0; s
-                <= this.getMaxSphere(); s++) {
+                <= this.getMaxSphere(false); s++) {
             for (final ConnectionTreeNode nodeInSphere : this.getNodesInSphere(s, false)) {
                 keys.add(nodeInSphere.getKey());
             }
@@ -188,7 +269,7 @@ public class ConnectionTree {
     public List<ConnectionTreeNode> getNodes(final boolean withRingClosureNodes) {
         final List<ConnectionTreeNode> nodes = new ArrayList<>();
         for (int s = 0; s
-                <= this.getMaxSphere(); s++) {
+                <= this.getMaxSphere(withRingClosureNodes); s++) {
             nodes.addAll(this.getNodesInSphere(s, withRingClosureNodes));
         }
 
@@ -411,7 +492,7 @@ public class ConnectionTree {
                                      .append(": ");
                 }
                 if (nodeInSphere.hasAParent()) {
-                    treeStringBuilder.append(Utils.getSymbolForBond(nodeInSphere.getBondToParent()));
+                    treeStringBuilder.append(HOSECodeUtilities.getSymbolForBond(nodeInSphere.getBondToParent()));
                 }
                 if (nodeInSphere.isRingClosureNode()) {
                     treeStringBuilder.append("&");
@@ -419,7 +500,15 @@ public class ConnectionTree {
                     treeStringBuilder.append(nodeInSphere.getAtom()
                                                          .getSymbol());
                 }
-                treeStringBuilder.append(" {");
+                if (s
+                        > 0) {
+                    treeStringBuilder.append(" (");
+                    treeStringBuilder.append(nodeInSphere.getParent()
+                                                         .getKey());
+                    treeStringBuilder.append(") {");
+                } else {
+                    treeStringBuilder.append(" {");
+                }
                 if (nodeInSphere.isRingClosureNode()) {
                     treeStringBuilder.append(nodeInSphere.getRingClosureParent()
                                                          .getKey());

@@ -10,19 +10,19 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package casekit.nmr.utils;
+package casekit.nmr.similarity;
 
-import casekit.nmr.Utils;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.utils.Statistics;
 import org.apache.commons.lang3.ArrayUtils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.similarity.Tanimoto;
 
 import java.util.*;
 
-public class Match {
+public class Similarity {
 
 
     /**
@@ -50,10 +50,12 @@ public class Match {
      * @param dim2      dimension in second spectrum to take the shifts from
      *
      * @return
+     *
+     * @deprecated
      */
     public static Float calculateTanimotoCoefficient(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                                      final int dim2) {
-        if (!Match.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
+        if (!Similarity.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
             return null;
         }
         final double[] shiftsSpectrum1 = ArrayUtils.toPrimitive(spectrum1.getShifts(dim1)
@@ -71,6 +73,37 @@ public class Match {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Returns deviations between two already matched spectra.
+     *
+     * @param spectrum1   first spectrum
+     * @param spectrum2   second spectrum
+     * @param dim1        dimension in first spectrum to take the shifts from
+     * @param dim2        dimension in second spectrum to take the shifts from
+     * @param assignments assignments from previous matching
+     *
+     * @return
+     */
+    public static Double[] getDeviations(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                         final int dim2, final Assignment assignments) {
+        final Double[] deviations = new Double[spectrum1.getSignalCount()];
+        Signal matchedSignalInSpectrum2;
+        for (int i = 0; i
+                < spectrum1.getSignalCount(); i++) {
+            if (assignments.getAssignment(0, i).length
+                    == 0) {
+                deviations[i] = null;
+            } else {
+                matchedSignalInSpectrum2 = spectrum2.getSignal(assignments.getAssignment(0, i)[0]);
+                deviations[i] = Math.abs(spectrum1.getSignal(i)
+                                                  .getShift(dim1)
+                                                 - matchedSignalInSpectrum2.getShift(dim2));
+            }
+        }
+
+        return deviations;
     }
 
     /**
@@ -94,42 +127,10 @@ public class Match {
                                          final int dim2, final double shiftTol, final boolean checkMultiplicity,
                                          final boolean checkEquivalencesCount,
                                          final boolean allowLowerEquivalencesCount) {
-        final Double[] deviations = new Double[spectrum1.getSignalCount()];
         final Assignment matchAssignments = matchSpectra(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
                                                          checkEquivalencesCount, allowLowerEquivalencesCount);
-        Signal matchedSignalInSpectrum2;
-        for (int i = 0; i
-                < spectrum1.getSignalCount(); i++) {
-            if (matchAssignments.getAssignment(0, i).length
-                    == 0) {
-                deviations[i] = null;
-            } else {
-                matchedSignalInSpectrum2 = spectrum2.getSignal(matchAssignments.getAssignment(0, i)[0]);
-                deviations[i] = Math.abs(spectrum1.getSignal(i)
-                                                  .getShift(dim1)
-                                                 - matchedSignalInSpectrum2.getShift(dim2));
-            }
-        }
-        return deviations;
-    }
 
-    /**
-     * Returns the average of all deviations within a given input array.
-     *
-     * @param deviations array of deviations
-     *
-     * @return
-     */
-    public static Double calculateAverageDeviation(final Double[] deviations) {
-        // every signal has to have a match
-        for (final Double deviation : deviations) {
-            if (deviation
-                    == null) {
-                return null;
-            }
-        }
-
-        return Utils.getMean(deviations);
+        return getDeviations(spectrum1, spectrum2, dim1, dim2, matchAssignments);
     }
 
     /**
@@ -149,35 +150,37 @@ public class Match {
      * @return
      *
      * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
-     * @see #calculateAverageDeviation(Double[])
+     * @see Statistics#calculateAverageDeviation(Double[])
      */
     public static Double calculateAverageDeviation(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                                    final int dim2, final double shiftTol,
                                                    final boolean checkMultiplicity,
                                                    final boolean checkEquivalencesCount,
                                                    final boolean allowLowerEquivalencesCount) {
-        return Match.calculateAverageDeviation(
-                Match.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
-                                    checkEquivalencesCount, allowLowerEquivalencesCount));
+        return Statistics.calculateAverageDeviation(
+                Similarity.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
+                                         checkEquivalencesCount, allowLowerEquivalencesCount));
     }
 
     /**
-     * Returns the average of all deviations within a given input array.
+     * Returns the average of all deviations of matched shifts between two
+     * spectra.
      *
-     * @param data array of deviations
+     * @param spectrum1   first spectrum
+     * @param spectrum2   second spectrum
+     * @param dim1        dimension in first spectrum to take the shifts from
+     * @param dim2        dimension in second spectrum to take the shifts from
+     * @param assignments assignments from previous matching
      *
      * @return
+     *
+     * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
+     * @see Statistics#calculateAverageDeviation(Double[])
      */
-    public static Double calculateRMSD(final Double[] data) {
-        // every signal has to have a match
-        for (final Double value : data) {
-            if (value
-                    == null) {
-                return null;
-            }
-        }
-
-        return casekit.nmr.utils.Utils.getRMSD(data);
+    public static Double calculateAverageDeviation(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                                   final int dim2, final Assignment assignments) {
+        return Statistics.calculateAverageDeviation(
+                Similarity.getDeviations(spectrum1, spectrum2, dim1, dim2, assignments));
     }
 
     /**
@@ -197,14 +200,35 @@ public class Match {
      * @return
      *
      * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
-     * @see #calculateAverageDeviation(Double[])
+     * @see Statistics#calculateAverageDeviation(Double[])
      */
     public static Double calculateRMSD(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                        final int dim2, final double shiftTol, final boolean checkMultiplicity,
                                        final boolean checkEquivalencesCount,
                                        final boolean allowLowerEquivalencesCount) {
-        return Match.calculateRMSD(Match.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
-                                                       checkEquivalencesCount, allowLowerEquivalencesCount));
+        return Statistics.calculateRMSD(
+                Similarity.getDeviations(spectrum1, spectrum2, dim1, dim2, shiftTol, checkMultiplicity,
+                                         checkEquivalencesCount, allowLowerEquivalencesCount));
+    }
+
+    /**
+     * Returns the average of all deviations of matched shifts between two
+     * spectra.
+     *
+     * @param spectrum1   first spectrum
+     * @param spectrum2   second spectrum
+     * @param dim1        dimension in first spectrum to take the shifts from
+     * @param dim2        dimension in second spectrum to take the shifts from
+     * @param assignments assignments from previous matching
+     *
+     * @return
+     *
+     * @see #getDeviations(Spectrum, Spectrum, int, int, double, boolean, boolean, boolean)
+     * @see Statistics#calculateAverageDeviation(Double[])
+     */
+    public static Double calculateRMSD(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                       final int dim2, final Assignment assignments) {
+        return Statistics.calculateRMSD(Similarity.getDeviations(spectrum1, spectrum2, dim1, dim2, assignments));
     }
 
     /**
@@ -229,7 +253,7 @@ public class Match {
                                           final int dim2, final double shiftTol, final boolean checkMultiplicity,
                                           final boolean checkEquivalencesCount,
                                           final boolean allowLowerEquivalencesCount) {
-        if (!Match.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
+        if (!Similarity.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
             return null;
         }
         final Assignment matchAssignments = new Assignment();
@@ -253,8 +277,14 @@ public class Match {
                 passed = true;
                 // @TODO maybe consider further parameters to check ? e.g. intensity
                 if (checkMultiplicity) {
-                    passed = spectrum1.getMultiplicity(i)
-                                      .equals(spectrum2.getMultiplicity(pickedSignalIndexSpectrum2));
+                    passed = (spectrum1.getMultiplicity(i)
+                            == null
+                            && spectrum2.getMultiplicity(pickedSignalIndexSpectrum2)
+                            == null)
+                            || (spectrum1.getMultiplicity(i)
+                            != null
+                            && spectrum1.getMultiplicity(i)
+                                        .equals(spectrum2.getMultiplicity(pickedSignalIndexSpectrum2)));
                 }
                 if (passed
                         && checkEquivalencesCount) {
@@ -293,8 +323,8 @@ public class Match {
      * N here means the number of dimensions in both spectra. <br>
      * Despite intensities are expected, they are still not considered here.
      *
-     * @param spectrum1                   first spectrum
-     * @param spectrum2                   second spectrum (query as exact or subspectrum to check)
+     * @param spectrum1                   first spectrum (possible subspectrum)
+     * @param spectrum2                   second spectrum
      * @param shiftTols                   tolerance values [ppm] per each dimension used during spectra shift
      *                                    comparisons
      * @param checkMultiplicity           indicates whether to compare the multiplicity of matched signals
@@ -329,4 +359,5 @@ public class Match {
 
         return matchAssignment;
     }
+
 }

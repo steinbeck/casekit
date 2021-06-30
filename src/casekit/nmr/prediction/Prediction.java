@@ -21,16 +21,17 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package casekit.nmr.utils;
+package casekit.nmr.prediction;
 
 
+import casekit.nmr.fragments.model.ConnectionTree;
+import casekit.nmr.fragments.model.ConnectionTreeNode;
 import casekit.nmr.hose.HOSECodeBuilder;
-import casekit.nmr.hose.model.ConnectionTree;
-import casekit.nmr.hose.model.ConnectionTreeNode;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
@@ -46,7 +47,7 @@ import java.util.Map;
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
-public class Predict {
+public class Prediction {
 
     /**
      * Diastereotopic distinctions are not provided yet.
@@ -78,10 +79,10 @@ public class Predict {
 
         try {
             AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
-            casekit.nmr.Utils.convertExplicitToImplicitHydrogens(structure);
+            Utils.convertExplicitToImplicitHydrogens(structure);
             hydrogenAdder.addImplicitHydrogens(structure);
-            casekit.nmr.Utils.convertImplicitToExplicitHydrogens(structure);
-            casekit.nmr.Utils.setAromaticityAndKekulize(structure);
+            Utils.convertImplicitToExplicitHydrogens(structure);
+            Utils.setAromaticityAndKekulize(structure);
 
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
@@ -91,7 +92,7 @@ public class Predict {
                              .equals(atomTypeSpectrum)) {
                     connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
                     shift = null;
-                    for (int s = connectionTree.getMaxSphere(); s
+                    for (int s = connectionTree.getMaxSphere(true); s
                             >= minMatchingSphere; s--) {
                         hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, s, false);
                         if (hoseCodeShiftStatistics.containsKey(hoseCode)
@@ -127,7 +128,7 @@ public class Predict {
 
     /**
      * Predicts a 2D spectrum from two 1D spectra. Each 1D spectra needs to contain the same solvent information.
-     * Diastereotopic distinctions are not provided yet.
+     * Diastereotopic distinctions are not provided yet ({@link #predict1D(Map, IAtomContainer, String, String)}).
      *
      * @param hoseCodeShiftStatistics HOSE code shift statistics
      * @param structure               structure to use for prediction
@@ -137,20 +138,24 @@ public class Predict {
      * @param maxPathLength           maximal path length
      *
      * @return
+     *
+     * @see #predict1D(Map, IAtomContainer, String, String)
+     * @see #predict2D(IAtomContainer, Spectrum, Spectrum, Assignment, Assignment, int, int)
      */
     public static DataSet predict2D(final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
                                     final IAtomContainer structure, final String[] nuclei, final String solvent,
                                     final int minPathLength, final int maxPathLength) {
         final DataSet predictionDim1 = predict1D(hoseCodeShiftStatistics, structure, solvent, nuclei[0]);
         final DataSet predictionDim2 = predict1D(hoseCodeShiftStatistics, structure, solvent, nuclei[1]);
-        return Predict.predict2D(structure, predictionDim1.getSpectrum(), predictionDim2.getSpectrum(),
-                                 predictionDim1.getAssignment(), predictionDim2.getAssignment(), minPathLength,
-                                 maxPathLength);
+        return Prediction.predict2D(structure, predictionDim1.getSpectrum(), predictionDim2.getSpectrum(),
+                                    predictionDim1.getAssignment(), predictionDim2.getAssignment(), minPathLength,
+                                    maxPathLength);
     }
 
     /**
-     * Predicts a 2D spectrum from two 1D spectra. Each 1D spectra needs to contain the same solvent information.
-     * Diastereotopic distinctions are not provided yet.
+     * Predicts a 2D spectrum from two 1D spectra. <br>
+     * Each 1D spectra needs to contain the same solvent information. <br>
+     * Note: If 1H is used then it needs to be in first dimension, e.g. 1H, 13C.
      *
      * @param structure      structure to use for prediction
      * @param spectrumDim1   1D spectrum of first dimension
@@ -187,6 +192,7 @@ public class Predict {
         int addedSignalIndex;
         ConnectionTree connectionTree;
         List<ConnectionTreeNode> nodesInSphere;
+        List<Integer> signalIndicesDim1, signalIndicesDim2;
         for (int i = 0; i
                 < structure.getAtomCount(); i++) {
             atom = structure.getAtom(i);
@@ -194,7 +200,7 @@ public class Predict {
                     .equals(atomTypeDim1)) {
                 connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, maxPathLength);
                 for (int s = minPathLength; s
-                        <= connectionTree.getMaxSphere(); s++) {
+                        <= connectionTree.getMaxSphere(false); s++) {
                     nodesInSphere = connectionTree.getNodesInSphere(s, false);
                     for (final ConnectionTreeNode nodeInSphere : nodesInSphere) {
                         if (nodeInSphere.getAtom()
@@ -204,18 +210,27 @@ public class Predict {
                             signal2D.setNuclei(nuclei2D);
                             signal2D.setKind("signal");
                             signal2D.setEquivalencesCount(1);
-                            shiftDim1 = spectrumDim1.getShift(assignmentDim1.getIndex(0, i), 0);
-                            shiftDim2 = spectrumDim2.getShift(assignmentDim2.getIndex(0, nodeInSphere.getKey()), 0);
-                            signal2D.setShifts(new Double[]{shiftDim1, shiftDim2});
-
-                            addedSignalIndex = predictedSpectrum2D.addSignal(signal2D);
-                            if (addedSignalIndex
-                                    >= assignment2D.getSetAssignmentsCount(0)) {
-                                assignment2D.addAssignment(0, new int[]{i});
-                                assignment2D.addAssignment(1, new int[]{nodeInSphere.getKey()});
-                            } else {
-                                assignment2D.addAssignmentEquivalence(0, addedSignalIndex, i);
-                                assignment2D.addAssignmentEquivalence(1, addedSignalIndex, nodeInSphere.getKey());
+                            // on first axis go through all possible assignments, i.e. in case of 1H
+                            signalIndicesDim1 = assignmentDim1.getIndices(0, i);
+                            for (final int signalIndexDim1 : signalIndicesDim1) {
+                                shiftDim1 = spectrumDim1.getShift(signalIndexDim1, 0);
+                                // on second axis go through all possible assignments, i.e. in case of 1H
+                                signalIndicesDim2 = assignmentDim2.getIndices(0, nodeInSphere.getKey());
+                                for (final int signalIndexDim2 : signalIndicesDim2) {
+                                    shiftDim2 = spectrumDim2.getShift(signalIndexDim2, 0);
+                                    signal2D.setShifts(new Double[]{shiftDim1, shiftDim2});
+                                    // add 2D signal
+                                    addedSignalIndex = predictedSpectrum2D.addSignal(signal2D);
+                                    if (addedSignalIndex
+                                            >= assignment2D.getSetAssignmentsCount(0)) {
+                                        assignment2D.addAssignment(0, new int[]{i});
+                                        assignment2D.addAssignment(1, new int[]{nodeInSphere.getKey()});
+                                    } else {
+                                        assignment2D.addAssignmentEquivalence(0, addedSignalIndex, i);
+                                        assignment2D.addAssignmentEquivalence(1, addedSignalIndex,
+                                                                              nodeInSphere.getKey());
+                                    }
+                                }
                             }
                         }
                     }

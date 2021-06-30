@@ -9,7 +9,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package casekit.nmr.hose.model;
+package casekit.nmr.fragments.model;
 
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IBond;
@@ -26,14 +26,14 @@ public class ConnectionTreeNode {
 
     private final List<ConnectionTreeNode> children;
     private final List<IBond> bondsToChildren;
-    private final ConnectionTreeNode parent;
-    private final IBond bondToParent;
+    private ConnectionTreeNode parent;
+    private IBond bondToParent;
     private IAtom atom;
     private Integer key;
     private int sphere;
     private boolean isRingClosure;
     private ConnectionTreeNode ringClosureParent;
-
+    private boolean isPseudoNode;
 
     /**
      * Pre-defined constructor for creating a non-ring closure node.
@@ -52,6 +52,7 @@ public class ConnectionTreeNode {
         this.children = new ArrayList<>();
         this.bondsToChildren = new ArrayList<>();
         this.isRingClosure = false;
+        this.isPseudoNode = false;
     }
 
     /**
@@ -69,6 +70,7 @@ public class ConnectionTreeNode {
         this.bondsToChildren = new ArrayList<>();
         this.isRingClosure = true;
         this.ringClosureParent = ringClosurePartner;
+        this.isPseudoNode = false;
     }
 
     public IAtom getAtom() {
@@ -83,8 +85,16 @@ public class ConnectionTreeNode {
         return this.parent;
     }
 
+    public void setParent(final ConnectionTreeNode parent) {
+        this.parent = parent;
+    }
+
     public IBond getBondToParent() {
         return this.bondToParent;
+    }
+
+    public void setBondToParent(final IBond bondToParent) {
+        this.bondToParent = bondToParent;
     }
 
     public List<ConnectionTreeNode> getChildNodes() {
@@ -125,6 +135,14 @@ public class ConnectionTreeNode {
 
     public void setRingClosureParent(final ConnectionTreeNode ringClosureParent) {
         this.ringClosureParent = ringClosureParent;
+    }
+
+    public void setIsPseudoNode(final boolean isPseudoNode) {
+        this.isPseudoNode = isPseudoNode;
+    }
+
+    public boolean isPseudoNode() {
+        return this.isPseudoNode;
     }
 
     public boolean addChildNode(final ConnectionTreeNode childNode, final IBond bondToChild) {
@@ -186,5 +204,32 @@ public class ConnectionTreeNode {
 
     public boolean hasChildren() {
         return !this.children.isEmpty();
+    }
+
+    @Override
+    public String toString() {
+        return "ConnectionTreeNode{"
+                + "key="
+                + this.key
+                + ", sphere="
+                + this.sphere
+                + ", isRingClosure="
+                + this.isRingClosure
+                + ", isPseudoNode="
+                + this.isPseudoNode
+                + ", ..."
+                //                + ", children="
+                //                + this.children
+                //                + ", bondsToChildren="
+                //                + this.bondsToChildren
+                //                + ", parent="
+                //                + this.parent
+                //                + ", bondToParent="
+                //                + this.bondToParent
+                //                + ", atom="
+                //                + this.atom
+                //                + ", ringClosureParent="
+                //                + this.ringClosureParent
+                + '}';
     }
 }

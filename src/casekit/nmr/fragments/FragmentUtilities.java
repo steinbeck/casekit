@@ -6,7 +6,6 @@ import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.interfaces.IAtomContainer;
-import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -128,6 +127,9 @@ public class FragmentUtilities {
 
     public static boolean isNonMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
                                      final double shiftTol, final boolean checkMultiplicity) {
+        if (!isStructuralMatch(dataSet, mf)) {
+            return false;
+        }
         boolean isSpectralMatch = false;
         if (dataSet.getSpectrum()
                    .getNuclei()[0].equals(querySpectrum.getNuclei()[0])) {
@@ -141,27 +143,16 @@ public class FragmentUtilities {
             }
         }
 
-        return !isSpectralMatch
-                && !isStructuralMatch(dataSet, mf);
+        return !isSpectralMatch;
     }
 
     public static boolean isStructuralMatch(final DataSet dataSet, final String mf) {
         final IAtomContainer fragment = dataSet.getStructure()
                                                .toAtomContainer();
-        if (Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
-                                                .getNuclei()[0])
-                 .equals("H")) {
-            return AtomContainerManipulator.getImplicitHydrogenCount(fragment)
-                    <= Utils.getAtomTypeCount(mf, "H");
-        } else {
-            // check molecular formula with atom types in group
-            if (!Utils.compareWithMolecularFormulaLessOrEqual(fragment, mf)) {
-                return false;
-            }
-            // do not allow unsaturated fragments with different size than given molecular formula
-            return !Utils.getUnsaturatedAtomIndices(fragment)
-                         .isEmpty()
-                    || Utils.compareWithMolecularFormulaEqual(fragment, mf);
-        }
+        // check molecular formula with atom types in group
+        // do not allow unsaturated fragments
+        return Utils.compareWithMolecularFormulaLessOrEqual(fragment, mf)
+                && !Utils.getUnsaturatedAtomIndices(fragment)
+                         .isEmpty();
     }
 }

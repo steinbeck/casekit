@@ -127,6 +127,8 @@ public class Utils {
                     return false;
                 }
             }
+            return AtomContainerManipulator.getImplicitHydrogenCount(structure)
+                    <= getAtomTypeCount(mf, "H");
         }
 
         return true;
@@ -143,6 +145,8 @@ public class Utils {
                     return false;
                 }
             }
+            return AtomContainerManipulator.getImplicitHydrogenCount(structure)
+                    == Utils.getAtomTypeCount(mf, "H");
         }
 
         return true;

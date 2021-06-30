@@ -280,6 +280,9 @@ public class Fragmentation {
      * @param withPseudoAtoms places pseudo atoms in the "outer" sphere
      *
      * @return connection tree
+     *
+     * @see #BFS(IAtomContainer, ConnectionTree, Queue, Set, Set, Integer)
+     * @see #buildFragmentTree(IAtomContainer, int, Integer, Set, boolean)
      */
     public static IAtomContainer buildFragment(final IAtomContainer ac, final int rootAtomIndex,
                                                final Integer maxSphere, final Set<Integer> exclude,
@@ -328,7 +331,11 @@ public class Fragmentation {
      * its root node (0th sphere) by means of Breadth-First-Search (BFS).
      * Until a certain maximum sphere, each reachable next neighbor atom
      * is stored in a parent-child-relationship.
-     * In addition, bonds within rings or between hetero atoms will be kept.
+     * And in addition, bonds between hetero atoms, carbon-hetero bonds and triple bonds will be kept.
+     * In such cases the maximum spherical limit will be ignored.
+     * <br> <br>
+     * This method follows the rules given in section 7.4.1 of <br>
+     * "Contemporary Computer-Assisted Approaches to Molecular Structure Elucidation (New Developments in NMR) by Mikhail E Elyashberg, Antony Williams and Kirill Blinov. Edited by William Price. RSC Publishing, 2012. ISBN: 978-1-84973-432-5; eISBN: 978-1-84973-457-8"
      *
      * @param ac             atom container to go through
      * @param connectionTree connection tree to expand, incl. the root node

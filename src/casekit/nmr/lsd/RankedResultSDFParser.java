@@ -4,7 +4,6 @@ import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
-import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
@@ -21,19 +20,19 @@ import java.util.*;
 
 public class RankedResultSDFParser {
 
-    public static List<DataSet> parseRankedResultSDFile(final String pathToFile,
-                                                        final String nucleus) throws CDKException, FileNotFoundException {
-        return parseRankedResultSDFile(new FileReader(pathToFile), nucleus);
+    public static List<DataSet> parseRankedResultSDFile(final String pathToFile, final String nucleus,
+                                                        final double maxAverageDeviation) throws CDKException, FileNotFoundException {
+        return parseRankedResultSDFile(new FileReader(pathToFile), nucleus, maxAverageDeviation);
     }
 
-    public static List<DataSet> parseRankedResultSDFileContent(final String fileContent,
-                                                               final String nucleus) throws CDKException {
+    public static List<DataSet> parseRankedResultSDFileContent(final String fileContent, final String nucleus,
+                                                               final double maxAverageDeviation) throws CDKException {
         final InputStream inputStream = new ByteArrayInputStream(fileContent.getBytes(StandardCharsets.UTF_8));
-        return parseRankedResultSDFile(new InputStreamReader(inputStream), nucleus);
+        return parseRankedResultSDFile(new InputStreamReader(inputStream), nucleus, maxAverageDeviation);
     }
 
-    public static List<DataSet> parseRankedResultSDFile(final Reader fileReader,
-                                                        final String nucleus) throws CDKException {
+    public static List<DataSet> parseRankedResultSDFile(final Reader fileReader, final String nucleus,
+                                                        final double maxAverageDeviation) throws CDKException {
         final List<DataSet> dataSetList = new ArrayList<>();
         final IteratingSDFReader iterator = new IteratingSDFReader(fileReader, SilentChemObjectBuilder.getInstance());
         IAtomContainer structure;
@@ -52,6 +51,7 @@ public class RankedResultSDFParser {
         Double[] deviations;
         int signalCounter, matchedSignalIndex;
         List<Integer> closestSignalList;
+        Double rmsd, averageDeviation;
 
         while (iterator.hasNext()) {
             structure = iterator.next();
@@ -136,11 +136,18 @@ public class RankedResultSDFParser {
                 continue;
             }
             dataSet = new DataSet(structure, predictedSpectrum, assignment, meta);
-            dataSet.addMetaInfo("rmsd", String.valueOf(Statistics.calculateRMSD(deviations)));
-            dataSet.addMetaInfo("tanimoto", String.valueOf(
-                    Similarity.calculateTanimotoCoefficient(dataSet.getSpectrum(), experimentalSpectrum, 0, 0)));
 
-            dataSetList.add(dataSet);
+            averageDeviation = Statistics.calculateAverageDeviation(deviations);
+            if (averageDeviation
+                    != null
+                    && averageDeviation
+                    <= maxAverageDeviation) {
+                dataSet.addMetaInfo("averageDeviation", String.valueOf(averageDeviation));
+                rmsd = Statistics.calculateRMSD(deviations);
+                dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
+
+                dataSetList.add(dataSet);
+            }
         }
         // pre-sort by RMSD value
         dataSetList.sort((dataSet1, dataSet2) -> {

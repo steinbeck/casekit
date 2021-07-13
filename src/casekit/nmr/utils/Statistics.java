@@ -17,11 +17,8 @@ public class Statistics {
      *
      * @return new array list without values outside the generated boundaries
      */
-    public static List<Double> removeOutliers(final List<Double> input, final double multiplierIQR) {
-        final ArrayList<Double> inputWithoutOutliers = new ArrayList<>(input);
-        inputWithoutOutliers.removeAll(getOutliers(inputWithoutOutliers, multiplierIQR));
-
-        return inputWithoutOutliers;
+    public static void removeOutliers(final List<Double> input, final double multiplierIQR) {
+        input.removeAll(getOutliers(input, multiplierIQR));
     }
 
     /**
@@ -31,27 +28,27 @@ public class Statistics {
      * @return
      */
     public static List<Double> getOutliers(final List<Double> input, final double multiplierIQR) {
-        final ArrayList<Double> outliers = new ArrayList<>();
+        final List<Double> outliers = new ArrayList<>();
         if (input.size()
                 <= 1) {
             return outliers;
         }
         Collections.sort(input);
-        final ArrayList<Double> data1 = new ArrayList<>(input.subList(0, input.size()
-                / 2));
-        final ArrayList<Double> data2;
+        final List<Double> data1 = input.subList(0, input.size()
+                / 2);
+        final List<Double> data2;
         if (input.size()
                 % 2
                 == 0) {
-            data2 = new ArrayList<>(input.subList(input.size()
-                                                          / 2, input.size()));
+            data2 = input.subList(input.size()
+                                          / 2, input.size());
         } else {
-            data2 = new ArrayList<>(input.subList(input.size()
-                                                          / 2
-                                                          + 1, input.size()));
+            data2 = input.subList(input.size()
+                                          / 2
+                                          + 1, input.size());
         }
-        final double q1 = getMedian(new ArrayList<>(data1));
-        final double q3 = getMedian(new ArrayList<>(data2));
+        final double q1 = getMedian(data1);
+        final double q3 = getMedian(data2);
         final double iqr = q3
                 - q1;
         final double lowerBound = q1

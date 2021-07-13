@@ -60,7 +60,7 @@ public class Prediction {
      * @return
      */
     public static DataSet predict1D(final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
-                                    final IAtomContainer structure, final String solvent, final String nucleus) {
+                                    final IAtomContainer structure, final String nucleus, final String solvent) {
         final int minMatchingSphere = 1;
         final Spectrum spectrum = new Spectrum();
         spectrum.setNuclei(new String[]{nucleus});
@@ -145,8 +145,8 @@ public class Prediction {
     public static DataSet predict2D(final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
                                     final IAtomContainer structure, final String[] nuclei, final String solvent,
                                     final int minPathLength, final int maxPathLength) {
-        final DataSet predictionDim1 = predict1D(hoseCodeShiftStatistics, structure, solvent, nuclei[0]);
-        final DataSet predictionDim2 = predict1D(hoseCodeShiftStatistics, structure, solvent, nuclei[1]);
+        final DataSet predictionDim1 = predict1D(hoseCodeShiftStatistics, structure, nuclei[0], solvent);
+        final DataSet predictionDim2 = predict1D(hoseCodeShiftStatistics, structure, nuclei[1], solvent);
         return Prediction.predict2D(structure, predictionDim1.getSpectrum(), predictionDim2.getSpectrum(),
                                     predictionDim1.getAssignment(), predictionDim2.getAssignment(), minPathLength,
                                     maxPathLength);

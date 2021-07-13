@@ -197,9 +197,9 @@ public class PyLSDInputFileBuilder {
                          .append(" ")
                          .append(correlation.getAtomType())
                          .append(" ")
-                         .append(hybridizationStringBuilder.toString())
+                         .append(hybridizationStringBuilder)
                          .append(" ")
-                         .append(attachedProtonsCountStringBuilder.toString());
+                         .append(attachedProtonsCountStringBuilder);
             if (j
                     >= 2) {
                 stringBuilder.append("; equivalent to ")
@@ -499,10 +499,12 @@ public class PyLSDInputFileBuilder {
                 collection.get("COSY")
                           .add(buildCOSY(correlation, i, data, indicesMap, elucidationOptions.getCosyP3(),
                                          elucidationOptions.getCosyP4()));
-                collection.get("SHIX")
-                          .add(buildSHIX(correlation, i, indicesMap));
-                collection.get("SHIH")
-                          .add(buildSHIH(correlation, i, indicesMap));
+                if (elucidationOptions.isUsePrediction()) {
+                    collection.get("SHIX")
+                              .add(buildSHIX(correlation, i, indicesMap));
+                    collection.get("SHIH")
+                              .add(buildSHIH(correlation, i, indicesMap));
+                }
             }
 
             collection.keySet()

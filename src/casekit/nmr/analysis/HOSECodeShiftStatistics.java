@@ -26,8 +26,9 @@ public class HOSECodeShiftStatistics {
                                                       .create(); //.setPrettyPrinting()
 
     public static Map<String, Map<String, List<Double>>> collectHOSECodeShifts(final List<DataSet> dataSetList,
-                                                                               final Integer maxSphere) {
-        return collectHOSECodeShifts(dataSetList, maxSphere, new HashMap<>());
+                                                                               final Integer maxSphere,
+                                                                               final boolean withExplicitH) {
+        return collectHOSECodeShifts(dataSetList, maxSphere, withExplicitH, new HashMap<>());
     }
 
     /**
@@ -41,6 +42,7 @@ public class HOSECodeShiftStatistics {
      */
     public static Map<String, Map<String, List<Double>>> collectHOSECodeShifts(final List<DataSet> dataSetList,
                                                                                final Integer maxSphere,
+                                                                               final boolean withExplicitH,
                                                                                final Map<String, Map<String, List<Double>>> hoseCodeShifts) {
         IAtomContainer structure;
         Signal signal;
@@ -53,33 +55,35 @@ public class HOSECodeShiftStatistics {
         for (final DataSet dataSet : dataSetList) {
             structure = dataSet.getStructure()
                                .toAtomContainer();
-            if (casekit.nmr.utils.Utils.containsExplicitHydrogens(structure)) {
-                System.out.println("!!!Dataset skipped because of previously set explicit hydrogens!!!");
+            if (Utils.containsExplicitHydrogens(structure)) {
+                System.out.println("!!!Dataset skipped must not contain (previously set) explicit hydrogens!!!");
                 continue;
             }
-            try {
-                // create atom index map to know which indices the explicit hydrogens will have
-                atomIndexMap = new HashMap<>();
-                int nextAtomIndexExplicitH = structure.getAtomCount();
-                for (int i = 0; i
-                        < structure.getAtomCount(); i++) {
-                    if (structure.getAtom(i)
-                                 .getImplicitHydrogenCount()
-                            != null) {
-                        for (int j = 0; j
-                                < structure.getAtom(i)
-                                           .getImplicitHydrogenCount(); j++) {
-                            atomIndexMap.put(nextAtomIndexExplicitH, i);
-                            nextAtomIndexExplicitH++;
+            // create atom index map to know which indices the explicit hydrogens will have
+            atomIndexMap = new HashMap<>();
+            if (withExplicitH) {
+                try {
+                    int nextAtomIndexExplicitH = structure.getAtomCount();
+                    for (int i = 0; i
+                            < structure.getAtomCount(); i++) {
+                        if (structure.getAtom(i)
+                                     .getImplicitHydrogenCount()
+                                != null) {
+                            for (int j = 0; j
+                                    < structure.getAtom(i)
+                                               .getImplicitHydrogenCount(); j++) {
+                                atomIndexMap.put(nextAtomIndexExplicitH, i);
+                                nextAtomIndexExplicitH++;
+                            }
                         }
                     }
-                }
 
-                casekit.nmr.utils.Utils.convertImplicitToExplicitHydrogens(structure);
-                Utils.setAromaticityAndKekulize(structure);
-            } catch (final CDKException e) {
-                e.printStackTrace();
-                continue;
+                    Utils.convertImplicitToExplicitHydrogens(structure);
+                    Utils.setAromaticityAndKekulize(structure);
+                } catch (final CDKException e) {
+                    e.printStackTrace();
+                    continue;
+                }
             }
             solvent = dataSet.getSpectrum()
                              .getSolvent();
@@ -88,8 +92,8 @@ public class HOSECodeShiftStatistics {
                     || solvent.equals("")) {
                 solvent = "Unknown";
             }
-            atomTypeSpectrum = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
-                                                                                     .getNuclei()[0]);
+            atomTypeSpectrum = Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
+                                                                   .getNuclei()[0]);
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
                 signalIndices = null;
@@ -149,13 +153,13 @@ public class HOSECodeShiftStatistics {
             hoseCodeShiftStatistics.put(hoseCodes.getKey(), new HashMap<>());
             for (final Map.Entry<String, List<Double>> solvents : hoseCodes.getValue()
                                                                            .entrySet()) {
-                values = solvents.getValue(); //casekit.nmr.HOSECodeUtilities.removeOutliers(solvents.getValue(), 1.5);
+                values = solvents.getValue();
+                Statistics.removeOutliers(values, 1.5);
                 hoseCodeShiftStatistics.get(hoseCodes.getKey())
                                        .put(solvents.getKey(),
                                             new Double[]{(double) values.size(), Collections.min(values),
-                                                         Statistics.getMean(values),
-                                                         // casekit.nmr.HOSECodeUtilities.getRMS(values),
-                                                         Statistics.getMedian(values), Collections.max(values)});
+                                                         Statistics.getMean(values), Statistics.getMedian(values),
+                                                         Collections.max(values)});
             }
         }
 
@@ -165,19 +169,21 @@ public class HOSECodeShiftStatistics {
     public static Map<String, Map<String, Double[]>> buildHOSECodeShiftStatistics(final String[] pathsToNMRShiftDBs,
                                                                                   final String[] pathsToCOCONUTs,
                                                                                   final String[] nuclei,
-                                                                                  final Integer maxSphere) {
+                                                                                  final Integer maxSphere,
+                                                                                  final boolean withExplicitH) {
         try {
             final Map<String, Map<String, List<Double>>> hoseCodeShifts = new HashMap<>();
             for (int i = 0; i
                     < pathsToNMRShiftDBs.length; i++) {
                 HOSECodeShiftStatistics.collectHOSECodeShifts(
-                        NMRShiftDB.getDataSetsFromNMRShiftDB(pathsToNMRShiftDBs[i], nuclei), maxSphere, hoseCodeShifts);
+                        NMRShiftDB.getDataSetsFromNMRShiftDB(pathsToNMRShiftDBs[i], nuclei), maxSphere, withExplicitH,
+                        hoseCodeShifts);
             }
             for (int i = 0; i
                     < pathsToCOCONUTs.length; i++) {
                 HOSECodeShiftStatistics.collectHOSECodeShifts(
                         COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(pathsToCOCONUTs[i], nuclei), maxSphere,
-                        hoseCodeShifts);
+                        withExplicitH, hoseCodeShifts);
             }
             return HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(hoseCodeShifts);
         } catch (final FileNotFoundException | CDKException e) {

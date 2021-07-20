@@ -4,6 +4,7 @@ import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.nmrdisplayer.Correlation;
 import casekit.nmr.model.nmrdisplayer.Data;
 import casekit.nmr.model.nmrdisplayer.Link;
+import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 
 import java.text.SimpleDateFormat;
@@ -47,7 +48,8 @@ public class PyLSDInputFileBuilder {
                 + elimP2;
     }
 
-    private static Map<Integer, Object[]> buildIndicesMap(final Data data, final Map<String, Integer> elementCounts) {
+    private static Map<Integer, Object[]> buildIndicesMap(final List<Correlation> correlationList,
+                                                          final Map<String, Integer> elementCounts) {
         // index in correlation data -> [atom type, indices in PyLSD file...]
         final Map<Integer, Object[]> indicesMap = new HashMap<>();
         // init element indices within correlations with same order as in correlation data input
@@ -60,15 +62,11 @@ public class PyLSDInputFileBuilder {
         int heavyAtomIndexInPyLSDFile = 1;
         int protonIndexInPyLSDFile = totalHeavyAtomsCount
                 + 1;
-        int protonsToInsert;
+        int protonsToInsert, protonsCount;
         Correlation correlation;
         for (int i = 0; i
-                < data.getCorrelations()
-                      .getValues()
-                      .size(); i++) {
-            correlation = data.getCorrelations()
-                              .getValues()
-                              .get(i);
+                < correlationList.size(); i++) {
+            correlation = correlationList.get(i);
             // set entry for each correlation with consideration of equivalences
             if (correlation.getAtomType()
                            .equals("H")) {
@@ -78,11 +76,22 @@ public class PyLSDInputFileBuilder {
                             .equals("hsqc")
                             || link.getExperimentType()
                                    .equals("hmqc")) {
-                        protonsToInsert += data.getCorrelations()
-                                               .getValues()
-                                               .get(link.getMatch()
-                                                        .get(0))
-                                               .getEquivalence();
+                        for (final int matchIndex : link.getMatch()) {
+                            protonsCount = correlationList.get(matchIndex)
+                                                          .getProtonsCount()
+                                                          .get(0);
+                            if (protonsCount
+                                    == 3) {
+                                protonsCount = 1;
+                            }
+                            protonsToInsert += correlationList.get(matchIndex)
+                                                              .getEquivalence()
+                                    * (protonsCount
+                                    / correlationList.get(matchIndex)
+                                                     .getAttachment()
+                                                     .get("H")
+                                                     .size());
+                        }
                     }
                 }
                 indicesMap.put(i, new Object[1
@@ -200,6 +209,10 @@ public class PyLSDInputFileBuilder {
                          .append(hybridizationStringBuilder)
                          .append(" ")
                          .append(attachedProtonsCountStringBuilder);
+            if (!correlation.isPseudo()) {
+                stringBuilder.append("; ")
+                             .append(buildShiftString(correlation));
+            }
             if (j
                     >= 2) {
                 stringBuilder.append("; equivalent to ")
@@ -211,27 +224,59 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildHSQC(final Correlation correlation, final int index,
+    private static String buildShiftString(final Correlation correlation) {
+        return correlation.isPseudo()
+               ? "?"
+               : String.valueOf(Statistics.roundDouble(correlation.getSignal()
+                                                                  .getDelta(), 2));
+    }
+
+    private static String buildShiftsComment(final Correlation correlation1, final Correlation correlation2) {
+        return "; "
+                + buildShiftString(correlation1)
+                + " -> "
+                + buildShiftString(correlation2);
+    }
+
+    private static String buildHSQC(final List<Correlation> correlationList, final int index,
                                     final Map<Integer, Object[]> indicesMap) {
+        final Correlation correlation = correlationList.get(index);
         if (correlation.getAtomType()
                        .equals("H")) {
             return null;
         }
         final StringBuilder stringBuilder = new StringBuilder();
+        final Map<Integer, Integer> protonEquivalenceIndexMap = new HashMap<>();
+        int protonsCount;
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType()
                     .equals("hsqc")
                     || link.getExperimentType()
                            .equals("hmqc")) {
                 for (final int matchIndex : link.getMatch()) {
-                    // for each equivalence of heavy atom and attached equivalent proton
+                    protonEquivalenceIndexMap.putIfAbsent(matchIndex, 1); // k = 1 in indicesMap
+                    // for each equivalence of heavy atom and attached protons
                     for (int k = 1; k
                             < indicesMap.get(index).length; k++) {
-                        stringBuilder.append("HSQC ")
-                                     .append(indicesMap.get(index)[k])
-                                     .append(" ")
-                                     .append(indicesMap.get(matchIndex)[k])
-                                     .append("\n");
+                        protonsCount = correlation.getProtonsCount()
+                                                  .get(0);
+                        // consider CH3 same as CH (avoid multiple entries in PyLSD input file)
+                        if (protonsCount
+                                == 3) {
+                            protonsCount = 1;
+                        }
+                        for (int p = 0; p
+                                < Math.min(protonsCount, correlationList.get(matchIndex)
+                                                                        .getEquivalence()); p++) {
+                            stringBuilder.append("HSQC ")
+                                         .append(indicesMap.get(index)[k])
+                                         .append(" ")
+                                         .append(indicesMap.get(matchIndex)[protonEquivalenceIndexMap.get(matchIndex)])
+                                         .append(buildShiftsComment(correlation, correlationList.get(matchIndex)))
+                                         .append("\n");
+                            protonEquivalenceIndexMap.put(matchIndex, protonEquivalenceIndexMap.get(matchIndex)
+                                    + 1);
+                        }
                     }
                 }
             }
@@ -240,8 +285,9 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildHMBC(final Correlation correlation, final int index, final Data data,
+    private static String buildHMBC(final List<Correlation> correlationList, final int index,
                                     final Map<Integer, Object[]> indicesMap, final int hmbcP3, final int hmbcP4) {
+        final Correlation correlation = correlationList.get(index);
         if (correlation.getAtomType()
                        .equals("H")) {
             return null;
@@ -259,22 +305,22 @@ public class PyLSDInputFileBuilder {
                         for (int l = 1; l
                                 < indicesMap.get(matchIndex).length; l++) {
                             // only add an HMBC correlation if there is no direct link via HSQC and the equivalence index is not equal
-                            if (!(data.getCorrelations()
-                                      .getValues()
-                                      .get(matchIndex)
-                                      .getAttachment()
-                                      .containsKey(correlation.getAtomType())
-                                    && data.getCorrelations()
-                                           .getValues()
-                                           .get(matchIndex)
-                                           .getAttachment()
-                                           .get(correlation.getAtomType())
-                                           .contains(index)
+                            if (!(correlationList.get(matchIndex)
+                                                 .getAttachment()
+                                                 .containsKey(correlation.getAtomType())
+                                    && correlationList.get(matchIndex)
+                                                      .getAttachment()
+                                                      .get(correlation.getAtomType())
+                                                      .contains(index)
                                     && l
                                     == k)) {
                                 uniqueSet.add(indicesMap.get(index)[k]
                                                       + " "
-                                                      + indicesMap.get(matchIndex)[l]);
+                                                      + indicesMap.get(matchIndex)[l]
+                                                      + " "
+                                                      + defaultBondDistance
+                                                      + buildShiftsComment(correlation,
+                                                                           correlationList.get(matchIndex)));
                             }
                         }
                     }
@@ -285,15 +331,14 @@ public class PyLSDInputFileBuilder {
         return uniqueSet.stream()
                         .map(str -> "HMBC "
                                 + str
-                                + " "
-                                + defaultBondDistance
                                 + "\n")
                         .reduce("", (strAll, str) -> strAll
                                 + str);
     }
 
-    private static String buildCOSY(final Correlation correlation, final int index, final Data data,
+    private static String buildCOSY(final List<Correlation> correlationList, final int index,
                                     final Map<Integer, Object[]> indicesMap, final int cosyP3, final int cosyP4) {
+        final Correlation correlation = correlationList.get(index);
         if (!correlation.getAtomType()
                         .equals("H")) {
             return null;
@@ -307,11 +352,9 @@ public class PyLSDInputFileBuilder {
                     .equals("cosy")) {
                 for (final int matchIndex : link.getMatch()) {
                     // only add an COSY correlation if the two signals there is not equivalent
-                    if (!data.getCorrelations()
-                             .getValues()
-                             .get(matchIndex)
-                             .getId()
-                             .equals(correlation.getId())) {
+                    if (!correlationList.get(matchIndex)
+                                        .getId()
+                                        .equals(correlation.getId())) {
                         for (int k = 1; k
                                 < indicesMap.get(index).length; k++) {
                             // only allow COSY values between possible equivalent protons and only one another non-equivalent proton
@@ -319,7 +362,11 @@ public class PyLSDInputFileBuilder {
                                     == 2) {
                                 uniqueSet.add(indicesMap.get(index)[k]
                                                       + " "
-                                                      + indicesMap.get(matchIndex)[1]);
+                                                      + indicesMap.get(matchIndex)[1]
+                                                      + " "
+                                                      + defaultBondDistance
+                                                      + buildShiftsComment(correlation,
+                                                                           correlationList.get(matchIndex)));
                             }
                         }
                     }
@@ -330,8 +377,6 @@ public class PyLSDInputFileBuilder {
         return uniqueSet.stream()
                         .map(str -> "COSY "
                                 + str
-                                + " "
-                                + defaultBondDistance
                                 + "\n")
                         .reduce("", (strAll, str) -> strAll
                                 + str);
@@ -454,6 +499,8 @@ public class PyLSDInputFileBuilder {
         if (mf
                 != null
                 && !hasErrors) {
+            final List<Correlation> correlationList = data.getCorrelations()
+                                                          .getValues();
             final Map<String, Integer> elementCounts = new LinkedHashMap<>(Utils.getMolecularFormulaElementCounts(mf));
             final StringBuilder stringBuilder = new StringBuilder();
             // create header
@@ -479,25 +526,21 @@ public class PyLSDInputFileBuilder {
             collection.put("SHIX", new ArrayList<>());
             collection.put("SHIH", new ArrayList<>());
             // index in correlation data -> [atom type, index in PyLSD file]
-            final Map<Integer, Object[]> indicesMap = buildIndicesMap(data, elementCounts);
+            final Map<Integer, Object[]> indicesMap = buildIndicesMap(correlationList, elementCounts);
 
             Correlation correlation;
             for (int i = 0; i
-                    < data.getCorrelations()
-                          .getValues()
-                          .size(); i++) {
-                correlation = data.getCorrelations()
-                                  .getValues()
-                                  .get(i);
+                    < correlationList.size(); i++) {
+                correlation = correlationList.get(i);
                 collection.get("MULT")
                           .add(buildMULT(correlation, i, indicesMap, detectedHybridizations));
                 collection.get("HSQC")
-                          .add(buildHSQC(correlation, i, indicesMap));
+                          .add(buildHSQC(correlationList, i, indicesMap));
                 collection.get("HMBC")
-                          .add(buildHMBC(correlation, i, data, indicesMap, elucidationOptions.getHmbcP3(),
+                          .add(buildHMBC(correlationList, i, indicesMap, elucidationOptions.getHmbcP3(),
                                          elucidationOptions.getHmbcP4()));
                 collection.get("COSY")
-                          .add(buildCOSY(correlation, i, data, indicesMap, elucidationOptions.getCosyP3(),
+                          .add(buildCOSY(correlationList, i, indicesMap, elucidationOptions.getCosyP3(),
                                          elucidationOptions.getCosyP4()));
                 if (elucidationOptions.isUsePrediction()) {
                     collection.get("SHIX")

@@ -29,6 +29,7 @@ public class Constants {
         defaultHybridization.put("O", "(2 3)");
         defaultHybridization.put("S", "(1 2 3)");
         defaultHybridization.put("I", "3");
+        defaultHybridization.put("F", "3");
 
         return Collections.unmodifiableMap(defaultHybridization);
     }
@@ -44,7 +45,8 @@ public class Constants {
         defaultProtonsCountPerValency.put("S6", "(0 1 2 3)");
         defaultProtonsCountPerValency.put("S246", "(0 1 2 3)");
         defaultProtonsCountPerValency.put("O", "(0 1)");
-        defaultProtonsCountPerValency.put("I", "(0 1)");
+        defaultProtonsCountPerValency.put("I", "0");
+        defaultProtonsCountPerValency.put("F", "0");
 
         return defaultProtonsCountPerValency;
     }
@@ -56,6 +58,7 @@ public class Constants {
         defaultAtomLabel.put("O", "O");
         defaultAtomLabel.put("S", "S246");
         defaultAtomLabel.put("I", "I");
+        defaultAtomLabel.put("F", "F");
 
         return Collections.unmodifiableMap(defaultAtomLabel);
     }
@@ -66,15 +69,23 @@ public class Constants {
         // nucleus -> hybridization string -> number
         final Map<String, Map<String, Integer>> hybridizationConversionMap = new HashMap<>();
         hybridizationConversionMap.put("13C", new HashMap<>());
-        hybridizationConversionMap.get("13C").put("PLANAR3", 3);
-        hybridizationConversionMap.get("13C").put("SP3", 3);
-        hybridizationConversionMap.get("13C").put("SP2", 2);
-        hybridizationConversionMap.get("13C").put("SP1", 1);
+        hybridizationConversionMap.get("13C")
+                                  .put("PLANAR3", 3);
+        hybridizationConversionMap.get("13C")
+                                  .put("SP3", 3);
+        hybridizationConversionMap.get("13C")
+                                  .put("SP2", 2);
+        hybridizationConversionMap.get("13C")
+                                  .put("SP1", 1);
         hybridizationConversionMap.put("15N", new HashMap<>());
-        hybridizationConversionMap.get("15N").put("PLANAR3", 3);
-        hybridizationConversionMap.get("15N").put("SP3", 3);
-        hybridizationConversionMap.get("15N").put("SP2", 2);
-        hybridizationConversionMap.get("15N").put("SP1", 1);
+        hybridizationConversionMap.get("15N")
+                                  .put("PLANAR3", 3);
+        hybridizationConversionMap.get("15N")
+                                  .put("SP3", 3);
+        hybridizationConversionMap.get("15N")
+                                  .put("SP2", 2);
+        hybridizationConversionMap.get("15N")
+                                  .put("SP1", 1);
 
         return Collections.unmodifiableMap(hybridizationConversionMap);
     }

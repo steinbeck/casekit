@@ -18,6 +18,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+@Deprecated
 public class RankedResultSDFParser {
 
     public static List<DataSet> parseRankedResultSDFile(final String pathToFile, final String nucleus,

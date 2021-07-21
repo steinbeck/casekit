@@ -83,6 +83,20 @@ public class Utils {
         return smilesGenerator.create(ac);
     }
 
+    public static String getAlphabeticMF(final String mf) {
+        final StringBuilder mfAlphabeticStringBuilder = new StringBuilder();
+        final Map<String, Integer> mfAlphabeticMap = new TreeMap<>(getMolecularFormulaElementCounts(mf));
+        for (final Map.Entry<String, Integer> entry : mfAlphabeticMap.entrySet()) {
+            mfAlphabeticStringBuilder.append(entry.getKey());
+            if (entry.getValue()
+                    > 1) {
+                mfAlphabeticStringBuilder.append(entry.getValue());
+            }
+        }
+
+        return mfAlphabeticStringBuilder.toString();
+    }
+
     public static Map<String, Integer> getMolecularFormulaElementCounts(final String mf) {
         final LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
         final List<String> elements = new ArrayList<>();

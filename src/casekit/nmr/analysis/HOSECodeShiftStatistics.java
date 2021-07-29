@@ -193,6 +193,13 @@ public class HOSECodeShiftStatistics {
         return new HashMap<>();
     }
 
+    public static Map<String, Map<String, Double[]>> buildHOSECodeShiftStatistics(final List<DataSet> dataSetList,
+                                                                                  final Integer maxSphere,
+                                                                                  final boolean withExplicitH) {
+        return HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
+                collectHOSECodeShifts(dataSetList, maxSphere, withExplicitH));
+    }
+
     public static boolean writeHOSECodeShiftStatistics(final Map<String, Map<String, Double[]>> hoseCodeShifts,
                                                        final String pathToJsonFile) {
         try {

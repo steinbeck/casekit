@@ -32,14 +32,15 @@ public class MultiplicitySectionsBuilder {
 
     private void init() {
         this.multiplicities.clear();
-        this.multiplicities.add("S");
-        this.multiplicities.add("D");
-        this.multiplicities.add("T");
-        this.multiplicities.add("Q");
+        this.multiplicities.add("s");
+        this.multiplicities.add("d");
+        this.multiplicities.add("t");
+        this.multiplicities.add("q");
+        this.multiplicities.add("unknown");
         this.minLimit = -20;
         this.maxLimit = 260;
         this.stepSize = 5;
-        this.steps = (this.maxLimit - this.minLimit) / this.stepSize; // ppm range from -20 to 260 in 5 ppm steps
+        this.updateSteps(); // ppm range from -20 to 260 in 5 ppm steps
     }
 
     /**
@@ -53,25 +54,64 @@ public class MultiplicitySectionsBuilder {
         this.init();
     }
 
-    public Map<String, ArrayList<Integer>> buildMultiplicitySections(final Spectrum spectrum) throws CDKException {
-        final HashMap<String, ArrayList<Integer>> multSections = new HashMap<>();
+    public Map<String, List<Integer>> buildMultiplicitySections(final Spectrum spectrum) throws CDKException {
+        final HashMap<String, List<Integer>> multiplicitySections = new HashMap<>();
         // init
-        for (final String mult : this.multiplicities) {
-            multSections.put(mult, new ArrayList<>());
+        for (final String multiplicity : this.multiplicities) {
+            multiplicitySections.put(multiplicity, new ArrayList<>());
         }
         // set the mult. sections 
         Signal signal;
-        int shiftSection;
-        for (int i = 0; i < spectrum.getSignalCount(); i++) {
+        Integer shiftSection;
+        String multiplicity;
+        for (int i = 0; i
+                < spectrum.getSignalCount(); i++) {
             signal = spectrum.getSignal(i);
-            if ((signal == null) || (signal.getShift(0) == null) || (signal.getMultiplicity() == null) || (signal.getIntensity() == null) || (!this.multiplicities.contains(signal.getMultiplicity()))) {
-                throw new CDKException(Thread.currentThread().getStackTrace()[1].getMethodName() + ": signal, shift or multiplicity is missing");
+            shiftSection = this.calculateShiftSection(signal);
+            if (shiftSection
+                    == null) {
+                throw new CDKException(Thread.currentThread()
+                                             .getStackTrace()[1].getMethodName()
+                                               + ": signal or its chemical shift is missing: "
+                                               + signal);
             }
-            shiftSection = (int) ((signal.getShift(0) - this.minLimit) / this.stepSize);
-            multSections.get(signal.getMultiplicity()).add(shiftSection);
+            multiplicity = this.checkMultiplicity(signal);
+            if (multiplicity
+                    == null) {
+                throw new CDKException(Thread.currentThread()
+                                             .getStackTrace()[1].getMethodName()
+                                               + ": signal multiplicity is not in list: "
+                                               + signal);
+            }
+            multiplicitySections.get(multiplicity)
+                                .add(shiftSection);
         }
 
-        return multSections;
+        return multiplicitySections;
+    }
+
+    public Integer calculateShiftSection(final Signal signal) {
+        if (signal
+                == null
+                || signal.getShift(0)
+                == null) {
+            return null;
+        }
+        return (int) ((signal.getShift(0)
+                - this.minLimit)
+                / this.stepSize);
+    }
+
+    public String checkMultiplicity(final Signal signal) {
+        final String multiplicity = signal.getMultiplicity()
+                                            != null
+                                    ? signal.getMultiplicity()
+                                    : "unknown";
+        if (!this.multiplicities.contains(multiplicity)) {
+            return null;
+        }
+
+        return multiplicity;
     }
 
     public Set<String> getMultiplicities() {
@@ -96,6 +136,7 @@ public class MultiplicitySectionsBuilder {
 
     public void setMinLimit(final int minLimit) {
         this.minLimit = minLimit;
+        this.updateSteps();
     }
 
     public int getMaxLimit() {
@@ -104,6 +145,7 @@ public class MultiplicitySectionsBuilder {
 
     public void setMaxLimit(final int maxLimit) {
         this.maxLimit = maxLimit;
+        this.updateSteps();
     }
 
     public int getStepSize() {
@@ -112,5 +154,16 @@ public class MultiplicitySectionsBuilder {
 
     public void setStepSize(final int stepSize) {
         this.stepSize = stepSize;
+        this.updateSteps();
+    }
+
+    public int getSteps() {
+        return this.steps;
+    }
+
+    private void updateSteps() {
+        this.steps = (this.maxLimit
+                - this.minLimit)
+                / this.stepSize;
     }
 }

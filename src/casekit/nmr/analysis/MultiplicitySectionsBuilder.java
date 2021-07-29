@@ -54,8 +54,9 @@ public class MultiplicitySectionsBuilder {
         this.init();
     }
 
-    public Map<String, List<Integer>> buildMultiplicitySections(final Spectrum spectrum) throws CDKException {
-        final HashMap<String, List<Integer>> multiplicitySections = new HashMap<>();
+    public Map<String, List<Integer>> buildMultiplicitySections(final Spectrum spectrum,
+                                                                final int dim) throws CDKException {
+        final Map<String, List<Integer>> multiplicitySections = new HashMap<>();
         // init
         for (final String multiplicity : this.multiplicities) {
             multiplicitySections.put(multiplicity, new ArrayList<>());
@@ -67,7 +68,7 @@ public class MultiplicitySectionsBuilder {
         for (int i = 0; i
                 < spectrum.getSignalCount(); i++) {
             signal = spectrum.getSignal(i);
-            shiftSection = this.calculateShiftSection(signal);
+            shiftSection = this.calculateShiftSection(signal, dim);
             if (shiftSection
                     == null) {
                 throw new CDKException(Thread.currentThread()
@@ -90,14 +91,14 @@ public class MultiplicitySectionsBuilder {
         return multiplicitySections;
     }
 
-    public Integer calculateShiftSection(final Signal signal) {
+    public Integer calculateShiftSection(final Signal signal, final int dim) {
         if (signal
                 == null
-                || signal.getShift(0)
+                || signal.getShift(dim)
                 == null) {
             return null;
         }
-        return (int) ((signal.getShift(0)
+        return (int) ((signal.getShift(dim)
                 - this.minLimit)
                 / this.stepSize);
     }

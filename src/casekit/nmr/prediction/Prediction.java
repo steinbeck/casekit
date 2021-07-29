@@ -86,7 +86,7 @@ public class Prediction {
 
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
-                atomTypeSpectrum = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(nucleus);
+                atomTypeSpectrum = Utils.getAtomTypeFromNucleus(nucleus);
                 if (structure.getAtom(i)
                              .getSymbol()
                              .equals(atomTypeSpectrum)) {
@@ -106,11 +106,17 @@ public class Prediction {
                     signal = new Signal();
                     signal.setNuclei(spectrum.getNuclei());
                     signal.setEquivalencesCount(1);
-                    //                    signal.setMultiplicity();
+                    if (atomTypeSpectrum.equals("C")) {
+                        signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(
+                                AtomContainerManipulator.countHydrogens(structure, structure.getAtom(i))));
+                    }
+
                     signal.setKind("signal");
                     signal.setShifts(new Double[]{shift});
                     addedSignalIndex = spectrum.addSignal(signal);
                     if (addedSignalIndex
+                            == null
+                            || addedSignalIndex
                             >= assignment.getSetAssignmentsCount(0)) {
                         assignment.addAssignment(0, new int[]{i});
                     } else {

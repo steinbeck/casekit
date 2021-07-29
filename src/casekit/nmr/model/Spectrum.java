@@ -140,6 +140,10 @@ public class Spectrum {
      */
     public List<Integer> checkForEquivalences(final Signal signal, final double[] pickPrecisions,
                                               final boolean checkMultiplicity) {
+        if (signal.getShift(0)
+                == null) {
+            return null;
+        }
         // check for equivalent signals in all dimensions
         final List<Integer> closestSignalIndexList = this.pickByClosestShift(signal.getShift(0), 0, pickPrecisions[0]);
         for (int dim = 1; dim
@@ -172,6 +176,10 @@ public class Spectrum {
 
         final List<Integer> closestSignalIndexList = this.checkForEquivalences(signal, pickPrecisions,
                                                                                checkMultiplicity);
+        if (closestSignalIndexList
+                == null) {
+            return null;
+        }
         // if no equivalent signal was found then just add as new signal
         if (closestSignalIndexList.isEmpty()) {
             this.addSignalWithoutEquivalenceSearch(signal);

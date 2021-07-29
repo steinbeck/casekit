@@ -12,18 +12,18 @@
 
 package casekit.nmr.similarity;
 
+import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Statistics;
-import org.apache.commons.lang3.ArrayUtils;
 import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.similarity.Tanimoto;
 
 import java.util.*;
 
 public class Similarity {
-
 
     /**
      * Checks whether two spectra contain given dimensions.
@@ -50,29 +50,36 @@ public class Similarity {
      * @param dim2      dimension in second spectrum to take the shifts from
      *
      * @return
-     *
-     * @deprecated
      */
-    public static Float calculateTanimotoCoefficient(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
-                                                     final int dim2) {
-        if (!Similarity.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
+    public static Double calculateTanimotoCoefficient(final Spectrum spectrum1, final Spectrum spectrum2,
+                                                      final int dim1, final int dim2,
+                                                      final MultiplicitySectionsBuilder multiplicitySectionsBuilder) {
+        if (!checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
             return null;
         }
-        final double[] shiftsSpectrum1 = ArrayUtils.toPrimitive(spectrum1.getShifts(dim1)
-                                                                         .toArray(
-                                                                                 new Double[spectrum1.getSignalCount()]));
-        Arrays.parallelSort(shiftsSpectrum1);
-        final double[] shiftsSpectrum2 = ArrayUtils.toPrimitive(spectrum2.getShifts(dim2)
-                                                                         .toArray(
-                                                                                 new Double[spectrum2.getSignalCount()]));
-        Arrays.parallelSort(shiftsSpectrum2);
 
         try {
-            return Tanimoto.calculate(shiftsSpectrum1, shiftsSpectrum2);
+            return Tanimoto.calculate(getFingerprint(spectrum1, dim1, multiplicitySectionsBuilder),
+                                      getFingerprint(spectrum2, dim2, multiplicitySectionsBuilder));
         } catch (final CDKException e) {
             e.printStackTrace();
         }
+
         return null;
+    }
+
+    public static BitSetFingerprint getFingerprint(final Spectrum spectrum, final int dim,
+                                                   final MultiplicitySectionsBuilder multiplicitySectionsBuilder) throws CDKException {
+        final BitSetFingerprint bitSetFingerprint = new BitSetFingerprint(multiplicitySectionsBuilder.getSteps());
+        final Map<String, List<Integer>> multiplicitySections = multiplicitySectionsBuilder.buildMultiplicitySections(
+                spectrum, dim);
+        for (final Map.Entry<String, List<Integer>> entry : multiplicitySections.entrySet()) {
+            for (final int section : entry.getValue()) {
+                bitSetFingerprint.set(section, true);
+            }
+        }
+
+        return bitSetFingerprint;
     }
 
     /**

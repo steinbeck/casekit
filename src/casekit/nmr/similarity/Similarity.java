@@ -21,7 +21,10 @@ import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.similarity.Tanimoto;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class Similarity {
 
@@ -246,7 +249,7 @@ public class Similarity {
      * @param spectrum2                   second spectrum
      * @param dim1                        dimension in first spectrum to take the shifts from
      * @param dim2                        dimension in second spectrum to take the shifts from
-     * @param shiftTol                    Tolerance value [ppm] used during spectra shift
+     * @param shiftTolerance              Tolerance value [ppm] used during spectra shift
      *                                    comparison
      * @param checkMultiplicity           indicates whether to compare the multiplicity of matched signals
      * @param checkEquivalencesCount      indicates whether to compare the equivalences counts of matched signals
@@ -257,72 +260,34 @@ public class Similarity {
      * contain the selected dimension
      */
     public static Assignment matchSpectra(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
-                                          final int dim2, final double shiftTol, final boolean checkMultiplicity,
+                                          final int dim2, final double shiftTolerance, final boolean checkMultiplicity,
                                           final boolean checkEquivalencesCount,
                                           final boolean allowLowerEquivalencesCount) {
         if (!Similarity.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
             return null;
         }
-        final Assignment matchAssignments = new Assignment();
-        matchAssignments.setNuclei(new String[]{spectrum1.getNuclei()[dim1]});
-        matchAssignments.initAssignments(spectrum1.getSignalCount());
-        final Set<Integer> assigned = new HashSet<>();
-        List<Integer> pickedSignalIndicesSpectrum2;
-        boolean passed;
-
-        for (int i = 0; i
-                < spectrum1.getSignalCount(); i++) {
-            if (spectrum1.getShift(i, dim1)
-                    == null) {
-                continue;
-            }
-
-            // @TODO add solvent deviation value for picking closest signal(s)
-            pickedSignalIndicesSpectrum2 = new ArrayList<>();
-            for (final int pickedSignalIndexSpectrum2 : spectrum2.pickSignals(spectrum1.getShift(i, dim1), dim2,
-                                                                              shiftTol)) {
-                passed = true;
-                // @TODO maybe consider further parameters to check ? e.g. intensity
-                if (checkMultiplicity) {
-                    passed = (spectrum1.getMultiplicity(i)
-                            == null
-                            && spectrum2.getMultiplicity(pickedSignalIndexSpectrum2)
-                            == null)
-                            || (spectrum1.getMultiplicity(i)
-                            != null
-                            && spectrum1.getMultiplicity(i)
-                                        .equals(spectrum2.getMultiplicity(pickedSignalIndexSpectrum2)));
-                }
-                if (passed
-                        && checkEquivalencesCount) {
-                    if (allowLowerEquivalencesCount) {
-                        passed = spectrum1.getEquivalencesCount(i)
-                                <= spectrum2.getEquivalencesCount(pickedSignalIndexSpectrum2);
-                    } else {
-                        passed = spectrum1.getEquivalencesCount(i)
-                                == spectrum2.getEquivalencesCount(pickedSignalIndexSpectrum2);
-                    }
-                }
-
-                if (passed) {
-                    pickedSignalIndicesSpectrum2.add(pickedSignalIndexSpectrum2);
-                }
-            }
-            for (final int pickedSignalIndexSpectrum2 : pickedSignalIndicesSpectrum2) {
-                if (!assigned.contains(pickedSignalIndexSpectrum2)) {
-                    // add signal to list of already assigned signals
-                    assigned.add(pickedSignalIndexSpectrum2);
-                    for (int k = 0; k
-                            < spectrum1.getEquivalencesCount(i); k++) {
-                        matchAssignments.addAssignmentEquivalence(0, i, pickedSignalIndexSpectrum2);
-                    }
-                    break;
-                }
+        final List<Distance> distanceList = Utilities.buildDistanceList(spectrum1, spectrum2, dim1, dim2,
+                                                                        shiftTolerance, checkMultiplicity,
+                                                                        checkEquivalencesCount,
+                                                                        allowLowerEquivalencesCount);
+        final Assignment matchAssignment = new Assignment();
+        matchAssignment.setNuclei(spectrum1.getNuclei());
+        matchAssignment.initAssignments(spectrum1.getSignalCount());
+        final Set<Integer> assignedSpectrum1 = new HashSet<>();
+        final Set<Integer> assignedSpectrum2 = new HashSet<>();
+        for (final Distance distance : distanceList) {
+            if (!assignedSpectrum1.contains(distance.getSignalIndexSpectrum1())
+                    && !assignedSpectrum2.contains(distance.getSignalIndexSpectrum2())) {
+                matchAssignment.addAssignmentEquivalence(0, distance.getSignalIndexSpectrum1(),
+                                                         distance.getSignalIndexSpectrum2());
+                assignedSpectrum1.add(distance.getSignalIndexSpectrum1());
+                assignedSpectrum2.add(distance.getSignalIndexSpectrum2());
             }
         }
 
-        return matchAssignments;
+        return matchAssignment;
     }
+
 
     /**
      * Returns the closest shift matches between two spectra in all dimensions

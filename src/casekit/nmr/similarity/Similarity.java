@@ -17,7 +17,6 @@ import casekit.nmr.model.Assignment;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Statistics;
-import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.similarity.Tanimoto;
 
@@ -61,18 +60,29 @@ public class Similarity {
             return null;
         }
 
+        return calculateTanimotoCoefficient(getBitSetFingerprint(spectrum1, dim1, multiplicitySectionsBuilder),
+                                            getBitSetFingerprint(spectrum2, dim2, multiplicitySectionsBuilder));
+    }
+
+    public static Double calculateTanimotoCoefficient(final BitSetFingerprint bitSetFingerprint1,
+                                                      final BitSetFingerprint bitSetFingerprint2) {
+        if (bitSetFingerprint1
+                == null
+                || bitSetFingerprint2
+                == null) {
+            return null;
+        }
         try {
-            return Tanimoto.calculate(getFingerprint(spectrum1, dim1, multiplicitySectionsBuilder),
-                                      getFingerprint(spectrum2, dim2, multiplicitySectionsBuilder));
-        } catch (final CDKException e) {
+            return Tanimoto.calculate(bitSetFingerprint1, bitSetFingerprint2);
+        } catch (final IllegalArgumentException e) {
             e.printStackTrace();
         }
 
         return null;
     }
 
-    public static BitSetFingerprint getFingerprint(final Spectrum spectrum, final int dim,
-                                                   final MultiplicitySectionsBuilder multiplicitySectionsBuilder) throws CDKException {
+    public static BitSetFingerprint getBitSetFingerprint(final Spectrum spectrum, final int dim,
+                                                         final MultiplicitySectionsBuilder multiplicitySectionsBuilder) {
         final BitSetFingerprint bitSetFingerprint = new BitSetFingerprint(multiplicitySectionsBuilder.getSteps());
         final Map<String, List<Integer>> multiplicitySections = multiplicitySectionsBuilder.buildMultiplicitySections(
                 spectrum, dim);
@@ -278,8 +288,11 @@ public class Similarity {
         for (final Distance distance : distanceList) {
             if (!assignedSpectrum1.contains(distance.getSignalIndexSpectrum1())
                     && !assignedSpectrum2.contains(distance.getSignalIndexSpectrum2())) {
-                matchAssignment.addAssignmentEquivalence(0, distance.getSignalIndexSpectrum1(),
-                                                         distance.getSignalIndexSpectrum2());
+                for (int equiv = 0; equiv
+                        < spectrum2.getEquivalencesCount(distance.getSignalIndexSpectrum2()); equiv++) {
+                    matchAssignment.addAssignmentEquivalence(0, distance.getSignalIndexSpectrum1(),
+                                                             distance.getSignalIndexSpectrum2());
+                }
                 assignedSpectrum1.add(distance.getSignalIndexSpectrum1());
                 assignedSpectrum2.add(distance.getSignalIndexSpectrum2());
             }

@@ -13,7 +13,6 @@ package casekit.nmr.analysis;
 
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
-import org.openscience.cdk.exception.CDKException;
 
 import java.util.*;
 
@@ -37,8 +36,8 @@ public class MultiplicitySectionsBuilder {
         this.multiplicities.add("t");
         this.multiplicities.add("q");
         this.multiplicities.add("unknown");
-        this.minLimit = -20;
-        this.maxLimit = 260;
+        this.minLimit = -50;
+        this.maxLimit = 300;
         this.stepSize = 5;
         this.updateSteps(); // ppm range from -20 to 260 in 5 ppm steps
     }
@@ -46,22 +45,21 @@ public class MultiplicitySectionsBuilder {
     /**
      * Resets to following default values: <br> <br>
      * multiplicties: S, D, T. Q <br>
-     * min. ppm limit: -20 <br>
-     * max. ppm limit: 260 <br>
+     * min. ppm limit: -50 <br>
+     * max. ppm limit: 300 <br>
      * step size: 5
      */
     public void reset() {
         this.init();
     }
 
-    public Map<String, List<Integer>> buildMultiplicitySections(final Spectrum spectrum,
-                                                                final int dim) throws CDKException {
+    public Map<String, List<Integer>> buildMultiplicitySections(final Spectrum spectrum, final int dim) {
         final Map<String, List<Integer>> multiplicitySections = new HashMap<>();
         // init
         for (final String multiplicity : this.multiplicities) {
             multiplicitySections.put(multiplicity, new ArrayList<>());
         }
-        // set the mult. sections 
+        // set the mult. sections
         Signal signal;
         Integer shiftSection;
         String multiplicity;
@@ -71,18 +69,16 @@ public class MultiplicitySectionsBuilder {
             shiftSection = this.calculateShiftSection(signal, dim);
             if (shiftSection
                     == null) {
-                throw new CDKException(Thread.currentThread()
-                                             .getStackTrace()[1].getMethodName()
-                                               + ": signal or its chemical shift is missing: "
-                                               + signal);
+                System.err.println("MultiplicitySectionsBuilder: signal or its chemical shift is missing: "
+                                           + signal);
+                continue;
             }
             multiplicity = this.checkMultiplicity(signal);
             if (multiplicity
                     == null) {
-                throw new CDKException(Thread.currentThread()
-                                             .getStackTrace()[1].getMethodName()
-                                               + ": signal multiplicity is not in list: "
-                                               + signal);
+                System.err.println("MultiplicitySectionsBuilder: signal multiplicity is not in list: "
+                                           + signal);
+                continue;
             }
             multiplicitySections.get(multiplicity)
                                 .add(shiftSection);
@@ -163,8 +159,12 @@ public class MultiplicitySectionsBuilder {
     }
 
     private void updateSteps() {
-        this.steps = (this.maxLimit
-                - this.minLimit)
-                / this.stepSize;
+        this.steps = this.calculateSteps(this.minLimit, this.maxLimit, this.stepSize);
+    }
+
+    public int calculateSteps(final int minLimit, final int maxLimit, final int stepSize) {
+        return (maxLimit
+                - minLimit)
+                / stepSize;
     }
 }

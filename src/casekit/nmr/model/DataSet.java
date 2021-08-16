@@ -29,6 +29,10 @@ public class DataSet {
     }
 
     public void addMetaInfo(final String key, final String value) {
+        if (this.meta
+                == null) {
+            this.meta = new HashMap<>();
+        }
         this.meta.put(key, value);
     }
 

@@ -5,12 +5,16 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Utils;
+import com.google.gson.Gson;
 import org.openscience.cdk.interfaces.IAtomContainer;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class FragmentUtilities {
+
+    private final static Gson gson = new Gson();
+
     public static LinkedHashMap<String, List<DataSet>> sortByFrequencies(
             final Map<String, List<DataSet>> functionalGroupDataSetsMap) {
         final LinkedHashMap<String, List<DataSet>> sortedCollection = new LinkedHashMap<>();
@@ -77,13 +81,17 @@ public class FragmentUtilities {
                                                                    final Spectrum querySpectrum, final String mf,
                                                                    final double shiftTol,
                                                                    final double maxAverageDeviation,
-                                                                   final boolean checkMultiplicity) {
+                                                                   final boolean checkMultiplicity,
+                                                                   final List<List<String>> queryHybridizationList) {
         final List<DataSet> matches = new ArrayList<>();
         final List<DataSet> nonMatches = new ArrayList<>();
+        Assignment matchAssignment;
         for (final DataSet dataSet : dataSetList) {
-            if (isMatch(dataSet, querySpectrum, mf, shiftTol, maxAverageDeviation, checkMultiplicity)) {
+            matchAssignment = Similarity.matchSpectra(dataSet.getSpectrum(), querySpectrum, 0, 0, shiftTol,
+                                                      checkMultiplicity, true, true);
+            if (isMatch(dataSet, querySpectrum, mf, matchAssignment, maxAverageDeviation, queryHybridizationList)) {
                 matches.add(dataSet);
-            } else if (isNonMatch(dataSet, querySpectrum, mf, shiftTol, checkMultiplicity)) {
+            } else if (isNonMatch(dataSet, querySpectrum, mf, matchAssignment)) {
                 nonMatches.add(dataSet);
             }
         }
@@ -94,9 +102,9 @@ public class FragmentUtilities {
         return lists;
     }
 
-    public static boolean isMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
-                                  final double shiftTol, final double maxAverageDeviation,
-                                  final boolean checkMultiplicity) {
+    private static boolean isMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
+                                   final Assignment matchAssignment, final double maxAverageDeviation,
+                                   final List<List<String>> queryHybridizationList) {
         // check for nuclei
         if (!dataSet.getSpectrum()
                     .getNuclei()[0].equals(querySpectrum.getNuclei()[0])) {
@@ -108,33 +116,34 @@ public class FragmentUtilities {
         }
         // check average deviation
         final Double averageDeviation = Similarity.calculateAverageDeviation(dataSet.getSpectrum(), querySpectrum, 0, 0,
-                                                                             shiftTol, checkMultiplicity, true, true);
+                                                                             matchAssignment);
         if (averageDeviation
                 == null
                 || averageDeviation
                 > maxAverageDeviation) {
             return false;
         }
-        final Double rmsd = Similarity.calculateRMSD(dataSet.getSpectrum(), querySpectrum, 0, 0, shiftTol,
-                                                     checkMultiplicity, true, true);
-        dataSet.getMeta()
-               .put("avgDev", Double.toString(averageDeviation));
-        dataSet.getMeta()
-               .put("rmsd", Double.toString(rmsd));
+        // check hybridazations after knowing that all signals in dataset have an assignment
+        if (!checkHybridizations(dataSet, matchAssignment, queryHybridizationList)) {
+            return false;
+        }
+        dataSet.addMetaInfo("matchAssignment", gson.toJson(matchAssignment, Assignment.class));
+        final Double rmsd = Similarity.calculateRMSD(dataSet.getSpectrum(), querySpectrum, 0, 0, matchAssignment);
+        dataSet.addMetaInfo("averageDeviation", Double.toString(averageDeviation));
+        dataSet.addMetaInfo("rmsd", Double.toString(rmsd));
+
 
         return true;
     }
 
-    public static boolean isNonMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
-                                     final double shiftTol, final boolean checkMultiplicity) {
+    private static boolean isNonMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
+                                      final Assignment matchAssigment) {
         if (!isStructuralMatch(dataSet, mf)) {
             return false;
         }
         boolean isSpectralMatch = false;
         if (dataSet.getSpectrum()
                    .getNuclei()[0].equals(querySpectrum.getNuclei()[0])) {
-            final Assignment matchAssigment = Similarity.matchSpectra(dataSet.getSpectrum(), querySpectrum, 0, 0,
-                                                                      shiftTol, checkMultiplicity, true, true);
             if (matchAssigment
                     != null
                     && matchAssigment.getSetAssignmentsCount(0)
@@ -146,7 +155,7 @@ public class FragmentUtilities {
         return !isSpectralMatch;
     }
 
-    public static boolean isStructuralMatch(final DataSet dataSet, final String mf) {
+    private static boolean isStructuralMatch(final DataSet dataSet, final String mf) {
         final IAtomContainer fragment = dataSet.getStructure()
                                                .toAtomContainer();
         // check molecular formula with atom types in group
@@ -154,5 +163,37 @@ public class FragmentUtilities {
         return Utils.compareWithMolecularFormulaLessOrEqual(fragment, mf)
                 && !Utils.getUnsaturatedAtomIndices(fragment)
                          .isEmpty();
+    }
+
+    private static boolean checkHybridizations(final DataSet dataSet, final Assignment matchAssignment,
+                                               final List<List<String>> queryHybridizationList) {
+        if (queryHybridizationList.isEmpty()) {
+            return true;
+        }
+
+        final IAtomContainer fragment = dataSet.getStructure()
+                                               .toAtomContainer();
+        final String atomType = Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
+                                                                    .getNuclei()[0]);
+        int signalIndexInDataSetSpectrum, signalIndexInQuerySpectrum;
+        for (int i = 0; i
+                < fragment.getAtomCount(); i++) {
+            if (fragment.getAtom(i)
+                        .getSymbol()
+                        .equals(atomType)) {
+                signalIndexInDataSetSpectrum = dataSet.getAssignment()
+                                                      .getIndices(0, i)
+                                                      .get(0);
+                signalIndexInQuerySpectrum = matchAssignment.getAssignment(0, signalIndexInDataSetSpectrum, 0);
+                if (!queryHybridizationList.get(signalIndexInQuerySpectrum)
+                                           .contains(fragment.getAtom(i)
+                                                             .getHybridization()
+                                                             .name())) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

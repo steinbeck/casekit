@@ -251,15 +251,11 @@ public class Assignment {
 
     @Override
     public String toString() {
-        final StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("Assignments:\n");
-
-        for (int i = 0; i
-                < this.getNDim(); i++) {
-            stringBuilder.append(Arrays.toString(this.assignments[i]))
-                         .append("\n");
-        }
-
-        return stringBuilder.toString();
+        return "Assignment{"
+                + "nuclei="
+                + Arrays.toString(this.nuclei)
+                + ", assignments="
+                + Arrays.deepToString(this.assignments)
+                + '}';
     }
 }

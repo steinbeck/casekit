@@ -47,7 +47,7 @@ public class Utilities {
                     || (signal1.getMultiplicity()
                     != null
                     && signal1.getMultiplicity()
-                              .equals(signal2.getMultiplicity()));
+                              .equalsIgnoreCase(signal2.getMultiplicity()));
         }
         if (passed
                 && checkEquivalencesCount) {

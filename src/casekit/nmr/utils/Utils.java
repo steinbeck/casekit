@@ -1,5 +1,7 @@
 package casekit.nmr.utils;
 
+import casekit.nmr.model.DataSet;
+import casekit.nmr.model.ExtendedConnectionMatrix;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrdisplayer.Correlation;
 import org.openscience.cdk.aromaticity.Aromaticity;
@@ -549,5 +551,26 @@ public class Utils {
         }
 
         return bondsOrderSum;
+    }
+
+    public static DataSet atomContainerToDataSet(final IAtomContainer structure) throws CDKException {
+        final CDKHydrogenAdder hydrogenAdder = CDKHydrogenAdder.getInstance(SilentChemObjectBuilder.getInstance());
+        AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
+        hydrogenAdder.addImplicitHydrogens(structure);
+        setAromaticityAndKekulize(structure);
+        final Map<String, String> meta = new HashMap<>();
+        meta.put("title", structure.getTitle());
+        meta.put("mf", molecularFormularToString(getMolecularFormulaFromAtomContainer(structure)));
+        try {
+            final String smiles = getSmilesFromAtomContainer(structure);
+            meta.put("smiles", smiles);
+        } catch (final CDKException e) {
+            e.printStackTrace();
+        }
+        final DataSet dataSet = new DataSet();
+        dataSet.setStructure(new ExtendedConnectionMatrix(structure));
+        dataSet.setMeta(meta);
+
+        return dataSet;
     }
 }

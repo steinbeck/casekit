@@ -1,6 +1,5 @@
 package casekit.nmr.fragments.functionalgroup;
 
-import casekit.nmr.dbservice.NMRShiftDB;
 import casekit.nmr.fragments.fragmentation.Fragmentation;
 import casekit.nmr.fragments.fragmentation.FragmentationUtilities;
 import casekit.nmr.fragments.model.ConnectionTree;
@@ -15,71 +14,65 @@ import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
 public class ErtlFunctionalGroupsUtilities {
 
-    public static final List<DataSet> buildFunctionalGroupDataSets(final String pathToNMRShiftDB,
+    public static final List<DataSet> buildFunctionalGroupDataSets(final List<DataSet> dataSetList,
                                                                    final String[] nuclei) {
         final List<DataSet> functionalGroupDataSets = new ArrayList<>();
-        try {
-            final ErtlFunctionalGroupsFinder ertlFunctionalGroupsFinder = new ErtlFunctionalGroupsFinder(
-                    ErtlFunctionalGroupsFinder.Mode.NO_GENERALIZATION);
-            final List<DataSet> dataSetsFromNMRShiftDB = NMRShiftDB.getDataSetsFromNMRShiftDB(pathToNMRShiftDB, nuclei);
-            List<DataSet> dataSetList;
-            List<IAtomContainer> groups;
-            List<ConnectionTree> fragmentTrees;
-            ConnectionTree fragmentTree;
-            IAtomContainer structure;
-            String atomTypeInSpectrum;
-            Aromaticity[] aromaticities;
-            for (final DataSet dataSet : dataSetsFromNMRShiftDB) {
-                structure = dataSet.getStructure()
-                                   .toAtomContainer();
-                aromaticities = buildDefaultAromaticities(structure);
+        final ErtlFunctionalGroupsFinder ertlFunctionalGroupsFinder = new ErtlFunctionalGroupsFinder(
+                ErtlFunctionalGroupsFinder.Mode.NO_GENERALIZATION);
+        List<DataSet> subDataSetList;
+        List<IAtomContainer> groups;
+        List<ConnectionTree> fragmentTrees;
+        ConnectionTree fragmentTree;
+        IAtomContainer structure;
+        String atomTypeInSpectrum;
+        Aromaticity[] aromaticities;
+        for (final DataSet dataSet : dataSetList) {
+            structure = dataSet.getStructure()
+                               .toAtomContainer();
+            aromaticities = buildDefaultAromaticities(structure);
+            fragmentTrees = new ArrayList<>();
+            for (final Aromaticity aromaticity : aromaticities) {
+                try {
+                    Utils.setAromaticityAndKekulize(structure, aromaticity);
+                    groups = ertlFunctionalGroupsFinder.find(structure, false);
+                } catch (final IllegalArgumentException | CDKException e) {
+                    e.printStackTrace();
+                    continue;
+                }
+                restoreOriginalEnvironmentalCarbons(groups, structure);
                 fragmentTrees = new ArrayList<>();
-                for (final Aromaticity aromaticity : aromaticities) {
-                    try {
-                        Utils.setAromaticityAndKekulize(structure, aromaticity);
-                        groups = ertlFunctionalGroupsFinder.find(structure, false);
-                    } catch (final IllegalArgumentException | CDKException e) {
-                        e.printStackTrace();
-                        continue;
-                    }
-                    restoreOriginalEnvironmentalCarbons(groups, structure);
-                    fragmentTrees = new ArrayList<>();
-                    for (final IAtomContainer group : groups) {
-                        // each group has to contain at least one atom of specific spectrum
-                        atomTypeInSpectrum = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
-                                                                                                   .getNuclei()[0]);
-                        if (atomTypeInSpectrum.equals("H")) {
-                            if (AtomContainerManipulator.getImplicitHydrogenCount(group)
-                                    == 0) {
-                                continue;
-                            }
-                        } else if (casekit.nmr.utils.Utils.getAtomTypeIndicesByElement(group, atomTypeInSpectrum)
-                                                          .isEmpty()) {
+                for (final IAtomContainer group : groups) {
+                    // each group has to contain at least one atom of specific spectrum
+                    atomTypeInSpectrum = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
+                                                                                               .getNuclei()[0]);
+                    if (atomTypeInSpectrum.equals("H")) {
+                        if (AtomContainerManipulator.getImplicitHydrogenCount(group)
+                                == 0) {
                             continue;
                         }
-                        fragmentTree = Fragmentation.buildFragmentTree(group, 0, null, new HashSet<>(), false);
-                        FragmentationUtilities.adjustNodeKeys(fragmentTree, structure);
-                        FragmentationUtilities.closeRings(fragmentTree, structure);
-
-                        fragmentTrees.add(fragmentTree);
+                    } else if (casekit.nmr.utils.Utils.getAtomTypeIndicesByElement(group, atomTypeInSpectrum)
+                                                      .isEmpty()) {
+                        continue;
                     }
-                }
-                FragmentationUtilities.removeDuplicates(fragmentTrees);
-                dataSetList = Fragmentation.fragmentTreesToSubDataSets(dataSet, fragmentTrees);
-                if (dataSetList
-                        != null) {
-                    functionalGroupDataSets.addAll(dataSetList);
+                    fragmentTree = Fragmentation.buildFragmentTree(group, 0, null, new HashSet<>(), false);
+                    FragmentationUtilities.adjustNodeKeys(fragmentTree, structure);
+                    FragmentationUtilities.closeRings(fragmentTree, structure);
+
+                    fragmentTrees.add(fragmentTree);
                 }
             }
-        } catch (final IOException | CDKException e) {
-            e.printStackTrace();
+            FragmentationUtilities.removeDuplicates(fragmentTrees);
+            subDataSetList = Fragmentation.fragmentTreesToSubDataSets(dataSet, fragmentTrees);
+            if (subDataSetList
+                    != null) {
+                functionalGroupDataSets.addAll(subDataSetList);
+            }
         }
 
         return functionalGroupDataSets;

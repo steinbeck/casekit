@@ -7,58 +7,34 @@ import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
-import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
-import org.openscience.cdk.tools.CDKHydrogenAdder;
-import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class COCONUT {
 
     public static List<DataSet> getDataSetsWithShiftPredictionFromCOCONUT(final String pathToCOCONUT,
                                                                           final String[] nuclei) throws CDKException, FileNotFoundException {
-        final List<DataSet> dataSets = new ArrayList<>();
+        final List<DataSet> dataSetList = new ArrayList<>();
         final IteratingSDFReader iterator = new IteratingSDFReader(new FileReader(pathToCOCONUT),
                                                                    SilentChemObjectBuilder.getInstance());
         IAtomContainer structure;
+        DataSet dataSet;
         Spectrum spectrum;
         Assignment assignment;
-        Map<String, String> meta;
-        final CDKHydrogenAdder hydrogenAdder = CDKHydrogenAdder.getInstance(SilentChemObjectBuilder.getInstance());
-
         String[] split, split2;
         String spectrumPropertyString, multiplicity;
-        IMolecularFormula mf;
         double calcShift;
         List<Integer> closestSignalList;
         int atomIndex;
 
         while (iterator.hasNext()) {
             structure = iterator.next();
-            AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
-            if (!Utils.containsExplicitHydrogens(structure)) {
-                hydrogenAdder.addImplicitHydrogens(structure);
-            }
-            Utils.setAromaticityAndKekulize(structure);
-
-            meta = new HashMap<>();
-            meta.put("title", structure.getTitle());
-            meta.put("id", structure.getProperty("ID"));
-            mf = Utils.getMolecularFormulaFromAtomContainer(structure);
-            meta.put("mf", Utils.molecularFormularToString(mf));
-            try {
-                final String smiles = casekit.nmr.utils.Utils.getSmilesFromAtomContainer(structure);
-                meta.put("smiles", smiles);
-            } catch (final CDKException e) {
-                e.printStackTrace();
-            }
+            dataSet = Utils.atomContainerToDataSet(structure);
 
             for (final String nucleus : nuclei) {
                 final String atomType = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(nucleus);
@@ -141,18 +117,22 @@ public class COCONUT {
                 //                                               + spectrum.getSignal(i)
                 //                                                         .getEquivalencesCount());
                 //                }
-
                 // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
-                if (Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, mf, 0)
+                if (Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum,
+                                                                            Utils.getMolecularFormulaFromString(
+                                                                                    dataSet.getMeta()
+                                                                                           .get("mf")), 0)
                         != 0) {
                     continue;
                 }
+                dataSet.setSpectrum(spectrum);
+                dataSet.setAssignment(assignment);
 
-                dataSets.add(new DataSet(structure, spectrum, assignment, meta));
+                dataSetList.add(dataSet);
             }
         }
 
-        return dataSets;
+        return dataSetList;
     }
 
 }

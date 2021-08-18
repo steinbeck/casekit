@@ -15,14 +15,14 @@ import java.util.Map;
 @Setter
 public class DataSet {
 
-    private ExtendedConnectionMatrix structure;
+    private ExtendedAdjacencyList structure;
     private Spectrum spectrum;
     private Assignment assignment;
     private Map<String, String> meta;
 
     public DataSet(final IAtomContainer structure, final Spectrum spectrum, final Assignment assignment,
                    final Map<String, String> meta) {
-        this.structure = new ExtendedConnectionMatrix(structure);
+        this.structure = new ExtendedAdjacencyList(structure);
         this.spectrum = spectrum;
         this.assignment = assignment;
         this.meta = new HashMap<>(meta);

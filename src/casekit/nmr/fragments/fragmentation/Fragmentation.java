@@ -117,7 +117,7 @@ public class Fragmentation {
 
             substructure = FragmentationUtilities.toAtomContainer(fragmentTree);
             subDataSet = new DataSet();
-            subDataSet.setStructure(new ExtendedConnectionMatrix(substructure));
+            subDataSet.setStructure(new ExtendedAdjacencyList(substructure));
             subDataSet.setSpectrum(subspectrum);
             subDataSet.setAssignment(subassignment);
 

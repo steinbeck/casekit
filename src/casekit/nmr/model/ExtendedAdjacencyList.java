@@ -82,7 +82,10 @@ public class ExtendedAdjacencyList {
                                         ? -1
                                         : atom.getAtomicNumber();
             this.atomProperties[i][1] = atom.getHybridization()
-                                            .ordinal();
+                                                == null
+                                        ? -1
+                                        : atom.getHybridization()
+                                              .ordinal();
             this.atomProperties[i][2] = atom.getImplicitHydrogenCount();
             this.atomProperties[i][3] = atom.getValency();
             this.atomProperties[i][4] = atom.getFormalCharge();
@@ -115,13 +118,14 @@ public class ExtendedAdjacencyList {
         IAtom atom;
         for (int i = 0; i
                 < this.bondProperties.length; i++) {
-            if (this.atomProperties[i][0]
-                    == -1) {
-                atom = new PseudoAtom("R");
-            } else {
-                atom = new Atom(this.atomProperties[i][0]);
-            }
-            atom.setHybridization(IAtomType.Hybridization.values()[this.atomProperties[i][1]]);
+            atom = this.atomProperties[i][0]
+                           == -1
+                   ? new PseudoAtom("R")
+                   : new Atom(this.atomProperties[i][0]);
+            atom.setHybridization(this.atomProperties[i][1]
+                                          == -1
+                                  ? null
+                                  : IAtomType.Hybridization.values()[this.atomProperties[i][1]]);
             atom.setImplicitHydrogenCount(this.atomProperties[i][2]);
             atom.setValency(this.atomProperties[i][3]);
             atom.setFormalCharge(this.atomProperties[i][4]);

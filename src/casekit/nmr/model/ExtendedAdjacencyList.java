@@ -98,11 +98,11 @@ public class ExtendedAdjacencyList {
         }
     }
 
-    public int getAtomCount() {
+    public int atomCount() {
         return this.bondProperties.length;
     }
 
-    public int getBondCount() {
+    public int bondCount() {
         int bondCounter = 0;
         for (int i = 0; i
                 < this.bondProperties.length; i++) {
@@ -164,11 +164,7 @@ public class ExtendedAdjacencyList {
     @Override
     public String toString() {
         return "ExtendedAdjacencyList{"
-                + "atomCount="
-                + this.getAtomCount()
-                + ", bondCount="
-                + this.getBondCount()
-                + ", bondProperties="
+                + "bondProperties="
                 + Arrays.deepToString(this.bondProperties)
                 + ", atomProperties="
                 + Arrays.deepToString(this.atomProperties)

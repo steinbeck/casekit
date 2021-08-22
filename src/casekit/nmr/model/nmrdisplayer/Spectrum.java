@@ -70,8 +70,8 @@ public class Spectrum {
                                                                                         0));
                                                       }
                                                   }));
-                spectrum.setSolvent((String) this.info.get("solvent"));
-                spectrum.setSpecType((String) this.info.get("experiment"));
+                spectrum.addMetaInfo("solvent", (String) this.info.get("solvent"));
+                spectrum.addMetaInfo("spectrumType", (String) this.info.get("experiment"));
 
                 return spectrum;
 
@@ -95,8 +95,8 @@ public class Spectrum {
                                                                                      signal2D.getKind(), null, 0, 0));
                                                    }
                                                }));
-                spectrum.setSolvent((String) this.info.get("solvent"));
-                spectrum.setSpecType((String) this.info.get("experiment"));
+                spectrum.addMetaInfo("solvent", (String) this.info.get("solvent"));
+                spectrum.addMetaInfo("spectrumType", (String) this.info.get("experiment"));
 
                 return spectrum;
             }

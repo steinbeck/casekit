@@ -64,7 +64,7 @@ public class Prediction {
         final int minMatchingSphere = 1;
         final Spectrum spectrum = new Spectrum();
         spectrum.setNuclei(new String[]{nucleus});
-        spectrum.setSolvent(solvent);
+        spectrum.addMetaInfo("solvent", solvent);
         spectrum.setSignals(new ArrayList<>());
         final Assignment assignment = new Assignment();
         assignment.setNuclei(spectrum.getNuclei());
@@ -176,8 +176,10 @@ public class Prediction {
     public static DataSet predict2D(final IAtomContainer structure, final Spectrum spectrumDim1,
                                     final Spectrum spectrumDim2, final Assignment assignmentDim1,
                                     final Assignment assignmentDim2, final int minPathLength, final int maxPathLength) {
-        if (!spectrumDim1.getSolvent()
-                         .equals(spectrumDim2.getSolvent())) {
+        if (!spectrumDim1.getMeta()
+                         .get("solvent")
+                         .equals(spectrumDim2.getMeta()
+                                             .get("solvent"))) {
             return null;
         }
         final String[] nuclei2D = new String[]{spectrumDim1.getNuclei()[0], spectrumDim2.getNuclei()[0]};
@@ -187,7 +189,8 @@ public class Prediction {
         final Spectrum predictedSpectrum2D = new Spectrum();
         predictedSpectrum2D.setNuclei(nuclei2D);
         predictedSpectrum2D.setSignals(new ArrayList<>());
-        predictedSpectrum2D.setSolvent(spectrumDim1.getSolvent());
+        predictedSpectrum2D.addMetaInfo("solvent", spectrumDim1.getMeta()
+                                                               .get("solvent"));
         final Assignment assignment2D = new Assignment();
         assignment2D.setNuclei(predictedSpectrum2D.getNuclei());
         assignment2D.initAssignments(0);

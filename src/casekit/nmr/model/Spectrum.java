@@ -33,10 +33,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -49,24 +46,21 @@ import java.util.stream.Collectors;
 public class Spectrum {
 
     private String[] nuclei;
-    /**
-     * An arbitrary name or description that can be assigned to this spectrum for identification purposes.
-     */
-    private String description;
-    /**
-     * An arbitrary name to identify the type of this spectrum, like COSY, NOESY, HSQC, etc. I
-     * decided not to provide static Strings with given experiment type since the there are
-     * numerous experiments yielding basically identical information having different names
-     */
-    private String specType;
-    /**
-     * The proton frequency of the spectrometer used to record this spectrum.
-     */
-    private Double spectrometerFrequency;
-    private String solvent;
-    private String standard;
+    private Map<String, String> meta;
     private List<Signal> signals;
     private int signalCount;
+
+    public void addMetaInfo(final String key, final String value) {
+        if (this.meta
+                == null) {
+            this.meta = new HashMap<>();
+        }
+        this.meta.put(key, value);
+    }
+
+    public void removeMetaInfo(final String key) {
+        this.meta.remove(key);
+    }
 
     public int getNDim() {
         return this.getNuclei().length;
@@ -431,11 +425,7 @@ public class Spectrum {
             clone.addSignal(this.getSignal(i)
                                 .buildClone());
         }
-        clone.setDescription(this.description);
-        clone.setSolvent(this.solvent);
-        clone.setSpecType(this.specType);
-        clone.setSpectrometerFrequency(this.spectrometerFrequency);
-        clone.setStandard(this.standard);
+        clone.setMeta(new HashMap<>(this.getMeta()));
 
         return clone;
     }
@@ -445,20 +435,8 @@ public class Spectrum {
         return "Spectrum{"
                 + "nuclei="
                 + Arrays.toString(this.nuclei)
-                + ", description='"
-                + this.description
-                + '\''
-                + ", specType='"
-                + this.specType
-                + '\''
-                + ", spectrometerFrequency="
-                + this.spectrometerFrequency
-                + ", solvent='"
-                + this.solvent
-                + '\''
-                + ", standard='"
-                + this.standard
-                + '\''
+                + ", meta="
+                + this.meta
                 + ", signals="
                 + this.signals
                 + ", signalCount="

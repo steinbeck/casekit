@@ -124,7 +124,7 @@ public class NMRShiftDB {
             casekit.nmr.utils.Utils.setAromaticityAndKekulize(structure);
 
             meta = new HashMap<>();
-            meta.put("title", structure.getTitle());
+            //            meta.put("title", structure.getTitle());
             meta.put("id", structure.getProperty("nmrshiftdb2 ID"));
             mf = casekit.nmr.utils.Utils.getMolecularFormulaFromAtomContainer(structure);
             meta.put("mfOriginal", casekit.nmr.utils.Utils.molecularFormularToString(mf));
@@ -167,7 +167,8 @@ public class NMRShiftDB {
                     }
                     if (structure.getProperty("Solvent")
                             != null) {
-                        spectrum.setSolvent(getSolvent(structure.getProperty("Solvent"), spectrumIndexInRecord));
+                        spectrum.addMetaInfo("solvent",
+                                             getSolvent(structure.getProperty("Solvent"), spectrumIndexInRecord));
                     }
                     if (structure.getProperty("Field Strength [MHz]")
                             != null) {
@@ -177,9 +178,9 @@ public class NMRShiftDB {
                             if (fieldStrength.startsWith(spectrumIndexInRecord
                                                                  + ":")) {
                                 try {
-                                    spectrum.setSpectrometerFrequency(Double.parseDouble(fieldStrength.split(
+                                    spectrum.addMetaInfo("spectrometerFrequency", fieldStrength.split(
                                             spectrumIndexInRecord
-                                                    + ":")[1]));
+                                                    + ":")[1]);
                                 } catch (final NumberFormatException e) {
                                     //                                    e.printStackTrace();
                                 }

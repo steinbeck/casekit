@@ -559,7 +559,7 @@ public class Utils {
         hydrogenAdder.addImplicitHydrogens(structure);
         setAromaticityAndKekulize(structure);
         final Map<String, String> meta = new HashMap<>();
-        meta.put("title", structure.getTitle());
+        //        meta.put("title", structure.getTitle());
         meta.put("mf", molecularFormularToString(getMolecularFormulaFromAtomContainer(structure)));
         try {
             final String smiles = getSmilesFromAtomContainer(structure);

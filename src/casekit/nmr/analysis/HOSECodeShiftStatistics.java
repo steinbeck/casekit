@@ -86,7 +86,8 @@ public class HOSECodeShiftStatistics {
                 }
             }
             solvent = dataSet.getSpectrum()
-                             .getSolvent();
+                             .getMeta()
+                             .get("solvent");
             if (solvent
                     == null
                     || solvent.equals("")) {

@@ -110,10 +110,12 @@ public class Fragmentation {
                     }
                 }
             }
-            subspectrum.setSolvent(dataSet.getSpectrum()
-                                          .getSolvent());
-            subspectrum.setSpectrometerFrequency(dataSet.getSpectrum()
-                                                        .getSpectrometerFrequency());
+            subspectrum.addMetaInfo("solvent", dataSet.getSpectrum()
+                                                      .getMeta()
+                                                      .get("solvent"));
+            subspectrum.addMetaInfo("spectrometerFrequency", dataSet.getSpectrum()
+                                                                    .getMeta()
+                                                                    .get("spectrometerFrequency"));
 
             substructure = FragmentationUtilities.toAtomContainer(fragmentTree);
             subDataSet = new DataSet();
@@ -129,8 +131,8 @@ public class Fragmentation {
             } catch (final CDKException e) {
                 e.printStackTrace();
             }
-            meta.put("title", dataSet.getMeta()
-                                     .get("title"));
+            //            meta.put("title", dataSet.getMeta()
+            //                                     .get("title"));
             meta.put("id", dataSet.getMeta()
                                   .get("id"));
             meta.put("mf", Utils.molecularFormularToString(Utils.getMolecularFormulaFromAtomContainer(substructure)));

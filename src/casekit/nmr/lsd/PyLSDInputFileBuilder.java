@@ -149,6 +149,18 @@ public class PyLSDInputFileBuilder {
             if (detectedHybridizations.containsKey(index)) {
                 hybridizations = detectedHybridizations.get(index);
             }
+            if (hybridizations.isEmpty()
+                    && correlation.getAtomType()
+                                  .equals("C")
+                    && !correlation.getProtonsCount()
+                                   .isEmpty()
+                    && correlation.getProtonsCount()
+                                  .get(0)
+                    >= 2) {
+                // a carbon with at least two protons can only be SP2 or SP3
+                hybridizations.add(2);
+                hybridizations.add(3);
+            }
         }
         if (hybridizations.isEmpty()) {
             hybridizationStringBuilder = new StringBuilder(

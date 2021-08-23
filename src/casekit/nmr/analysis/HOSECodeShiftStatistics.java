@@ -19,16 +19,17 @@ import org.openscience.cdk.interfaces.IAtomContainer;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class HOSECodeShiftStatistics {
 
     private final static Gson GSON = new GsonBuilder().setLenient()
                                                       .create(); //.setPrettyPrinting()
 
-    public static Map<String, Map<String, List<Double>>> collectHOSECodeShifts(final List<DataSet> dataSetList,
-                                                                               final Integer maxSphere,
-                                                                               final boolean withExplicitH) {
-        return collectHOSECodeShifts(dataSetList, maxSphere, withExplicitH, new HashMap<>());
+    public static Map<String, Map<String, ConcurrentLinkedQueue<Double>>> collectHOSECodeShifts(
+            final List<DataSet> dataSetList, final Integer maxSphere, final boolean withExplicitH) {
+        return collectHOSECodeShifts(dataSetList, maxSphere, withExplicitH, new ConcurrentHashMap<>());
     }
 
     /**
@@ -40,121 +41,132 @@ public class HOSECodeShiftStatistics {
      *
      * @return
      */
-    public static Map<String, Map<String, List<Double>>> collectHOSECodeShifts(final List<DataSet> dataSetList,
-                                                                               final Integer maxSphere,
-                                                                               final boolean withExplicitH,
-                                                                               final Map<String, Map<String, List<Double>>> hoseCodeShifts) {
-        IAtomContainer structure;
-        Signal signal;
-        String hoseCode, atomTypeSpectrum;
-        String solvent;
-        Map<Integer, Integer> atomIndexMap; // from explicit H to heavy atom
-        ConnectionTree connectionTree;
-        int maxSphereTemp;
-        List<Integer> signalIndices;
+    public static Map<String, Map<String, ConcurrentLinkedQueue<Double>>> collectHOSECodeShifts(
+            final List<DataSet> dataSetList, final Integer maxSphere, final boolean withExplicitH,
+            final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
         for (final DataSet dataSet : dataSetList) {
-            structure = dataSet.getStructure()
-                               .toAtomContainer();
-            if (Utils.containsExplicitHydrogens(structure)) {
-                System.out.println("!!!Dataset skipped must not contain (previously set) explicit hydrogens!!!");
-                continue;
-            }
-            // create atom index map to know which indices the explicit hydrogens will have
-            atomIndexMap = new HashMap<>();
-            if (withExplicitH) {
-                try {
-                    int nextAtomIndexExplicitH = structure.getAtomCount();
-                    for (int i = 0; i
-                            < structure.getAtomCount(); i++) {
-                        if (structure.getAtom(i)
-                                     .getImplicitHydrogenCount()
-                                != null) {
-                            for (int j = 0; j
-                                    < structure.getAtom(i)
-                                               .getImplicitHydrogenCount(); j++) {
-                                atomIndexMap.put(nextAtomIndexExplicitH, i);
-                                nextAtomIndexExplicitH++;
-                            }
-                        }
-                    }
-
-                    Utils.convertImplicitToExplicitHydrogens(structure);
-                    Utils.setAromaticityAndKekulize(structure);
-                } catch (final CDKException e) {
-                    e.printStackTrace();
-                    continue;
-                }
-            }
-            solvent = dataSet.getSpectrum()
-                             .getMeta()
-                             .get("solvent");
-            if (solvent
-                    == null
-                    || solvent.equals("")) {
-                solvent = "Unknown";
-            }
-            atomTypeSpectrum = Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
-                                                                   .getNuclei()[0]);
-            for (int i = 0; i
-                    < structure.getAtomCount(); i++) {
-                signalIndices = null;
-                if (structure.getAtom(i)
-                             .getSymbol()
-                             .equals(atomTypeSpectrum)) {
-                    if (atomTypeSpectrum.equals("H")) {
-                        // could be multiple signals
-                        signalIndices = dataSet.getAssignment()
-                                               .getIndices(0, atomIndexMap.get(i));
-                    } else {
-                        // should be one only
-                        signalIndices = dataSet.getAssignment()
-                                               .getIndices(0, i);
-                    }
-                }
-                if (signalIndices
-                        != null) {
-                    for (final Integer signalIndex : signalIndices) {
-                        signal = dataSet.getSpectrum()
-                                        .getSignal(signalIndex);
-                        try {
-                            if (maxSphere
-                                    == null) {
-                                connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
-                                maxSphereTemp = connectionTree.getMaxSphere(true);
-                            } else {
-                                maxSphereTemp = maxSphere;
-                            }
-                            for (int sphere = 1; sphere
-                                    <= maxSphereTemp; sphere++) {
-                                hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
-                                hoseCodeShifts.putIfAbsent(hoseCode, new HashMap<>());
-                                hoseCodeShifts.get(hoseCode)
-                                              .putIfAbsent(solvent, new ArrayList<>());
-                                hoseCodeShifts.get(hoseCode)
-                                              .get(solvent)
-                                              .add(signal.getShift(0));
-                            }
-                        } catch (final CDKException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
+            insert(dataSet, maxSphere, withExplicitH, hoseCodeShifts);
         }
 
         return hoseCodeShifts;
     }
 
+    public static boolean insert(final DataSet dataSet, final Integer maxSphere, final boolean withExplicitH,
+                                 final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
+        final IAtomContainer structure;
+        Signal signal;
+        String hoseCode;
+        final String atomTypeSpectrum;
+        String solvent;
+        final Map<Integer, Integer> atomIndexMap; // from explicit H to heavy atom
+        ConnectionTree connectionTree;
+        int maxSphereTemp;
+        List<Integer> signalIndices;
+        structure = dataSet.getStructure()
+                           .toAtomContainer();
+        if (Utils.containsExplicitHydrogens(structure)) {
+            System.out.println("!!!Dataset skipped must not contain (previously set) explicit hydrogens!!!");
+            return false;
+        }
+        // create atom index map to know which indices the explicit hydrogens will have
+        atomIndexMap = new HashMap<>();
+        if (withExplicitH) {
+            try {
+                int nextAtomIndexExplicitH = structure.getAtomCount();
+                for (int i = 0; i
+                        < structure.getAtomCount(); i++) {
+                    if (structure.getAtom(i)
+                                 .getImplicitHydrogenCount()
+                            != null) {
+                        for (int j = 0; j
+                                < structure.getAtom(i)
+                                           .getImplicitHydrogenCount(); j++) {
+                            atomIndexMap.put(nextAtomIndexExplicitH, i);
+                            nextAtomIndexExplicitH++;
+                        }
+                    }
+                }
+
+                Utils.convertImplicitToExplicitHydrogens(structure);
+                Utils.setAromaticityAndKekulize(structure);
+            } catch (final CDKException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+        solvent = dataSet.getSpectrum()
+                         .getMeta()
+                          == null
+                  ? null
+                  : dataSet.getSpectrum()
+                           .getMeta()
+                           .get("solvent");
+        if (solvent
+                == null
+                || solvent.equals("")) {
+            solvent = "Unknown";
+        }
+        atomTypeSpectrum = Utils.getAtomTypeFromNucleus(dataSet.getSpectrum()
+                                                               .getNuclei()[0]);
+        for (int i = 0; i
+                < structure.getAtomCount(); i++) {
+            signalIndices = null;
+            if (structure.getAtom(i)
+                         .getSymbol()
+                         .equals(atomTypeSpectrum)) {
+                if (atomTypeSpectrum.equals("H")) {
+                    // could be multiple signals
+                    signalIndices = dataSet.getAssignment()
+                                           .getIndices(0, atomIndexMap.get(i));
+                } else {
+                    // should be one only
+                    signalIndices = dataSet.getAssignment()
+                                           .getIndices(0, i);
+                }
+            }
+            if (signalIndices
+                    != null) {
+                for (final Integer signalIndex : signalIndices) {
+                    signal = dataSet.getSpectrum()
+                                    .getSignal(signalIndex);
+                    try {
+                        if (maxSphere
+                                == null) {
+                            connectionTree = HOSECodeBuilder.buildConnectionTree(structure, i, null);
+                            maxSphereTemp = connectionTree.getMaxSphere(true);
+                        } else {
+                            maxSphereTemp = maxSphere;
+                        }
+                        for (int sphere = 1; sphere
+                                <= maxSphereTemp; sphere++) {
+                            hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
+                            hoseCodeShifts.putIfAbsent(hoseCode, new ConcurrentHashMap<>());
+                            hoseCodeShifts.get(hoseCode)
+                                          .putIfAbsent(solvent, new ConcurrentLinkedQueue<>());
+                            hoseCodeShifts.get(hoseCode)
+                                          .get(solvent)
+                                          .add(signal.getShift(0));
+                        }
+                    } catch (final CDKException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
     public static Map<String, Map<String, Double[]>> buildHOSECodeShiftStatistics(
-            final Map<String, Map<String, List<Double>>> hoseCodeShifts) {
+            final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
 
         final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = new HashMap<>();
         List<Double> values;
-        for (final Map.Entry<String, Map<String, List<Double>>> hoseCodes : hoseCodeShifts.entrySet()) {
+        for (final Map.Entry<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodes : hoseCodeShifts.entrySet()) {
             hoseCodeShiftStatistics.put(hoseCodes.getKey(), new HashMap<>());
-            for (final Map.Entry<String, List<Double>> solvents : hoseCodes.getValue()
-                                                                           .entrySet()) {
-                values = solvents.getValue();
+            for (final Map.Entry<String, ConcurrentLinkedQueue<Double>> solvents : hoseCodes.getValue()
+                                                                                            .entrySet()) {
+                values = new ArrayList<>(solvents.getValue());
                 Statistics.removeOutliers(values, 1.5);
                 hoseCodeShiftStatistics.get(hoseCodes.getKey())
                                        .put(solvents.getKey(),
@@ -173,7 +185,7 @@ public class HOSECodeShiftStatistics {
                                                                                   final Integer maxSphere,
                                                                                   final boolean withExplicitH) {
         try {
-            final Map<String, Map<String, List<Double>>> hoseCodeShifts = new HashMap<>();
+            final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new HashMap<>();
             for (int i = 0; i
                     < pathsToNMRShiftDBs.length; i++) {
                 HOSECodeShiftStatistics.collectHOSECodeShifts(

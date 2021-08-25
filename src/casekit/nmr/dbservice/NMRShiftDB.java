@@ -19,15 +19,15 @@ import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
-import org.openscience.cdk.interfaces.IMolecularFormula;
 import org.openscience.cdk.io.iterator.IteratingSDFReader;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
-import org.openscience.cdk.tools.CDKHydrogenAdder;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 
 import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class NMRShiftDB {
 
@@ -99,53 +99,19 @@ public class NMRShiftDB {
         IAtomContainer structure;
         Spectrum spectrum;
         Assignment assignment;
-        Map<String, String> meta;
-        final CDKHydrogenAdder hydrogenAdder = CDKHydrogenAdder.getInstance(SilentChemObjectBuilder.getInstance());
-
+        DataSet dataSet;
         List<String> spectraProperties1D;
         String[] split;
         String spectrumIndexInRecord;
-        IMolecularFormula mf;
         List<Integer> explicitHydrogenIndices;
         int[] temp;
-        StringBuilder mfAlphabetic;
-        Map<String, Integer> mfAlphabeticMap;
 
         while (iterator.hasNext()) {
             structure = iterator.next();
             AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
             explicitHydrogenIndices = casekit.nmr.utils.Utils.getExplicitHydrogenIndices(structure);
             Collections.sort(explicitHydrogenIndices);
-            if (!explicitHydrogenIndices.isEmpty()) {
-                // remove explicit hydrogens
-                Utils.removeAtoms(structure, "H");
-            }
-            hydrogenAdder.addImplicitHydrogens(structure);
-            casekit.nmr.utils.Utils.setAromaticityAndKekulize(structure);
-
-            meta = new HashMap<>();
-            //            meta.put("title", structure.getTitle());
-            meta.put("id", structure.getProperty("nmrshiftdb2 ID"));
-            mf = casekit.nmr.utils.Utils.getMolecularFormulaFromAtomContainer(structure);
-            meta.put("mfOriginal", casekit.nmr.utils.Utils.molecularFormularToString(mf));
-            mfAlphabetic = new StringBuilder();
-            mfAlphabeticMap = new TreeMap<>(casekit.nmr.utils.Utils.getMolecularFormulaElementCounts(
-                    casekit.nmr.utils.Utils.molecularFormularToString(mf)));
-            for (final Map.Entry<String, Integer> entry : mfAlphabeticMap.entrySet()) {
-                mfAlphabetic.append(entry.getKey());
-                if (entry.getValue()
-                        > 1) {
-                    mfAlphabetic.append(entry.getValue());
-                }
-            }
-            meta.put("mf", mfAlphabetic.toString());
-            try {
-                final String smiles = casekit.nmr.utils.Utils.getSmilesFromAtomContainer(structure);
-                meta.put("smiles", smiles);
-            } catch (final CDKException e) {
-                e.printStackTrace();
-            }
-
+            dataSet = Utils.atomContainerToDataSet(structure);
 
             for (final String nucleus : nuclei) {
                 spectraProperties1D = getSpectraProperties1D(structure, nucleus);
@@ -160,7 +126,10 @@ public class NMRShiftDB {
                     // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
                     if ((spectrum
                             == null)
-                            || casekit.nmr.utils.Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum, mf,
+                            || casekit.nmr.utils.Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum,
+                                                                                                         Utils.getMolecularFormulaFromString(
+                                                                                                                 dataSet.getMeta()
+                                                                                                                        .get("mf")),
                                                                                                          0)
                             != 0) {
                         continue;
@@ -214,8 +183,10 @@ public class NMRShiftDB {
                             }
                         }
                     }
+                    dataSet.setSpectrum(spectrum);
+                    dataSet.setAssignment(assignment);
 
-                    dataSets.add(new DataSet(structure, spectrum, assignment, meta));
+                    dataSets.add(dataSet);
                 }
             }
 

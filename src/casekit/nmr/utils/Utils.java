@@ -556,11 +556,42 @@ public class Utils {
     public static DataSet atomContainerToDataSet(final IAtomContainer structure) throws CDKException {
         final CDKHydrogenAdder hydrogenAdder = CDKHydrogenAdder.getInstance(SilentChemObjectBuilder.getInstance());
         AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
+        if (Utils.containsExplicitHydrogens(structure)) {
+            // remove explicit hydrogens
+            Utils.removeAtoms(structure, "H");
+        }
         hydrogenAdder.addImplicitHydrogens(structure);
         setAromaticityAndKekulize(structure);
         final Map<String, String> meta = new HashMap<>();
         //        meta.put("title", structure.getTitle());
-        meta.put("mf", molecularFormularToString(getMolecularFormulaFromAtomContainer(structure)));
+        final String source = structure.getProperty("nmrshiftdb2 ID", String.class)
+                                      != null
+                              ? "nmrshiftdb"
+                              : structure.getProperty("SMILES_ID", String.class)
+                                        != null
+                                ? "coconut"
+                                : null;
+        if (source
+                != null) {
+            meta.put("source", source);
+            meta.put("id", source.equals("nmrshiftdb")
+                           ? structure.getProperty("nmrshiftdb2 ID", String.class)
+                           : structure.getProperty("SMILES_ID", String.class)
+                                      .split("\\.")[0]);
+        }
+        final IMolecularFormula mf = casekit.nmr.utils.Utils.getMolecularFormulaFromAtomContainer(structure);
+        meta.put("mfOriginal", casekit.nmr.utils.Utils.molecularFormularToString(mf));
+        final StringBuilder mfAlphabetic = new StringBuilder();
+        final Map<String, Integer> mfAlphabeticMap = new TreeMap<>(
+                Utils.getMolecularFormulaElementCounts(Utils.molecularFormularToString(mf)));
+        for (final Map.Entry<String, Integer> entry : mfAlphabeticMap.entrySet()) {
+            mfAlphabetic.append(entry.getKey());
+            if (entry.getValue()
+                    > 1) {
+                mfAlphabetic.append(entry.getValue());
+            }
+        }
+        meta.put("mf", mfAlphabetic.toString());
         try {
             final String smiles = getSmilesFromAtomContainer(structure);
             meta.put("smiles", smiles);

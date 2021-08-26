@@ -87,7 +87,8 @@ public class FragmentUtilities {
         final List<DataSet> nonMatches = new ArrayList<>();
         Assignment matchAssignment;
         for (final DataSet dataSet : dataSetList) {
-            matchAssignment = Similarity.matchSpectra(dataSet.getSpectrum(), querySpectrum, 0, 0, shiftTol,
+            matchAssignment = Similarity.matchSpectra(dataSet.getSpectrum()
+                                                             .toSpectrum(), querySpectrum, 0, 0, shiftTol,
                                                       checkMultiplicity, true, true);
             if (isMatch(dataSet, querySpectrum, mf, matchAssignment, maxAverageDeviation, queryHybridizationList)) {
                 matches.add(dataSet);
@@ -114,8 +115,10 @@ public class FragmentUtilities {
         if (!isStructuralMatch(dataSet, mf)) {
             return false;
         }
+        final Spectrum spectrum = dataSet.getSpectrum()
+                                         .toSpectrum();
         // check average deviation
-        final Double averageDeviation = Similarity.calculateAverageDeviation(dataSet.getSpectrum(), querySpectrum, 0, 0,
+        final Double averageDeviation = Similarity.calculateAverageDeviation(spectrum, querySpectrum, 0, 0,
                                                                              matchAssignment);
         if (averageDeviation
                 == null
@@ -128,7 +131,7 @@ public class FragmentUtilities {
             return false;
         }
         dataSet.addMetaInfo("matchAssignment", gson.toJson(matchAssignment, Assignment.class));
-        final Double rmsd = Similarity.calculateRMSD(dataSet.getSpectrum(), querySpectrum, 0, 0, matchAssignment);
+        final Double rmsd = Similarity.calculateRMSD(spectrum, querySpectrum, 0, 0, matchAssignment);
         dataSet.addMetaInfo("averageDeviation", Double.toString(averageDeviation));
         dataSet.addMetaInfo("rmsd", Double.toString(rmsd));
 

@@ -1,8 +1,8 @@
 package casekit.nmr.utils;
 
 import casekit.nmr.model.DataSet;
-import casekit.nmr.model.ExtendedAdjacencyList;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.StructureCompact;
 import casekit.nmr.model.nmrdisplayer.Correlation;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
@@ -599,7 +599,7 @@ public class Utils {
             e.printStackTrace();
         }
         final DataSet dataSet = new DataSet();
-        dataSet.setStructure(new ExtendedAdjacencyList(structure));
+        dataSet.setStructure(new StructureCompact(structure));
         dataSet.setMeta(meta);
 
         return dataSet;

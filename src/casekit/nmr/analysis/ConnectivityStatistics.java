@@ -1,6 +1,7 @@
 package casekit.nmr.analysis;
 
 import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
@@ -21,6 +22,7 @@ public class ConnectivityStatistics {
     public static void buildConnectivityStatistics(final List<DataSet> dataSetList, final String nucleus,
                                                    final Map<String, Map<String, Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>>>> connectivityStatistics) {
         IAtomContainer structure;
+        Spectrum spectrum;
         IAtom atom;
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
         String multiplicity;
@@ -35,13 +37,12 @@ public class ConnectivityStatistics {
             }
             structure = dataSet.getStructure()
                                .toAtomContainer();
+            spectrum = dataSet.getSpectrum()
+                              .toSpectrum();
             for (int signalIndex = 0; signalIndex
-                    < dataSet.getSpectrum()
-                             .getSignals()
-                             .size(); signalIndex++) {
-                shift = dataSet.getSpectrum()
-                               .getShift(signalIndex, 0)
-                               .intValue();
+                    < spectrum.getSignalCount(); signalIndex++) {
+                shift = spectrum.getShift(signalIndex, 0)
+                                .intValue();
                 for (int equivalenceIndex = 0; equivalenceIndex
                         < dataSet.getAssignment()
                                  .getAssignment(0, signalIndex).length; equivalenceIndex++) {

@@ -153,7 +153,9 @@ public class Prediction {
                                     final int minPathLength, final int maxPathLength) {
         final DataSet predictionDim1 = predict1D(hoseCodeShiftStatistics, structure, nuclei[0], solvent);
         final DataSet predictionDim2 = predict1D(hoseCodeShiftStatistics, structure, nuclei[1], solvent);
-        return Prediction.predict2D(structure, predictionDim1.getSpectrum(), predictionDim2.getSpectrum(),
+        return Prediction.predict2D(structure, predictionDim1.getSpectrum()
+                                                             .toSpectrum(), predictionDim2.getSpectrum()
+                                                                                          .toSpectrum(),
                                     predictionDim1.getAssignment(), predictionDim2.getAssignment(), minPathLength,
                                     maxPathLength);
     }
@@ -260,13 +262,14 @@ public class Prediction {
                                             final Spectrum spectrumDim2, final Assignment assignmentDim1,
                                             final Assignment assignmentDim2) {
         final DataSet dataSet = predictHSQC(structure, spectrumDim1, spectrumDim2, assignmentDim1, assignmentDim2);
+        final Spectrum spectrum = dataSet.getSpectrum()
+                                         .toSpectrum();
 
         final String atomTypeDim2 = Utils.getAtomTypeFromSpectrum(spectrumDim2, 0);
         IAtom atom;
         Integer explicitHydrogensCount;
         for (int i = 0; i
-                < dataSet.getSpectrum()
-                         .getSignalCount(); i++) {
+                < spectrum.getSignalCount(); i++) {
             atom = structure.getAtom(dataSet.getAssignment()
                                             .getAssignment(1, i, 0));
             if (!atom.getSymbol()
@@ -276,16 +279,14 @@ public class Prediction {
             explicitHydrogensCount = AtomContainerManipulator.countExplicitHydrogens(structure, atom);
             if (explicitHydrogensCount
                     == 2) {
-                dataSet.getSpectrum()
-                       .getSignal(i)
-                       .setPhase(-1);
+                spectrum.getSignal(i)
+                        .setPhase(-1);
             } else if (explicitHydrogensCount
                     == 1
                     || explicitHydrogensCount
                     == 3) {
-                dataSet.getSpectrum()
-                       .getSignal(i)
-                       .setPhase(1);
+                spectrum.getSignal(i)
+                        .setPhase(1);
             }
         }
 

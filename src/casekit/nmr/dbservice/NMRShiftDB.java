@@ -12,10 +12,7 @@
 
 package casekit.nmr.dbservice;
 
-import casekit.nmr.model.Assignment;
-import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Signal;
-import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.*;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
@@ -116,7 +113,6 @@ public class NMRShiftDB {
             for (final String nucleus : nuclei) {
                 spectraProperties1D = getSpectraProperties1D(structure, nucleus);
                 for (final String spectrumProperty1D : spectraProperties1D) {
-
                     split = spectrumProperty1D.split("\\s");
                     spectrumIndexInRecord = split[split.length
                             - 1];
@@ -183,14 +179,12 @@ public class NMRShiftDB {
                             }
                         }
                     }
-                    dataSet.setSpectrum(spectrum);
+                    dataSet.setSpectrum(new SpectrumCompact(spectrum));
                     dataSet.setAssignment(assignment);
 
-                    dataSets.add(dataSet);
+                    dataSets.add(dataSet.buildClone());
                 }
             }
-
-
         }
 
         return dataSets;

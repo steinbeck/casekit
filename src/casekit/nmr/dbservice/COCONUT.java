@@ -1,9 +1,6 @@
 package casekit.nmr.dbservice;
 
-import casekit.nmr.model.Assignment;
-import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Signal;
-import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.*;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
@@ -125,10 +122,10 @@ public class COCONUT {
                         != 0) {
                     continue;
                 }
-                dataSet.setSpectrum(spectrum);
+                dataSet.setSpectrum(new SpectrumCompact(spectrum));
                 dataSet.setAssignment(assignment);
 
-                dataSetList.add(dataSet);
+                dataSetList.add(dataSet.buildClone());
             }
         }
 

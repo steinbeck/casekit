@@ -43,7 +43,9 @@ public class Fragmentation {
         final List<DataSet> fragmentDataSetList = new ArrayList<>();
         final IAtomContainer structure = dataSet.getStructure()
                                                 .toAtomContainer();
-        final String spectrumAtomType = Utils.getAtomTypeFromSpectrum(dataSet.getSpectrum(), 0);
+        final Spectrum spectrum = dataSet.getSpectrum()
+                                         .toSpectrum();
+        final String spectrumAtomType = Utils.getAtomTypeFromSpectrum(spectrum, 0);
         List<Integer> substructureAtomIndices, signalIndices;
         IAtomContainer substructure;
         Spectrum subspectrum;
@@ -84,9 +86,8 @@ public class Fragmentation {
                     }
 
                     for (final int index : signalIndices) {
-                        signal = dataSet.getSpectrum()
-                                        .getSignal(index)
-                                        .buildClone();
+                        signal = spectrum.getSignal(index)
+                                         .buildClone();
                         final int atomIndex = j;
                         final List<Integer> closestSignalIndexList = subspectrum.checkForEquivalences(signal,
                                                                                                       new double[]{0.0},
@@ -119,8 +120,8 @@ public class Fragmentation {
 
             substructure = FragmentationUtilities.toAtomContainer(fragmentTree);
             subDataSet = new DataSet();
-            subDataSet.setStructure(new ExtendedAdjacencyList(substructure));
-            subDataSet.setSpectrum(subspectrum);
+            subDataSet.setStructure(new StructureCompact(substructure));
+            subDataSet.setSpectrum(new SpectrumCompact(subspectrum));
             subDataSet.setAssignment(subassignment);
 
             meta = new HashMap<>();

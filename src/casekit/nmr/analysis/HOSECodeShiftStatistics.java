@@ -6,6 +6,7 @@ import casekit.nmr.fragments.model.ConnectionTree;
 import casekit.nmr.hose.HOSECodeBuilder;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
+import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 import com.google.gson.Gson;
@@ -64,6 +65,8 @@ public class HOSECodeShiftStatistics {
         List<Integer> signalIndices;
         structure = dataSet.getStructure()
                            .toAtomContainer();
+        final Spectrum spectrum = dataSet.getSpectrum()
+                                         .toSpectrum();
         if (Utils.containsExplicitHydrogens(structure)) {
             System.out.println("!!!Dataset skipped must not contain (previously set) explicit hydrogens!!!");
             return false;
@@ -127,8 +130,7 @@ public class HOSECodeShiftStatistics {
             if (signalIndices
                     != null) {
                 for (final Integer signalIndex : signalIndices) {
-                    signal = dataSet.getSpectrum()
-                                    .getSignal(signalIndex);
+                    signal = spectrum.getSignal(signalIndex);
                     try {
                         if (maxSphere
                                 == null) {

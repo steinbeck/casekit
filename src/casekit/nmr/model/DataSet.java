@@ -15,15 +15,15 @@ import java.util.Map;
 @Setter
 public class DataSet {
 
-    private ExtendedAdjacencyList structure;
-    private Spectrum spectrum;
+    private StructureCompact structure;
+    private SpectrumCompact spectrum;
     private Assignment assignment;
     private Map<String, String> meta;
 
     public DataSet(final IAtomContainer structure, final Spectrum spectrum, final Assignment assignment,
                    final Map<String, String> meta) {
-        this.structure = new ExtendedAdjacencyList(structure);
-        this.spectrum = spectrum;
+        this.structure = new StructureCompact(structure);
+        this.spectrum = new SpectrumCompact(spectrum);
         this.assignment = assignment;
         this.meta = new HashMap<>(meta);
     }
@@ -38,6 +38,15 @@ public class DataSet {
 
     public void removeMetaInfo(final String key) {
         this.meta.remove(key);
+    }
+
+    public DataSet buildClone() {
+        final Map<String, String> metaTemp = this.meta
+                                                     == null
+                                             ? new HashMap<>()
+                                             : new HashMap<>(this.meta);
+        return new DataSet(this.structure.buildClone(), this.spectrum.buildClone(), this.assignment.buildClone(),
+                           new HashMap<>(metaTemp));
     }
 
     @Override

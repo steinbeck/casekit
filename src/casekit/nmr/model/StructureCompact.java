@@ -37,12 +37,12 @@ import java.util.List;
 @AllArgsConstructor
 @Getter
 @Setter
-public class ExtendedAdjacencyList {
+public class StructureCompact {
 
     private int[][][] bondProperties; // connected atom index, bond order, bond is in ring, bond is aromatic
     private Integer[][] atomProperties; // element symbol, hybridization, implicitHydrogenCount, valency, formalCharge, isInRingAtom, isAromaticAtom
 
-    public ExtendedAdjacencyList(final IAtomContainer ac) {
+    public StructureCompact(final IAtomContainer ac) {
         final double[][] connectionMatrix = ConnectionMatrix.getMatrix(ac);
         this.bondProperties = new int[connectionMatrix.length][][];
         List<int[]> connectedAtomsList;
@@ -51,8 +51,9 @@ public class ExtendedAdjacencyList {
         for (int i = 0; i
                 < connectionMatrix.length; i++) {
             connectedAtomsList = new ArrayList<>();
-            for (int j = 0; j
-                    < connectionMatrix[i].length; j++) {
+            for (int j = i
+                    + 1; j
+                         < connectionMatrix[i].length; j++) {
                 if (connectionMatrix[i][j]
                         >= 1) {
                     bond = ac.getBond(ac.getAtom(i), ac.getAtom(j));
@@ -70,11 +71,11 @@ public class ExtendedAdjacencyList {
             }
             this.bondProperties[i] = temp;
         }
-        this.atomProperties = new Integer[this.bondProperties.length][];
+        this.atomProperties = new Integer[connectionMatrix.length][];
 
         IAtom atom;
         for (int i = 0; i
-                < this.bondProperties.length; i++) {
+                < connectionMatrix.length; i++) {
             atom = ac.getAtom(i);
             this.atomProperties[i] = new Integer[7];
             this.atomProperties[i][0] = atom.getSymbol()
@@ -99,17 +100,16 @@ public class ExtendedAdjacencyList {
     }
 
     public int atomCount() {
-        return this.bondProperties.length;
+        return this.atomProperties.length;
     }
 
     public int bondCount() {
-        int bondCounter = 0;
+        int bondCount = 0;
         for (int i = 0; i
                 < this.bondProperties.length; i++) {
-            bondCounter += this.bondProperties[i].length;
+            bondCount += this.bondProperties[i].length;
         }
-        return bondCounter
-                / 2;
+        return bondCount;
     }
 
     public IAtomContainer toAtomContainer() {
@@ -117,7 +117,7 @@ public class ExtendedAdjacencyList {
                                                          .newAtomContainer();
         IAtom atom;
         for (int i = 0; i
-                < this.bondProperties.length; i++) {
+                < this.atomProperties.length; i++) {
             atom = this.atomProperties[i][0]
                            == -1
                    ? new PseudoAtom("R")
@@ -141,29 +141,28 @@ public class ExtendedAdjacencyList {
                 < this.bondProperties.length; i++) {
             for (int k = 0; k
                     < this.bondProperties[i].length; k++) {
-                if (ac.getBond(ac.getAtom(i), ac.getAtom(this.bondProperties[i][k][0]))
-                        == null) {
-                    bond = new Bond(ac.getAtom(i), ac.getAtom(this.bondProperties[i][k][0]),
-                                    Utils.getBondOrder(this.bondProperties[i][k][1]));
-                    bond.setIsInRing(this.bondProperties[i][k][2]
-                                             == 1);
-                    bond.setIsAromatic(this.bondProperties[i][k][3]
-                                               == 1);
-                    ac.addBond(bond);
-                }
+                bond = new Bond(ac.getAtom(i), ac.getAtom(this.bondProperties[i][k][0]),
+                                Utils.getBondOrder(this.bondProperties[i][k][1]));
+                bond.setIsInRing(this.bondProperties[i][k][2]
+                                         == 1);
+                bond.setIsAromatic(this.bondProperties[i][k][3]
+                                           == 1);
+                ac.addBond(bond);
             }
         }
 
         return ac;
     }
 
-    public ExtendedAdjacencyList buildClone() {
-        return new ExtendedAdjacencyList(this.toAtomContainer());
+    public StructureCompact buildClone() {
+        return new StructureCompact(Arrays.copyOf(this.bondProperties, this.bondProperties.length),
+                                    Arrays.copyOf(this.atomProperties, this.atomProperties.length));
+
     }
 
     @Override
     public String toString() {
-        return "ExtendedAdjacencyList{"
+        return "StructureCompact{"
                 + "bondProperties="
                 + Arrays.deepToString(this.bondProperties)
                 + ", atomProperties="

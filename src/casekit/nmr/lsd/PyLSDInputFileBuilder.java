@@ -446,7 +446,11 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildLISTAndPROP(final boolean allowHeteroHeteroBonds) {
+    private static String buildLISTsAndPROPs(final List<Correlation> correlationList,
+                                             final Map<Integer, Object[]> indicesMap,
+                                             final Map<String, Integer> elementCounts,
+                                             final Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities,
+                                             final boolean allowHeteroHeteroBonds) {
         final StringBuilder stringBuilder = new StringBuilder();
         // LIST PROP for hetero hetero bonds allowance
         if (!allowHeteroHeteroBonds) {
@@ -455,6 +459,69 @@ public class PyLSDInputFileBuilder {
                          .append("; list of hetero atoms\n");
             stringBuilder.append("PROP L1 0 L1 -; no hetero-hetero bonds\n");
         }
+
+        final Set<String> atomTypesByMf = new HashSet<>(elementCounts.keySet());
+        atomTypesByMf.remove("H");
+        final Map<String, String> listMap = new HashMap<>();
+        listMap.put("HETE", "L1");
+        for (final String atomType : atomTypesByMf) {
+            listMap.put(atomType, "L"
+                    + (listMap.size()
+                    + 1));
+            stringBuilder.append("ELEM")
+                         .append(" ")
+                         .append(listMap.get(atomType))
+                         .append(" ")
+                         .append(atomType)
+                         .append("\n");
+        }
+
+        Correlation correlation;
+        String atomType;
+        int indexInPyLSD;
+        Map<String, Map<String, Map<Integer, Integer>>> connectivities;
+        Set<String> nonNeighborAtomTypes;
+        for (int i = 0; i
+                < correlationList.size(); i++) {
+            correlation = correlationList.get(i);
+            atomType = correlation.getAtomType();
+            connectivities = detectedConnectivities.get(i);
+            if (atomType.equals("H")
+                    || connectivities
+                    == null
+                    || connectivities.isEmpty()) {
+                continue;
+            }
+            nonNeighborAtomTypes = new HashSet<>(elementCounts.keySet());
+            nonNeighborAtomTypes.removeAll(connectivities.keySet());
+            nonNeighborAtomTypes.remove("H");
+
+            for (int k = 1; k
+                    < indicesMap.get(i).length; k++) {
+                indexInPyLSD = (int) indicesMap.get(i)[k];
+                for (final String nonNeighborAtomType : nonNeighborAtomTypes) {
+                    stringBuilder.append("PROP ")
+                                 .append(indexInPyLSD)
+                                 .append(" 0 ")
+                                 .append(listMap.get(nonNeighborAtomType))
+                                 .append(" -")
+                                 .append("; no bonds between ")
+                                 .append(indexInPyLSD)
+                                 .append(" (")
+                                 .append(atomType)
+                                 .append(", ")
+                                 .append(Statistics.roundDouble(correlation.getSignal()
+                                                                           .getDelta(), 2))
+                                 .append(") and ")
+                                 .append(listMap.get(nonNeighborAtomType))
+                                 .append(" (")
+                                 .append(nonNeighborAtomType)
+                                 .append(")")
+                                 .append("\n");
+                }
+            }
+        }
+
 
         return stringBuilder.toString();
     }
@@ -499,6 +566,7 @@ public class PyLSDInputFileBuilder {
 
     public static String buildPyLSDInputFileContent(final Data data, final String mf,
                                                     final Map<Integer, List<Integer>> detectedHybridizations,
+                                                    final Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities,
                                                     final ElucidationOptions elucidationOptions) {
         final Map<String, Map<String, Object>> state = data.getCorrelations()
                                                            .getState();
@@ -574,7 +642,8 @@ public class PyLSDInputFileBuilder {
             // BOND (interpretation, INADEQUATE, previous assignments) -> input fragments
 
             // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance
-            stringBuilder.append(buildLISTAndPROP(elucidationOptions.isAllowHeteroHeteroBonds()))
+            stringBuilder.append(buildLISTsAndPROPs(correlationList, indicesMap, elementCounts, detectedConnectivities,
+                                                    elucidationOptions.isAllowHeteroHeteroBonds()))
                          .append("\n");
             // DEFF and FEXP as filters (bad lists)
             stringBuilder.append(buildFilters(elucidationOptions.getFilterPaths()))

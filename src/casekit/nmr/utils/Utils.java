@@ -3,7 +3,7 @@ package casekit.nmr.utils;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.StructureCompact;
-import casekit.nmr.model.nmrdisplayer.Correlation;
+import casekit.nmr.model.nmrium.Correlation;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
 import org.openscience.cdk.aromaticity.Kekulization;

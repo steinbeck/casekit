@@ -1,9 +1,9 @@
 package casekit.nmr.lsd;
 
 import casekit.nmr.lsd.model.ElucidationOptions;
-import casekit.nmr.model.nmrdisplayer.Correlation;
-import casekit.nmr.model.nmrdisplayer.Data;
-import casekit.nmr.model.nmrdisplayer.Link;
+import casekit.nmr.model.nmrium.Correlation;
+import casekit.nmr.model.nmrium.Data;
+import casekit.nmr.model.nmrium.Link;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 

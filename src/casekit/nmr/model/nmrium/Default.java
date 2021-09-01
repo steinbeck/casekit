@@ -22,11 +22,11 @@
  * SOFTWARE.
  */
 
-package casekit.nmr.model.nmrdisplayer;
+package casekit.nmr.model.nmrium;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
+import java.util.List;
 import java.util.Map;
 
 @NoArgsConstructor
@@ -34,13 +34,9 @@ import java.util.Map;
 @Getter
 @Setter
 @ToString
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Signal2D {
 
-    private String id;
-    private String kind;
-    private String multiplicity;
-    private Map<String, Object> x;
-    private Map<String, Object> y;
-    private Integer sign;
+public class Default<T> {
+
+    private Map<String, Object> options;
+    private List<T> values;
 }

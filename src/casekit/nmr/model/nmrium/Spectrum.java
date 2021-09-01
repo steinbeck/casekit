@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package casekit.nmr.model.nmrdisplayer;
+package casekit.nmr.model.nmrium;
 
 import casekit.nmr.model.Signal;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

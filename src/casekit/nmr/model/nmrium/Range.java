@@ -22,10 +22,12 @@
  * SOFTWARE.
  */
 
-package casekit.nmr.model.nmrdisplayer;
+package casekit.nmr.model.nmrium;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
+
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -33,11 +35,9 @@ import lombok.*;
 @Setter
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Signal1D {
+public class Range {
 
     private String id;
     private String kind;
-    private String multiplicity;
-    private double delta;
-    private int sign;
+    private List<Signal1D> signal;
 }

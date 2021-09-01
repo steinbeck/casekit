@@ -22,34 +22,22 @@
  * SOFTWARE.
  */
 
-package casekit.nmr.model.nmrdisplayer;
+package casekit.nmr.model.nmrium;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
-
-import java.util.List;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.*;
 
 @NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
 @ToString
-
-public class Correlation {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Signal1D {
 
     private String id;
-    private String experimentType;
-    private String experimentID;
-    private String atomType;
-    private Map<String, String> label;
-    private Signal1D signal;
-    private List<Link> link;
-    private int equivalence;
-    private Map<String, List<Integer>> attachment;
-    private List<Integer> protonsCount;
-    private String hybridization;
-    private boolean pseudo;
-    private Map<String, Boolean> edited;
+    private String kind;
+    private String multiplicity;
+    private double delta;
+    private int sign;
 }

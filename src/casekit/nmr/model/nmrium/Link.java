@@ -22,21 +22,28 @@
  * SOFTWARE.
  */
 
-package casekit.nmr.model.nmrdisplayer;
+package casekit.nmr.model.nmrium;
 
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 import java.util.List;
-import java.util.Map;
 
 @NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
 @ToString
+public class Link {
 
-public class Default<T> {
-
-    private Map<String, Object> options;
-    private List<T> values;
+    private String experimentType;
+    private String experimentID;
+    private String[] atomType;
+    private Signal2D signal;
+    private String axis;
+    private List<Integer> match;
+    private String id;
+    private String experimentLabel;
+    private boolean pseudo;
 }

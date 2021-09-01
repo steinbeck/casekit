@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package casekit.nmr.model.nmrdisplayer;
+package casekit.nmr.model.nmrium;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
@@ -35,9 +35,9 @@ import java.util.List;
 @Setter
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Range {
+public class Zone {
 
     private String id;
     private String kind;
-    private List<Signal1D> signal;
+    private List<Signal2D> signal;
 }

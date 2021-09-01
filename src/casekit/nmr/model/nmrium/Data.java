@@ -22,8 +22,9 @@
  * SOFTWARE.
  */
 
-package casekit.nmr.model.nmrdisplayer;
+package casekit.nmr.model.nmrium;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -35,15 +36,10 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
-public class Link {
 
-    private String experimentType;
-    private String experimentID;
-    private String[] atomType;
-    private Signal2D signal;
-    private String axis;
-    private List<Integer> match;
-    private String id;
-    private String experimentLabel;
-    private boolean pseudo;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Data {
+
+    private List<Spectrum> spectra;
+    private Correlations correlations;
 }

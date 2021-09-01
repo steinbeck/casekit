@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package casekit.nmr.model.nmrdisplayer;
+package casekit.nmr.model.nmrium;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

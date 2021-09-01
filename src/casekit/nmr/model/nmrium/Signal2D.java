@@ -22,24 +22,25 @@
  * SOFTWARE.
  */
 
-package casekit.nmr.model.nmrdisplayer;
+package casekit.nmr.model.nmrium;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
-import java.util.List;
+import java.util.Map;
 
 @NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
 @ToString
-
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Data {
+public class Signal2D {
 
-    private List<Spectrum> spectra;
-    private Correlations correlations;
+    private String id;
+    private String kind;
+    private String multiplicity;
+    private Map<String, Object> x;
+    private Map<String, Object> y;
+    private Integer sign;
 }

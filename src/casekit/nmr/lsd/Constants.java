@@ -8,8 +8,8 @@ public class Constants {
 
     // valid strings from LSD webpage: C N N5 O S S4 S6 F Cl Br I P P5 Si B X
     public static final Map<String, String> nucleiMap = createNucleiMap();
-    public static final Map<String, String> defaultHybridizationMap = createDefaultHybridizationMap();
-    public static final Map<String, String> defaultProtonsCountPerValencyMap = createDefaultProtonsCountPerValencyMap();
+    public static final Map<String, int[]> defaultHybridizationMap = createDefaultHybridizationMap();
+    public static final Map<String, int[]> defaultProtonsCountPerValencyMap = createDefaultProtonsCountPerValencyMap();
     public static final Map<String, String> defaultAtomLabelMap = createDefaultAtomLabelMap();
     public static final Map<String, Map<String, Integer>> hybridizationConversionMap = createHybridizationConversionMap();
 
@@ -22,31 +22,31 @@ public class Constants {
         return Collections.unmodifiableMap(nuclei);
     }
 
-    private static Map<String, String> createDefaultHybridizationMap() {
-        final Map<String, String> defaultHybridization = new HashMap<>();
-        defaultHybridization.put("C", "(1 2 3)");
-        defaultHybridization.put("N", "(1 2 3)");
-        defaultHybridization.put("O", "(2 3)");
-        defaultHybridization.put("S", "(1 2 3)");
-        defaultHybridization.put("I", "3");
-        defaultHybridization.put("F", "3");
+    private static Map<String, int[]> createDefaultHybridizationMap() {
+        final Map<String, int[]> defaultHybridization = new HashMap<>();
+        defaultHybridization.put("C", new int[]{1, 2, 3});
+        defaultHybridization.put("N", new int[]{1, 2, 3});
+        defaultHybridization.put("S", new int[]{1, 2, 3});
+        defaultHybridization.put("O", new int[]{2, 3});
+        defaultHybridization.put("I", new int[]{3});
+        defaultHybridization.put("F", new int[]{3});
 
         return Collections.unmodifiableMap(defaultHybridization);
     }
 
-    private static Map<String, String> createDefaultProtonsCountPerValencyMap() {
-        final Map<String, String> defaultProtonsCountPerValency = new HashMap<>();
-        defaultProtonsCountPerValency.put("C", "(0 1 2 3)");
-        defaultProtonsCountPerValency.put("N", "(0 1 2)");
-        defaultProtonsCountPerValency.put("N5", "(0 1 2 3)");
-        defaultProtonsCountPerValency.put("N35", "(0 1 2 3)");
-        defaultProtonsCountPerValency.put("S", "(0 1)");
-        defaultProtonsCountPerValency.put("S4", "(0 1 2 3)");
-        defaultProtonsCountPerValency.put("S6", "(0 1 2 3)");
-        defaultProtonsCountPerValency.put("S246", "(0 1 2 3)");
-        defaultProtonsCountPerValency.put("O", "(0 1)");
-        defaultProtonsCountPerValency.put("I", "0");
-        defaultProtonsCountPerValency.put("F", "0");
+    private static Map<String, int[]> createDefaultProtonsCountPerValencyMap() {
+        final Map<String, int[]> defaultProtonsCountPerValency = new HashMap<>();
+        defaultProtonsCountPerValency.put("C", new int[]{0, 1, 2, 3});
+        defaultProtonsCountPerValency.put("N", new int[]{0, 1, 2});
+        defaultProtonsCountPerValency.put("N5", new int[]{0, 1, 2, 3});
+        defaultProtonsCountPerValency.put("N35", new int[]{0, 1, 2, 3});
+        defaultProtonsCountPerValency.put("S", new int[]{0, 1});
+        defaultProtonsCountPerValency.put("S4", new int[]{0, 1, 2, 3});
+        defaultProtonsCountPerValency.put("S6", new int[]{0, 1, 2, 3});
+        defaultProtonsCountPerValency.put("S246", new int[]{0, 1, 2, 3});
+        defaultProtonsCountPerValency.put("O", new int[]{0, 1});
+        defaultProtonsCountPerValency.put("I", new int[]{0});
+        defaultProtonsCountPerValency.put("F", new int[]{0});
 
         return defaultProtonsCountPerValency;
     }
@@ -68,24 +68,44 @@ public class Constants {
         // possible command in MongoDB: db.hybridizations.aggregate([{$match: {nucleus: "15N"}}, {$group: {_id: null, set: {$addToSet: "$hybridization"}}}])
         // nucleus -> hybridization string -> number
         final Map<String, Map<String, Integer>> hybridizationConversionMap = new HashMap<>();
-        hybridizationConversionMap.put("13C", new HashMap<>());
-        hybridizationConversionMap.get("13C")
+        hybridizationConversionMap.put("C", new HashMap<>());
+        hybridizationConversionMap.get("C")
                                   .put("PLANAR3", 3);
-        hybridizationConversionMap.get("13C")
+        hybridizationConversionMap.get("C")
                                   .put("SP3", 3);
-        hybridizationConversionMap.get("13C")
+        hybridizationConversionMap.get("C")
                                   .put("SP2", 2);
-        hybridizationConversionMap.get("13C")
+        hybridizationConversionMap.get("C")
                                   .put("SP1", 1);
-        hybridizationConversionMap.put("15N", new HashMap<>());
-        hybridizationConversionMap.get("15N")
+        hybridizationConversionMap.put("N", new HashMap<>());
+        hybridizationConversionMap.get("N")
                                   .put("PLANAR3", 3);
-        hybridizationConversionMap.get("15N")
+        hybridizationConversionMap.get("N")
                                   .put("SP3", 3);
-        hybridizationConversionMap.get("15N")
+        hybridizationConversionMap.get("N")
                                   .put("SP2", 2);
-        hybridizationConversionMap.get("15N")
+        hybridizationConversionMap.get("N")
                                   .put("SP1", 1);
+        hybridizationConversionMap.put("S", new HashMap<>());
+        hybridizationConversionMap.get("S")
+                                  .put("PLANAR3", 3);
+        hybridizationConversionMap.get("S")
+                                  .put("SP3", 3);
+        hybridizationConversionMap.get("S")
+                                  .put("SP2", 2);
+        hybridizationConversionMap.get("S")
+                                  .put("SP1", 1);
+        hybridizationConversionMap.put("O", new HashMap<>());
+        hybridizationConversionMap.get("O")
+                                  .put("SP3", 3);
+        hybridizationConversionMap.get("O")
+                                  .put("SP2", 2);
+        hybridizationConversionMap.put("I", new HashMap<>());
+        hybridizationConversionMap.get("I")
+                                  .put("SP3", 3);
+        hybridizationConversionMap.put("F", new HashMap<>());
+        hybridizationConversionMap.get("F")
+                                  .put("SP3", 3);
 
         return Collections.unmodifiableMap(hybridizationConversionMap);
     }

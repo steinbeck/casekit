@@ -163,8 +163,24 @@ public class PyLSDInputFileBuilder {
             }
         }
         if (hybridizations.isEmpty()) {
-            hybridizationStringBuilder = new StringBuilder(
-                    Constants.defaultHybridizationMap.get(correlation.getAtomType()));
+            hybridizationStringBuilder = new StringBuilder();
+            if (Constants.defaultHybridizationMap.get(correlation.getAtomType()).length
+                    > 1) {
+                hybridizationStringBuilder.append("(");
+            }
+            for (int i = 0; i
+                    < Constants.defaultHybridizationMap.get(correlation.getAtomType()).length; i++) {
+                hybridizationStringBuilder.append(Constants.defaultHybridizationMap.get(correlation.getAtomType())[i]);
+                if (i
+                        < Constants.defaultHybridizationMap.get(correlation.getAtomType()).length
+                        - 1) {
+                    hybridizationStringBuilder.append(" ");
+                }
+            }
+            if (Constants.defaultHybridizationMap.get(correlation.getAtomType()).length
+                    > 1) {
+                hybridizationStringBuilder.append(")");
+            }
         } else {
             hybridizationStringBuilder = new StringBuilder();
             if (hybridizations.size()
@@ -208,8 +224,28 @@ public class PyLSDInputFileBuilder {
                 attachedProtonsCountStringBuilder.append(")");
             }
         } else { // if protons count is not given then set it to default value
-            attachedProtonsCountStringBuilder.append(Constants.defaultProtonsCountPerValencyMap.get(
-                    Constants.defaultAtomLabelMap.get(correlation.getAtomType())));
+            if (Constants.defaultProtonsCountPerValencyMap.get(
+                    Constants.defaultAtomLabelMap.get(correlation.getAtomType())).length
+                    > 1) {
+                attachedProtonsCountStringBuilder.append("(");
+            }
+            for (int i = 0; i
+                    < Constants.defaultProtonsCountPerValencyMap.get(
+                    Constants.defaultAtomLabelMap.get(correlation.getAtomType())).length; i++) {
+                attachedProtonsCountStringBuilder.append(Constants.defaultProtonsCountPerValencyMap.get(
+                        Constants.defaultAtomLabelMap.get(correlation.getAtomType()))[i]);
+                if (i
+                        < Constants.defaultProtonsCountPerValencyMap.get(
+                        Constants.defaultAtomLabelMap.get(correlation.getAtomType())).length
+                        - 1) {
+                    attachedProtonsCountStringBuilder.append(" ");
+                }
+            }
+            if (Constants.defaultProtonsCountPerValencyMap.get(
+                    Constants.defaultAtomLabelMap.get(correlation.getAtomType())).length
+                    > 1) {
+                attachedProtonsCountStringBuilder.append(")");
+            }
         }
         for (int j = 1; j
                 < indicesMap.get(index).length; j++) {

@@ -9,6 +9,7 @@ import casekit.nmr.utils.Utils;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PyLSDInputFileBuilder {
 
@@ -500,6 +501,7 @@ public class PyLSDInputFileBuilder {
         atomTypesByMf.remove("H");
         final Map<String, String> listMap = new HashMap<>();
         listMap.put("HETE", "L1");
+        final Set<Integer> defaultHybridizationStates = new HashSet<>();
         for (final String atomType : atomTypesByMf) {
             listMap.put(atomType, "L"
                     + (listMap.size()
@@ -510,13 +512,25 @@ public class PyLSDInputFileBuilder {
                          .append(" ")
                          .append(atomType)
                          .append("\n");
+            defaultHybridizationStates.clear();
+            for (final int numericHybridization : Constants.defaultHybridizationMap.get(atomType)) {
+                defaultHybridizationStates.add(numericHybridization);
+            }
+            for (final int hybridizationState : defaultHybridizationStates) {
+                listMap.put(atomType
+                                    + "_"
+                                    + hybridizationState, "L"
+                                    + (listMap.size()
+                        + 1));
+            }
         }
 
         Correlation correlation;
         String atomType;
         int indexInPyLSD;
         Map<String, Map<String, Map<Integer, Integer>>> connectivities;
-        Set<String> nonNeighborAtomTypes;
+        Set<String> neighborAtomTypes, nonNeighborAtomTypes;
+        Map<String, Set<Integer>> forbiddenNeighborHybridizations;
         for (int i = 0; i
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
@@ -528,13 +542,33 @@ public class PyLSDInputFileBuilder {
                     || connectivities.isEmpty()) {
                 continue;
             }
+            // define atom types of non-neighbors
+            neighborAtomTypes = new HashSet<>(connectivities.keySet());
             nonNeighborAtomTypes = new HashSet<>(elementCounts.keySet());
-            nonNeighborAtomTypes.removeAll(connectivities.keySet());
+            nonNeighborAtomTypes.removeAll(neighborAtomTypes);
             nonNeighborAtomTypes.remove("H");
 
+            // define forbidden hybridizations of possible neighbors
+            forbiddenNeighborHybridizations = new HashMap<>();
+            for (final String neighborAtomType : neighborAtomTypes) {
+                for (final String neighborHybridization : connectivities.get(neighborAtomType)
+                                                                        .keySet()) {
+                    forbiddenNeighborHybridizations.putIfAbsent(neighborAtomType, new HashSet<>(Arrays.stream(
+                            Constants.defaultHybridizationMap.get(neighborAtomType))
+                                                                                                      .boxed()
+                                                                                                      .collect(
+                                                                                                              Collectors.toSet())));
+                    forbiddenNeighborHybridizations.get(neighborAtomType)
+                                                   .remove(Constants.hybridizationConversionMap.get(neighborAtomType)
+                                                                                               .get(neighborHybridization));
+                }
+            }
+
+            // put in the extracted information per correlation
             for (int k = 1; k
                     < indicesMap.get(i).length; k++) {
                 indexInPyLSD = (int) indicesMap.get(i)[k];
+                // forbid bonds to whole element groups
                 for (final String nonNeighborAtomType : nonNeighborAtomTypes) {
                     stringBuilder.append("PROP ")
                                  .append(indexInPyLSD)
@@ -555,9 +589,36 @@ public class PyLSDInputFileBuilder {
                                  .append(")")
                                  .append("\n");
                 }
+                // forbid bonds to possible neighbors with certain hybridization states
+                for (final String neighborAtomType : neighborAtomTypes) {
+                    for (final int forbiddenNeighborHybridization : forbiddenNeighborHybridizations.get(
+                            neighborAtomType)) {
+                        stringBuilder.append("PROP ")
+                                     .append(indexInPyLSD)
+                                     .append(" 0 ")
+                                     .append(listMap.get(neighborAtomType
+                                                                 + "_"
+                                                                 + forbiddenNeighborHybridization))
+                                     .append(" -")
+                                     .append("; no bonds between ")
+                                     .append(indexInPyLSD)
+                                     .append(" (")
+                                     .append(atomType)
+                                     .append(", ")
+                                     .append(Statistics.roundDouble(correlation.getSignal()
+                                                                               .getDelta(), 2))
+                                     .append(") and ")
+                                     .append(listMap.get(neighborAtomType))
+                                     .append(" (")
+                                     .append(neighborAtomType)
+                                     .append(", SP")
+                                     .append(forbiddenNeighborHybridization)
+                                     .append(")")
+                                     .append("\n");
+                    }
+                }
             }
         }
-
 
         return stringBuilder.toString();
     }

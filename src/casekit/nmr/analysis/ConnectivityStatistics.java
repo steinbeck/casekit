@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class ConnectivityStatistics {
 
@@ -154,72 +153,82 @@ public class ConnectivityStatistics {
         return extractedConnectivities;
     }
 
-    public static List<String> extractNeighborAtomTypes(
-            final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivities, final double threshold) {
+    public static Map<String, Map<String, Map<Integer, Integer>>> filterExtractedConnectivities(
+            final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivities,
+            final double thresholdHybridizationCount, final double thresholdProtonsCount) {
+        final Map<String, Integer> totalCounts = getTotalCounts(extractedConnectivities);
+        final int totalCountsSum = getTotalCount(totalCounts);
+
+        final Map<String, Map<String, Map<Integer, Integer>>> filteredExtractedConnectivities = new HashMap<>();
+        extractedConnectivities.keySet()
+                               .forEach(neighborAtomType -> {
+                                   extractedConnectivities.get(neighborAtomType)
+                                                          .keySet()
+                                                          .forEach(neighborHybridization -> {
+                                                              final int countHybridization = extractedConnectivities.get(
+                                                                      neighborAtomType)
+                                                                                                                    .get(neighborHybridization)
+                                                                                                                    .keySet()
+                                                                                                                    .stream()
+                                                                                                                    .reduce(0,
+                                                                                                                            (protonsCountSum, protonsCount) -> protonsCountSum += extractedConnectivities.get(
+                                                                                                                                    neighborAtomType)
+                                                                                                                                                                                                         .get(neighborHybridization)
+                                                                                                                                                                                                         .get(protonsCount));
+                                                              if (countHybridization
+                                                                      / (double) totalCountsSum
+                                                                      >= thresholdHybridizationCount) {
+                                                                  for (final Map.Entry<Integer, Integer> entryProtonsCount : extractedConnectivities.get(
+                                                                          neighborAtomType)
+                                                                                                                                                    .get(neighborHybridization)
+                                                                                                                                                    .entrySet()) {
+                                                                      if (entryProtonsCount.getValue()
+                                                                              / (double) countHybridization
+                                                                              >= thresholdProtonsCount) {
+                                                                          filteredExtractedConnectivities.putIfAbsent(
+                                                                                  neighborAtomType, new HashMap<>());
+                                                                          filteredExtractedConnectivities.get(
+                                                                                  neighborAtomType)
+                                                                                                         .putIfAbsent(
+                                                                                                                 neighborHybridization,
+                                                                                                                 new HashMap<>());
+                                                                          filteredExtractedConnectivities.get(
+                                                                                  neighborAtomType)
+                                                                                                         .get(neighborHybridization)
+                                                                                                         .putIfAbsent(
+                                                                                                                 entryProtonsCount.getKey(),
+                                                                                                                 entryProtonsCount.getValue());
+                                                                      }
+                                                                  }
+                                                              }
+                                                          });
+                               });
+
+        return filteredExtractedConnectivities;
+    }
+
+    private static Map<String, Integer> getTotalCounts(
+            final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivities) {
         final Map<String, Integer> totalCounts = new HashMap<>();
-        for (final String connectedAtomType : extractedConnectivities.keySet()) {
-            totalCounts.putIfAbsent(connectedAtomType, 0);
-            for (final String connectedAtomHybridization : extractedConnectivities.get(connectedAtomType)
-                                                                                  .keySet()) {
-                for (final Map.Entry<Integer, Integer> countsEntry : extractedConnectivities.get(connectedAtomType)
-                                                                                            .get(connectedAtomHybridization)
+        for (final String key1 : extractedConnectivities.keySet()) {
+            totalCounts.putIfAbsent(key1, 0);
+            for (final String key2 : extractedConnectivities.get(key1)
+                                                            .keySet()) {
+                for (final Map.Entry<Integer, Integer> countsEntry : extractedConnectivities.get(key1)
+                                                                                            .get(key2)
                                                                                             .entrySet()) {
-                    totalCounts.put(connectedAtomType, totalCounts.get(connectedAtomType)
+                    totalCounts.put(key1, totalCounts.get(key1)
                             + countsEntry.getValue());
                 }
             }
         }
-        final int totalCountsSum = totalCounts.values()
-                                              .stream()
-                                              .reduce(0, (total, current) -> total += current);
-        return totalCounts.keySet()
-                          .stream()
-                          .filter(atomType -> (totalCounts.get(atomType)
-                                  / (double) totalCountsSum)
-                                  >= threshold)
-                          .collect(Collectors.toList());
+
+        return totalCounts;
     }
 
-    public static Map<String, Map<Integer, Integer>> extractNeighborHybridizations(
-            final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivities,
-            final String neighborAtomType, final double threshold) {
-        if (!extractedConnectivities.containsKey(neighborAtomType)) {
-            return new HashMap<>();
-        }
-        final Map<String, Integer> countsPerHybridization = new HashMap<>();
-        extractedConnectivities.get(neighborAtomType)
-                               .keySet()
-                               .forEach(hybridizationNeighbor -> {
-                                   countsPerHybridization.put(hybridizationNeighbor, extractedConnectivities.get(
-                                           neighborAtomType)
-                                                                                                            .get(hybridizationNeighbor)
-                                                                                                            .keySet()
-                                                                                                            .stream()
-                                                                                                            .reduce(0,
-                                                                                                                    (protonsCountSum, protonsCount) -> protonsCountSum += extractedConnectivities.get(
-                                                                                                                            neighborAtomType)
-                                                                                                                                                                                                 .get(hybridizationNeighbor)
-                                                                                                                                                                                                 .get(protonsCount)));
-                               });
-        final int totalCount = countsPerHybridization.keySet()
-                                                     .stream()
-                                                     .map(countsPerHybridization::get)
-
-                                                     .reduce(0, (sum, current) -> sum += current);
-        final List<String> allowedHybridizationList = countsPerHybridization.keySet()
-                                                                            .stream()
-                                                                            .filter(hybridizationNeighbor -> countsPerHybridization.get(
-                                                                                    hybridizationNeighbor)
-                                                                                    / (double) totalCount
-                                                                                    >= threshold)
-                                                                            .collect(Collectors.toList());
-
-        final Map<String, Map<Integer, Integer>> extractedNeighborHybridizationMap = new HashMap<>();
-        for (final String allowedHybridization : allowedHybridizationList) {
-            extractedNeighborHybridizationMap.put(allowedHybridization, extractedConnectivities.get(neighborAtomType)
-                                                                                               .get(allowedHybridization));
-        }
-
-        return extractedNeighborHybridizationMap;
+    private static int getTotalCount(final Map<String, Integer> totalCounts) {
+        return totalCounts.values()
+                          .stream()
+                          .reduce(0, (total, current) -> total += current);
     }
 }

@@ -97,6 +97,8 @@ public class Constants {
                                   .put("SP1", 1);
         hybridizationConversionMap.put("O", new HashMap<>());
         hybridizationConversionMap.get("O")
+                                  .put("PLANAR3", 3);
+        hybridizationConversionMap.get("O")
                                   .put("SP3", 3);
         hybridizationConversionMap.get("O")
                                   .put("SP2", 2);

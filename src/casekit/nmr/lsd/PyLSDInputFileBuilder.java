@@ -444,8 +444,8 @@ public class PyLSDInputFileBuilder {
             stringBuilder.append("SHIX ")
                          .append(indicesMap.get(index)[k])
                          .append(" ")
-                         .append(correlation.getSignal()
-                                            .getDelta())
+                         .append(Statistics.roundDouble(correlation.getSignal()
+                                                                   .getDelta(), 2))
                          .append("\n");
         }
 
@@ -473,8 +473,8 @@ public class PyLSDInputFileBuilder {
                     stringBuilder.append("SHIH ")
                                  .append(indicesMap.get(index)[k])
                                  .append(" ")
-                                 .append(correlation.getSignal()
-                                                    .getDelta())
+                                 .append(Statistics.roundDouble(correlation.getSignal()
+                                                                           .getDelta(), 3))
                                  .append("\n");
                 }
             }
@@ -719,12 +719,10 @@ public class PyLSDInputFileBuilder {
                 collection.get("COSY")
                           .add(buildCOSY(correlationList, i, indicesMap, elucidationOptions.getCosyP3(),
                                          elucidationOptions.getCosyP4()));
-                if (elucidationOptions.isUsePrediction()) {
-                    collection.get("SHIX")
-                              .add(buildSHIX(correlation, i, indicesMap));
-                    collection.get("SHIH")
-                              .add(buildSHIH(correlation, i, indicesMap));
-                }
+                collection.get("SHIX")
+                          .add(buildSHIX(correlation, i, indicesMap));
+                collection.get("SHIH")
+                          .add(buildSHIH(correlation, i, indicesMap));
             }
 
             collection.keySet()

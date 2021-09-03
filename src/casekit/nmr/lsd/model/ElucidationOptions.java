@@ -21,5 +21,4 @@ public class ElucidationOptions {
     private int hmbcP4;
     private int cosyP3;
     private int cosyP4;
-    private boolean usePrediction;
 }

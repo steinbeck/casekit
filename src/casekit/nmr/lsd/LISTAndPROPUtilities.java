@@ -27,7 +27,7 @@ public class LISTAndPROPUtilities {
     public static void insertNoHeteroHeteroBonds(final StringBuilder stringBuilder, final Map<String, String> listMap) {
         // create hetero atom list automatically to forbid hetero-hetero bonds
         stringBuilder.append("HETE L1")
-                     .append("; list of hetero atoms\n");
+                     .append("; hetero atoms\n");
         stringBuilder.append("PROP L1 0 L1 -; no hetero-hetero bonds\n");
         listMap.put("HETE", "L1");
     }
@@ -82,11 +82,11 @@ public class LISTAndPROPUtilities {
             }
             split = combinationEntry.getKey()
                                     .split("_");
-            stringBuilder.append("; list of ")
+            stringBuilder.append("; ")
                          .append(split[0])
                          .append("H")
                          .append(split[2])
-                         .append(" and ")
+                         .append(", ")
                          .append(split[1])
                          .append("\n");
 

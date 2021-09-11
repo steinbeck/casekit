@@ -536,6 +536,63 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
+    private static String buildBONDByINADEQUATE(final List<Correlation> correlationList,
+                                                final Map<Integer, Object[]> indicesMap) {
+        final StringBuilder stringBuilder = new StringBuilder();
+
+        final Set<String> uniqueSet = new HashSet<>();
+        Correlation correlation;
+        for (int i = 0; i
+                < correlationList.size(); i++) {
+            correlation = correlationList.get(i);
+            // @TODO for now use INADEQUATE information of atoms without equivalences only
+            if (!correlation.getAtomType()
+                            .equals("C")
+                    || correlation.getEquivalence()
+                    > 1) {
+                continue;
+            }
+            for (final Link link : correlation.getLink()) {
+                if (link.getExperimentType()
+                        .equals("inadequate")) {
+                    for (final int matchIndex : link.getMatch()) {
+                        // insert BOND pair once only and not if equivalences exist
+                        if (!uniqueSet.contains(indicesMap.get(i)[1]
+                                                        + " "
+                                                        + indicesMap.get(matchIndex)[1])
+                                && correlationList.get(matchIndex)
+                                                  .getEquivalence()
+                                == 1) {
+                            stringBuilder.append("BOND ")
+                                         .append(indicesMap.get(i)[1])
+                                         .append(" ")
+                                         .append(indicesMap.get(matchIndex)[1])
+                                         .append(buildShiftsComment(correlation, correlationList.get(matchIndex)))
+                                         .append("\n");
+                            uniqueSet.add(indicesMap.get(i)[1]
+                                                  + " "
+                                                  + indicesMap.get(matchIndex)[1]);
+                            uniqueSet.add(indicesMap.get(matchIndex)[1]
+                                                  + " "
+                                                  + indicesMap.get(i)[1]);
+                        }
+                    }
+                }
+            }
+        }
+
+        return stringBuilder.toString();
+    }
+
+    private static String buildBOND(final List<Correlation> correlationList, final Map<Integer, Object[]> indicesMap) {
+        final StringBuilder stringBuilder = new StringBuilder();
+
+        stringBuilder.append(buildBONDByINADEQUATE(correlationList, indicesMap))
+                     .append("\n");
+
+        return stringBuilder.toString();
+    }
+
     public static String buildPyLSDInputFileContent(final Data data, final String mf,
                                                     final Map<Integer, List<Integer>> detectedHybridizations,
                                                     final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities,
@@ -610,6 +667,8 @@ public class PyLSDInputFileBuilder {
                       });
 
             // BOND (interpretation, INADEQUATE, previous assignments) -> input fragments
+            stringBuilder.append(buildBOND(correlationList, indicesMap))
+                         .append("\n");
 
             // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance
             stringBuilder.append(buildLISTsAndPROPs(correlationList, indicesMap, elementCounts, detectedConnectivities,

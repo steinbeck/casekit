@@ -136,17 +136,12 @@ public class PyLSDInputFileBuilder {
                 && !correlation.getHybridization()
                                .isEmpty()) {
             // if hybridization is already given
-            if (correlation.getHybridization()
-                           .equals("SP")) {
-                hybridizations.add(1);
-            } else if (correlation.getHybridization()
-                                  .equals("SP2")) {
-                hybridizations.add(2);
-            } else {
-                hybridizations.add(3);
-            }
+            hybridizations.addAll(correlation.getHybridization()
+                                             .stream()
+                                             .map(Constants.hybridizationConversionMap::get)
+                                             .collect(Collectors.toList()));
         } else {
-            // if hybridization is not given then use the detected ones via MongoDB queries
+            // if hybridization is not given then use the detected ones
             if (detectedHybridizations.containsKey(index)) {
                 hybridizations = detectedHybridizations.get(index);
             }
@@ -486,139 +481,19 @@ public class PyLSDInputFileBuilder {
     private static String buildLISTsAndPROPs(final List<Correlation> correlationList,
                                              final Map<Integer, Object[]> indicesMap,
                                              final Map<String, Integer> elementCounts,
-                                             final Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities,
+                                             final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities,
                                              final boolean allowHeteroHeteroBonds) {
         final StringBuilder stringBuilder = new StringBuilder();
-        // LIST PROP for hetero hetero bonds allowance
-        if (!allowHeteroHeteroBonds) {
-            // create hetero atom list automatically
-            stringBuilder.append("HETE L1")
-                         .append("; list of hetero atoms\n");
-            stringBuilder.append("PROP L1 0 L1 -; no hetero-hetero bonds\n");
-        }
-
-        final Set<String> atomTypesByMf = new HashSet<>(elementCounts.keySet());
-        atomTypesByMf.remove("H");
         final Map<String, String> listMap = new HashMap<>();
-        listMap.put("HETE", "L1");
-        final Set<Integer> defaultHybridizationStates = new HashSet<>();
-        for (final String atomType : atomTypesByMf) {
-            listMap.put(atomType, "L"
-                    + (listMap.size()
-                    + 1));
-            stringBuilder.append("ELEM")
-                         .append(" ")
-                         .append(listMap.get(atomType))
-                         .append(" ")
-                         .append(atomType)
-                         .append("\n");
-            defaultHybridizationStates.clear();
-            for (final int numericHybridization : Constants.defaultHybridizationMap.get(atomType)) {
-                defaultHybridizationStates.add(numericHybridization);
-            }
-            for (final int hybridizationState : defaultHybridizationStates) {
-                listMap.put(atomType
-                                    + "_"
-                                    + hybridizationState, "L"
-                                    + (listMap.size()
-                        + 1));
-            }
+
+        // LIST and PROP for hetero hetero bonds allowance as well as hybridization states and proton counts reduction
+        if (!allowHeteroHeteroBonds) {
+            LISTAndPROPUtilities.insertNoHeteroHeteroBonds(stringBuilder, listMap);
+            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(correlationList, detectedConnectivities);
         }
-
-        Correlation correlation;
-        String atomType;
-        int indexInPyLSD;
-        Map<String, Map<String, Map<Integer, Integer>>> connectivities;
-        Set<String> neighborAtomTypes, nonNeighborAtomTypes;
-        Map<String, Set<Integer>> forbiddenNeighborHybridizations;
-        for (int i = 0; i
-                < correlationList.size(); i++) {
-            correlation = correlationList.get(i);
-            atomType = correlation.getAtomType();
-            connectivities = detectedConnectivities.get(i);
-            if (atomType.equals("H")
-                    || connectivities
-                    == null
-                    || connectivities.isEmpty()) {
-                continue;
-            }
-            // define atom types of non-neighbors
-            neighborAtomTypes = new HashSet<>(connectivities.keySet());
-            nonNeighborAtomTypes = new HashSet<>(elementCounts.keySet());
-            nonNeighborAtomTypes.removeAll(neighborAtomTypes);
-            nonNeighborAtomTypes.remove("H");
-
-            // define forbidden hybridizations of possible neighbors
-            forbiddenNeighborHybridizations = new HashMap<>();
-            for (final String neighborAtomType : neighborAtomTypes) {
-                for (final String neighborHybridization : connectivities.get(neighborAtomType)
-                                                                        .keySet()) {
-                    forbiddenNeighborHybridizations.putIfAbsent(neighborAtomType, new HashSet<>(Arrays.stream(
-                            Constants.defaultHybridizationMap.get(neighborAtomType))
-                                                                                                      .boxed()
-                                                                                                      .collect(
-                                                                                                              Collectors.toSet())));
-                    forbiddenNeighborHybridizations.get(neighborAtomType)
-                                                   .remove(Constants.hybridizationConversionMap.get(neighborAtomType)
-                                                                                               .get(neighborHybridization));
-                }
-            }
-
-            // put in the extracted information per correlation
-            for (int k = 1; k
-                    < indicesMap.get(i).length; k++) {
-                indexInPyLSD = (int) indicesMap.get(i)[k];
-                // forbid bonds to whole element groups
-                for (final String nonNeighborAtomType : nonNeighborAtomTypes) {
-                    stringBuilder.append("PROP ")
-                                 .append(indexInPyLSD)
-                                 .append(" 0 ")
-                                 .append(listMap.get(nonNeighborAtomType))
-                                 .append(" -")
-                                 .append("; no bonds between ")
-                                 .append(indexInPyLSD)
-                                 .append(" (")
-                                 .append(atomType)
-                                 .append(", ")
-                                 .append(Statistics.roundDouble(correlation.getSignal()
-                                                                           .getDelta(), 2))
-                                 .append(") and ")
-                                 .append(listMap.get(nonNeighborAtomType))
-                                 .append(" (")
-                                 .append(nonNeighborAtomType)
-                                 .append(")")
-                                 .append("\n");
-                }
-                // forbid bonds to possible neighbors with certain hybridization states
-                for (final String neighborAtomType : neighborAtomTypes) {
-                    for (final int forbiddenNeighborHybridization : forbiddenNeighborHybridizations.get(
-                            neighborAtomType)) {
-                        stringBuilder.append("PROP ")
-                                     .append(indexInPyLSD)
-                                     .append(" 0 ")
-                                     .append(listMap.get(neighborAtomType
-                                                                 + "_"
-                                                                 + forbiddenNeighborHybridization))
-                                     .append(" -")
-                                     .append("; no bonds between ")
-                                     .append(indexInPyLSD)
-                                     .append(" (")
-                                     .append(atomType)
-                                     .append(", ")
-                                     .append(Statistics.roundDouble(correlation.getSignal()
-                                                                               .getDelta(), 2))
-                                     .append(") and ")
-                                     .append(listMap.get(neighborAtomType))
-                                     .append(" (")
-                                     .append(neighborAtomType)
-                                     .append(", SP")
-                                     .append(forbiddenNeighborHybridization)
-                                     .append(")")
-                                     .append("\n");
-                    }
-                }
-            }
-        }
+        // insert forbidden connection lists and properties
+        LISTAndPROPUtilities.insertForbiddenConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
+                                                                    detectedConnectivities, elementCounts.keySet());
 
         return stringBuilder.toString();
     }
@@ -663,7 +538,7 @@ public class PyLSDInputFileBuilder {
 
     public static String buildPyLSDInputFileContent(final Data data, final String mf,
                                                     final Map<Integer, List<Integer>> detectedHybridizations,
-                                                    final Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities,
+                                                    final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities,
                                                     final ElucidationOptions elucidationOptions) {
         final Map<String, Map<String, Object>> state = data.getCorrelations()
                                                            .getState();

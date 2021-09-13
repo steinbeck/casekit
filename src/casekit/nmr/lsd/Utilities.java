@@ -9,11 +9,11 @@ public class Utilities {
 
     public static void reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(final List<Correlation> correlationList,
                                                                                final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities) {
-        final Map<String, Set<String>> allowedHeteroAtomHybridizations = buildAllowedHeteroAtomHybridizations(
+        final Map<String, Set<String>> allowedNeighborAtomHybridizations = buildAllowedNeighborAtomHybridizations(
                 correlationList, detectedConnectivities);
-        final Map<String, Set<Integer>> allowedHeteroAtomProtonCounts = buildAllowedHeteroAtomProtonCounts(
+        final Map<String, Set<Integer>> allowedNeighborAtomProtonCounts = buildAllowedNeighborAtomProtonCounts(
                 correlationList, detectedConnectivities);
-        // hetero atoms can bond to carbons only, due to that we can use more connectivity information
+        // hetero atoms can bond to carbons only, due to that we can use further connectivity information
         // do not allow bond between carbon and hetero atoms in certain hybridization states and proton counts
         for (final Correlation correlation : correlationList) {
             // ignore C and H atoms
@@ -25,31 +25,40 @@ public class Utilities {
             }
             // but only if we have seen the hetero atom type in connectivity statistics
             // and hybridization states or protons count was not set beforehand
-            if (correlation.getEdited()
+            if (correlation.getHybridization()
+                           .isEmpty()) {
+                correlation.getHybridization()
+                           .addAll(allowedNeighborAtomHybridizations.get(correlation.getAtomType()));
+            } else if (correlation.getEdited()
                     != null
                     && correlation.getEdited()
                                   .containsKey("hybridization")
-                    && correlation.getEdited()
-                                  .get("hybridization")
-                    && allowedHeteroAtomHybridizations.containsKey(correlation.getAtomType())) {
+                    && !correlation.getEdited()
+                                   .get("hybridization")
+                    && allowedNeighborAtomHybridizations.containsKey(correlation.getAtomType())) {
                 correlation.getHybridization()
-                           .retainAll(allowedHeteroAtomHybridizations.get(correlation.getAtomType()));
+                           .retainAll(allowedNeighborAtomHybridizations.get(correlation.getAtomType()));
             }
-            if (correlation.getEdited()
+            if (correlation.getProtonsCount()
+                           .isEmpty()) {
+                correlation.getProtonsCount()
+                           .addAll(allowedNeighborAtomProtonCounts.get(correlation.getAtomType()));
+            } else if (correlation.getEdited()
                     != null
                     && correlation.getEdited()
                                   .containsKey("protonsCount")
-                    && correlation.getEdited()
-                                  .get("protonsCount")
-                    && allowedHeteroAtomProtonCounts.containsKey(correlation.getAtomType())) {
+                    && !correlation.getEdited()
+                                   .get("protonsCount")
+                    && allowedNeighborAtomProtonCounts.containsKey(correlation.getAtomType())) {
                 correlation.getProtonsCount()
-                           .retainAll(allowedHeteroAtomProtonCounts.get(correlation.getAtomType()));
+                           .retainAll(allowedNeighborAtomProtonCounts.get(correlation.getAtomType()));
             }
         }
     }
 
-    public static Map<String, Set<String>> buildAllowedHeteroAtomHybridizations(final List<Correlation> correlationList,
-                                                                                final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities) {
+    public static Map<String, Set<String>> buildAllowedNeighborAtomHybridizations(
+            final List<Correlation> correlationList,
+            final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities) {
         final Map<String, Set<String>> allowedHeteroAtomHybridizations = new HashMap<>();
         for (final Map.Entry<Integer, Map<String, Map<String, Set<Integer>>>> correlationEntry : detectedConnectivities.entrySet()) {
             if (!correlationList.get(correlationEntry.getKey())
@@ -72,8 +81,9 @@ public class Utilities {
         return allowedHeteroAtomHybridizations;
     }
 
-    public static Map<String, Set<Integer>> buildAllowedHeteroAtomProtonCounts(final List<Correlation> correlationList,
-                                                                               final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities) {
+    public static Map<String, Set<Integer>> buildAllowedNeighborAtomProtonCounts(
+            final List<Correlation> correlationList,
+            final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities) {
         final Map<String, Set<Integer>> allowedHeteroAtomProtonCounts = new HashMap<>();
         for (final Map.Entry<Integer, Map<String, Map<String, Set<Integer>>>> correlationEntry : detectedConnectivities.entrySet()) {
             if (!correlationList.get(correlationEntry.getKey())

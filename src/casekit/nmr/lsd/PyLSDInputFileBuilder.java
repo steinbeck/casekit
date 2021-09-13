@@ -139,7 +139,7 @@ public class PyLSDInputFileBuilder {
             hybridizations.addAll(correlation.getHybridization()
                                              .stream()
                                              .map(Constants.hybridizationConversionMap::get)
-                                             .collect(Collectors.toList()));
+                                             .collect(Collectors.toSet()));
         } else {
             // if hybridization is not given then use the detected ones
             if (detectedHybridizations.containsKey(index)) {
@@ -486,10 +486,9 @@ public class PyLSDInputFileBuilder {
         final StringBuilder stringBuilder = new StringBuilder();
         final Map<String, String> listMap = new HashMap<>();
 
-        // LIST and PROP for hetero hetero bonds allowance as well as hybridization states and proton counts reduction
+        // LIST and PROP for hetero hetero bonds to disallow
         if (!allowHeteroHeteroBonds) {
             LISTAndPROPUtilities.insertNoHeteroHeteroBonds(stringBuilder, listMap);
-            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(correlationList, detectedConnectivities);
         }
         // insert forbidden connection lists and properties
         LISTAndPROPUtilities.insertForbiddenConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,

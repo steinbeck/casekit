@@ -27,14 +27,15 @@ public class Fragmentation {
      *
      * @return
      *
-     * @see #buildFragmentTrees(IAtomContainer, Integer, Integer, boolean)
+     * @see #buildFragmentTrees(IAtomContainer, Integer, Integer, int, boolean)
      */
     public static List<DataSet> buildFragmentDataSets(final DataSet dataSet, final Integer maxSphere,
-                                                      final Integer maxSphereRing, final boolean withPseudoAtoms) {
+                                                      final Integer maxSphereRing, final int maxRingSize,
+                                                      final boolean withPseudoAtoms) {
 
         final List<ConnectionTree> fragmentTrees = buildFragmentTrees(dataSet.getStructure()
                                                                              .toAtomContainer(), maxSphere,
-                                                                      maxSphereRing, withPseudoAtoms);
+                                                                      maxSphereRing, maxRingSize, withPseudoAtoms);
         return fragmentTreesToSubDataSets(dataSet, fragmentTrees);
     }
 
@@ -156,12 +157,13 @@ public class Fragmentation {
      *
      * @return
      *
-     * @see #buildFragmentTrees(IAtomContainer, Integer, Integer, boolean)
+     * @see #buildFragmentTrees(IAtomContainer, Integer, Integer, int, boolean)
      * @see FragmentationUtilities#toAtomContainer(ConnectionTree)
      */
     public static List<IAtomContainer> buildFragments(final IAtomContainer structure, final Integer maxSphere,
-                                                      final Integer maxSphereRing, final boolean withPseudoAtoms) {
-        final List<ConnectionTree> fragmentTrees = buildFragmentTrees(structure, maxSphere, maxSphereRing,
+                                                      final Integer maxSphereRing, final int maxRingSize,
+                                                      final boolean withPseudoAtoms) {
+        final List<ConnectionTree> fragmentTrees = buildFragmentTrees(structure, maxSphere, maxSphereRing, maxRingSize,
                                                                       withPseudoAtoms);
         return fragmentTrees.stream()
                             .map(FragmentationUtilities::toAtomContainer)
@@ -169,13 +171,13 @@ public class Fragmentation {
     }
 
     public static List<ConnectionTree> buildRingFragmentTrees(final IAtomContainer structure,
-                                                              final Integer maxSphereRing,
+                                                              final Integer maxSphereRing, final int maxRingSize,
                                                               final boolean withPseudoAtoms) {
         final List<ConnectionTree> ringFragmentTrees = new ArrayList<>();
         try {
             // build ring fragment trees from detected rings and extend by given maximum sphere for rings
             ConnectionTree connectionTreeRing, connectionTreeOuterSphere, subtreeToAdd;
-            final IRingSet ringSet = Cycles.all(structure)//essential(structure)
+            final IRingSet ringSet = Cycles.all(structure, maxRingSize)//essential(structure)
                                            .toRingSet();
             final List<IAtomContainer> ringFragments = new ArrayList<>();
             for (int i = 0; i
@@ -254,14 +256,16 @@ public class Fragmentation {
      *
      * @return
      *
-     * @see #buildRingFragmentTrees(IAtomContainer, Integer, boolean)
+     * @see #buildRingFragmentTrees(IAtomContainer, Integer, int, boolean)
      * @see #buildFragmentTree(IAtomContainer, int, Integer, Set, boolean)
      * @see FragmentationUtilities#removeDuplicates(List)
      */
     public static List<ConnectionTree> buildFragmentTrees(final IAtomContainer structure, final Integer maxSphere,
-                                                          final Integer maxSphereRing, final boolean withPseudoAtoms) {
+                                                          final Integer maxSphereRing, final int maxRingSize,
+                                                          final boolean withPseudoAtoms) {
         // build fragment trees for rings
-        final List<ConnectionTree> fragmentTrees = buildRingFragmentTrees(structure, maxSphereRing, withPseudoAtoms);
+        final List<ConnectionTree> fragmentTrees = buildRingFragmentTrees(structure, maxSphereRing, maxRingSize,
+                                                                          withPseudoAtoms);
         // build fragment for each single atom
         for (int i = 0; i
                 < structure.getAtomCount(); i++) {

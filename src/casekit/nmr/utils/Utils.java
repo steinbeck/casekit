@@ -1,6 +1,7 @@
 package casekit.nmr.utils;
 
 import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.StructureCompact;
 import casekit.nmr.model.nmrium.Correlation;
@@ -23,6 +24,7 @@ import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class Utils {
 
@@ -603,5 +605,28 @@ public class Utils {
         dataSet.setMeta(meta);
 
         return dataSet;
+    }
+
+    public static Spectrum correlationListToSpectrum1D(final List<Correlation> correlationList, final String nucleus) {
+        final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
+        final List<Correlation> correlationListAtomType = correlationList.stream()
+                                                                         .filter(correlation -> correlation.getAtomType()
+                                                                                                           .equals(atomType)
+                                                                                 && !correlation.isPseudo())
+                                                                         .collect(Collectors.toList());
+        final Spectrum spectrum = new Spectrum();
+        spectrum.setNuclei(new String[]{nucleus});
+        spectrum.setSignals(new ArrayList<>());
+        Signal signal;
+        for (final Correlation correlation : correlationListAtomType) {
+            signal = new Signal(spectrum.getNuclei(), new Double[]{correlation.getSignal().getDelta()},
+                                Utils.getMultiplicityFromProtonsCount(correlation), correlation.getSignal()
+                                                                                               .getKind(), null,
+                                correlation.getEquivalence(), correlation.getSignal()
+                                                                         .getSign());
+            spectrum.addSignalWithoutEquivalenceSearch(signal);
+        }
+
+        return spectrum;
     }
 }

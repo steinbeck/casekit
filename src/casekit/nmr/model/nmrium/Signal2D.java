@@ -35,12 +35,13 @@ import java.util.Map;
 @Setter
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Signal2D {
+public class Signal2D
+        extends Signal {
 
-    private String id;
-    private String kind;
-    private String multiplicity;
     private Map<String, Object> x;
     private Map<String, Object> y;
-    private Integer sign;
+
+    public Signal2D(final Signal signal) {
+        super(signal.getId(), signal.getKind(), signal.getMultiplicity(), signal.getSign());
+    }
 }

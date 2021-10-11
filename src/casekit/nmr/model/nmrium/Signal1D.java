@@ -33,11 +33,13 @@ import lombok.*;
 @Setter
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Signal1D {
+public class Signal1D
+        extends Signal {
 
-    private String id;
-    private String kind;
-    private String multiplicity;
     private double delta;
-    private int sign;
+
+    public Signal1D(final Signal signal) {
+        super(signal.getId(), signal.getKind(), signal.getMultiplicity(), signal.getSign());
+    }
+
 }

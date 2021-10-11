@@ -1,10 +1,14 @@
 package casekit.nmr.utils;
 
+import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.StructureCompact;
 import casekit.nmr.model.nmrium.Correlation;
+import casekit.nmr.model.nmrium.Link;
+import casekit.nmr.model.nmrium.Signal1D;
+import casekit.nmr.model.nmrium.Signal2D;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
 import org.openscience.cdk.aromaticity.Kekulization;
@@ -607,6 +611,54 @@ public class Utils {
         return dataSet;
     }
 
+    public static Signal extractSignalFromCorrelation(final Correlation correlation) {
+        if (correlation.isPseudo()) {
+            return null;
+        }
+        final List<Link> nonPseudoLinks = correlation.getLink()
+                                                     .stream()
+                                                     .filter(linkTemp -> !linkTemp.isPseudo())
+                                                     .collect(Collectors.toList());
+        if (nonPseudoLinks.isEmpty()) {
+            return null;
+        }
+        final Link link = nonPseudoLinks.get(0);
+        final Map<String, Object> signalMap = (Map<String, Object>) link.getSignal();
+        final String multiplicity = Utils.getMultiplicityFromProtonsCount(correlation);
+        final casekit.nmr.model.nmrium.Signal signal = new casekit.nmr.model.nmrium.Signal((String) signalMap.get("id"),
+                                                                                           (String) signalMap.get(
+                                                                                                   "kind"),
+                                                                                           multiplicity,
+                                                                                           signalMap.containsKey("sign")
+                                                                                           ? (Integer) signalMap.get(
+                                                                                                   "sign")
+                                                                                           : null);
+        if (signalMap.containsKey("delta")) {
+            final Signal1D signal1D = new Signal1D(signal);
+            signal1D.setDelta((double) signalMap.get("delta"));
+
+            return new Signal(new String[]{Constants.nucleiMap.get(correlation.getAtomType())},
+                              new Double[]{signal1D.getDelta()}, signal1D.getMultiplicity(), signal1D.getKind(), null,
+                              correlation.getEquivalence(), signal1D.getSign());
+        } else if (signalMap.containsKey("x")) {
+            final Signal2D signal2D = new Signal2D(signal);
+            signal2D.setX((Map<String, Object>) signalMap.get("x"));
+            signal2D.setY((Map<String, Object>) signalMap.get("y"));
+            final double shift = link.getAxis()
+                                     .equals("x")
+                                 ? (double) signal2D.getX()
+                                                    .get("delta")
+                                 : (double) signal2D.getY()
+                                                    .get("delta");
+
+            return new Signal(new String[]{Constants.nucleiMap.get(correlation.getAtomType())}, new Double[]{shift},
+                              signal2D.getMultiplicity(), signal2D.getKind(), null, correlation.getEquivalence(),
+                              signal2D.getSign());
+        }
+
+        return null;
+    }
+
     public static Spectrum correlationListToSpectrum1D(final List<Correlation> correlationList, final String nucleus) {
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
         final List<Correlation> correlationListAtomType = correlationList.stream()
@@ -617,14 +669,14 @@ public class Utils {
         final Spectrum spectrum = new Spectrum();
         spectrum.setNuclei(new String[]{nucleus});
         spectrum.setSignals(new ArrayList<>());
+
         Signal signal;
         for (final Correlation correlation : correlationListAtomType) {
-            signal = new Signal(spectrum.getNuclei(), new Double[]{correlation.getSignal().getDelta()},
-                                Utils.getMultiplicityFromProtonsCount(correlation), correlation.getSignal()
-                                                                                               .getKind(), null,
-                                correlation.getEquivalence(), correlation.getSignal()
-                                                                         .getSign());
-            spectrum.addSignalWithoutEquivalenceSearch(signal);
+            signal = extractSignalFromCorrelation(correlation);
+            if (signal
+                    != null) {
+                spectrum.addSignalWithoutEquivalenceSearch(signal);
+            }
         }
 
         return spectrum;

@@ -40,11 +40,8 @@ import java.util.Map;
 public class Correlation {
 
     private String id;
-    private String experimentType;
-    private String experimentID;
     private String atomType;
     private Map<String, String> label;
-    private Signal1D signal;
     private List<Link> link;
     private int equivalence;
     private Map<String, List<Integer>> attachment;

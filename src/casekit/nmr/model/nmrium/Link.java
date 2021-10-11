@@ -30,6 +30,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.util.List;
+import java.util.Map;
 
 @NoArgsConstructor
 @Getter
@@ -40,10 +41,11 @@ public class Link {
     private String experimentType;
     private String experimentID;
     private String[] atomType;
-    private Signal2D signal;
+    private Object signal;
     private String axis;
     private List<Integer> match;
     private String id;
     private String experimentLabel;
     private boolean pseudo;
+    private Map<String, Boolean> edited;
 }

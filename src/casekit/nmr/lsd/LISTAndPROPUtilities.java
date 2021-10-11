@@ -1,7 +1,9 @@
 package casekit.nmr.lsd;
 
+import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.utils.Statistics;
+import casekit.nmr.utils.Utils;
 
 import java.util.*;
 
@@ -108,6 +110,7 @@ public class LISTAndPROPUtilities {
         LISTAndPROPUtilities.insertCarbonCombinationLISTs(stringBuilder, listMap, correlationList, indicesMap,
                                                           detectedConnectivities);
         Correlation correlation;
+        Signal signal;
         String atomType, listKey;
         int indexInPyLSD;
         Map<String, Map<String, Set<Integer>>> connectivities;
@@ -116,13 +119,17 @@ public class LISTAndPROPUtilities {
         for (int i = 0; i
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
+            signal = Utils.extractSignalFromCorrelation(correlation);
+
             atomType = correlation.getAtomType();
             connectivities = detectedConnectivities.get(i);
             // consider carbons here only, because of having complete connectivity information
             if (!atomType.equals("C")
                     || connectivities
                     == null
-                    || connectivities.isEmpty()) {
+                    || connectivities.isEmpty()
+                    || signal
+                    == null) {
                 continue;
             }
             // define atom types of non-neighbors
@@ -149,8 +156,7 @@ public class LISTAndPROPUtilities {
                                  .append(" (")
                                  .append(atomType)
                                  .append(", ")
-                                 .append(Statistics.roundDouble(correlation.getSignal()
-                                                                           .getDelta(), 2))
+                                 .append(Statistics.roundDouble(signal.getShift(0), 2))
                                  .append(") and ")
                                  .append(listMap.get(nonNeighborAtomType))
                                  .append(" (")
@@ -161,13 +167,13 @@ public class LISTAndPROPUtilities {
                 // forbid bonds to possible neighbors with certain hybridization states and proton counts
                 for (final String neighborAtomType : forbiddenNeighborHybridizationsAndProtonCounts.keySet()) {
                     for (final int forbiddenNeighborHybridization : forbiddenNeighborHybridizationsAndProtonCounts.get(
-                            neighborAtomType)
+                                                                                                                          neighborAtomType)
                                                                                                                   .keySet()) {
                         if (!neighborAtomType.equals("C")) {
                             continue;
                         }
                         for (final Integer forbiddenProtonsCount : forbiddenNeighborHybridizationsAndProtonCounts.get(
-                                neighborAtomType)
+                                                                                                                         neighborAtomType)
                                                                                                                  .get(forbiddenNeighborHybridization)) {
                             listKey = neighborAtomType
                                     + "_SP"
@@ -185,8 +191,7 @@ public class LISTAndPROPUtilities {
                                              .append(" (")
                                              .append(atomType)
                                              .append(", ")
-                                             .append(Statistics.roundDouble(correlation.getSignal()
-                                                                                       .getDelta(), 2))
+                                             .append(Statistics.roundDouble(signal.getShift(0), 2))
                                              .append(") and ")
                                              .append(listMap.get(listKey))
                                              .append(" (")

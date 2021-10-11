@@ -1,6 +1,7 @@
 package casekit.nmr.lsd;
 
 import casekit.nmr.lsd.model.ElucidationOptions;
+import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Data;
 import casekit.nmr.model.nmrium.Link;
@@ -269,10 +270,16 @@ public class PyLSDInputFileBuilder {
     }
 
     private static String buildShiftString(final Correlation correlation) {
+
+        final Signal signal = Utils.extractSignalFromCorrelation(correlation);
+        if (signal
+                != null) {
+            return "?";
+        }
+
         return correlation.isPseudo()
                ? "?"
-               : String.valueOf(Statistics.roundDouble(correlation.getSignal()
-                                                                  .getDelta(), 2));
+               : String.valueOf(Statistics.roundDouble(signal.getShift(0), 2));
     }
 
     private static String buildShiftsComment(final Correlation correlation1, final Correlation correlation2) {
@@ -433,14 +440,18 @@ public class PyLSDInputFileBuilder {
                 || correlation.isPseudo()) {
             return null;
         }
+        final Signal signal = Utils.extractSignalFromCorrelation(correlation);
+        if (signal
+                != null) {
+            return null;
+        }
         final StringBuilder stringBuilder = new StringBuilder();
         for (int k = 1; k
                 < indicesMap.get(index).length; k++) {
             stringBuilder.append("SHIX ")
                          .append(indicesMap.get(index)[k])
                          .append(" ")
-                         .append(Statistics.roundDouble(correlation.getSignal()
-                                                                   .getDelta(), 2))
+                         .append(Statistics.roundDouble(signal.getShift(0), 2))
                          .append("\n");
         }
 
@@ -452,6 +463,11 @@ public class PyLSDInputFileBuilder {
         if (!correlation.getAtomType()
                         .equals("H")
                 || correlation.isPseudo()) {
+            return null;
+        }
+        final Signal signal = Utils.extractSignalFromCorrelation(correlation);
+        if (signal
+                != null) {
             return null;
         }
         final StringBuilder stringBuilder = new StringBuilder();
@@ -468,8 +484,7 @@ public class PyLSDInputFileBuilder {
                     stringBuilder.append("SHIH ")
                                  .append(indicesMap.get(index)[k])
                                  .append(" ")
-                                 .append(Statistics.roundDouble(correlation.getSignal()
-                                                                           .getDelta(), 3))
+                                 .append(Statistics.roundDouble(signal.getShift(0), 3))
                                  .append("\n");
                 }
             }

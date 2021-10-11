@@ -120,7 +120,6 @@ public class LISTAndPROPUtilities {
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
             signal = Utils.extractSignalFromCorrelation(correlation);
-
             atomType = correlation.getAtomType();
             connectivities = detectedConnectivities.get(i);
             // consider carbons here only, because of having complete connectivity information

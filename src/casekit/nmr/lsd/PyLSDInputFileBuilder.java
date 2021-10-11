@@ -273,7 +273,7 @@ public class PyLSDInputFileBuilder {
 
         final Signal signal = Utils.extractSignalFromCorrelation(correlation);
         if (signal
-                != null) {
+                == null) {
             return "?";
         }
 
@@ -442,7 +442,7 @@ public class PyLSDInputFileBuilder {
         }
         final Signal signal = Utils.extractSignalFromCorrelation(correlation);
         if (signal
-                != null) {
+                == null) {
             return null;
         }
         final StringBuilder stringBuilder = new StringBuilder();
@@ -467,7 +467,7 @@ public class PyLSDInputFileBuilder {
         }
         final Signal signal = Utils.extractSignalFromCorrelation(correlation);
         if (signal
-                != null) {
+                == null) {
             return null;
         }
         final StringBuilder stringBuilder = new StringBuilder();

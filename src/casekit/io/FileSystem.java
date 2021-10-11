@@ -70,6 +70,16 @@ public class FileSystem {
         return cleaned;
     }
 
+    public static String getFileContent(final String pathToJsonFile) {
+        final BufferedReader bufferedReader = FileSystem.readFile(pathToJsonFile);
+        return bufferedReader
+                       == null
+               ? null
+               : bufferedReader.lines()
+                               .reduce("", (content, line) -> content
+                                       + line);
+    }
+
     public static List<String> getSmilesListFromFile(final String pathToSmilesFile) {
         final List<String> smilesList = new ArrayList<>();
         try {

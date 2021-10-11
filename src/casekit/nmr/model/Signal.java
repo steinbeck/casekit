@@ -49,7 +49,7 @@ public class Signal {
     private String kind;
     private Double intensity;
     private int equivalencesCount;
-    private int phase;
+    private Integer phase;
 
 
     public int getNDim() {

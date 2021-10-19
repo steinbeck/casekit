@@ -109,44 +109,52 @@ public class Utilities {
     }
 
     public static Map<String, Map<Integer, Set<Integer>>> buildForbiddenNeighborHybridizationsAndProtonCounts(
-            final Map<String, Map<String, Set<Integer>>> connectivities, final Set<String> neighborAtomTypes) {
+            final Map<String, Map<String, Set<Integer>>> connectivities, final Set<String> possibleNeighborAtomTypes) {
 
         // define forbidden hybridizations and proton counts (carbons only) of possible neighbors
+        // or put just an empty map which stands for all hybridizations and proton counts
         final Map<String, Map<Integer, Set<Integer>>> forbiddenNeighborHybridizationsAndProtonCounts = new HashMap<>();
-        for (final String neighborAtomType : neighborAtomTypes) {
-            forbiddenNeighborHybridizationsAndProtonCounts.put(neighborAtomType, new HashMap<>());
-            for (final int defaultHybridization : Arrays.stream(Constants.defaultHybridizationMap.get(neighborAtomType))
-                                                        .boxed()
-                                                        .collect(Collectors.toList())) {
-                forbiddenNeighborHybridizationsAndProtonCounts.get(neighborAtomType)
-                                                              .put(defaultHybridization, Arrays.stream(
-                                                                      Constants.defaultProtonsCountPerValencyMap.get(
-                                                                              neighborAtomType))
-                                                                                               .boxed()
-                                                                                               .collect(
-                                                                                                       Collectors.toSet()));
+        for (final String possibleNeighborAtomType : possibleNeighborAtomTypes) {
+            if (possibleNeighborAtomType.equals("H")) {
+                continue;
             }
-            for (final String neighborHybridization : connectivities.get(neighborAtomType)
-                                                                    .keySet()) {
-                // remove found protons count per hybridzations from list of forbidden ones
-                for (final int forbiddenNeighborHybridization : new HashSet<>(
-                        forbiddenNeighborHybridizationsAndProtonCounts.get(neighborAtomType)
-                                                                      .keySet())) {
-                    forbiddenNeighborHybridizationsAndProtonCounts.get(neighborAtomType)
-                                                                  .get(forbiddenNeighborHybridization)
-                                                                  .removeAll(connectivities.get(neighborAtomType)
-                                                                                           .get(neighborHybridization));
-                    if (forbiddenNeighborHybridizationsAndProtonCounts.get(neighborAtomType)
-                                                                      .get(forbiddenNeighborHybridization)
-                                                                      .isEmpty()) {
-                        forbiddenNeighborHybridizationsAndProtonCounts.get(neighborAtomType)
-                                                                      .remove(forbiddenNeighborHybridization);
-                    }
+            forbiddenNeighborHybridizationsAndProtonCounts.put(possibleNeighborAtomType, new HashMap<>());
+            if (connectivities.containsKey(possibleNeighborAtomType)) {
+                for (final int defaultHybridization : Arrays.stream(
+                                                                    Constants.defaultHybridizationMap.get(possibleNeighborAtomType))
+                                                            .boxed()
+                                                            .collect(Collectors.toList())) {
+                    forbiddenNeighborHybridizationsAndProtonCounts.get(possibleNeighborAtomType)
+                                                                  .put(defaultHybridization, Arrays.stream(
+                                                                                                           Constants.defaultProtonsCountPerValencyMap.get(
+                                                                                                                   possibleNeighborAtomType))
+                                                                                                   .boxed()
+                                                                                                   .collect(
+                                                                                                           Collectors.toSet()));
                 }
-                if (forbiddenNeighborHybridizationsAndProtonCounts.get(neighborAtomType)
-                                                                  .isEmpty()) {
-                    forbiddenNeighborHybridizationsAndProtonCounts.remove(neighborAtomType);
-                    break;
+                for (final String neighborHybridization : connectivities.get(possibleNeighborAtomType)
+                                                                        .keySet()) {
+                    // remove found protons count per hybridzations from list of forbidden ones
+                    for (final int forbiddenNeighborHybridization : new HashSet<>(
+                            forbiddenNeighborHybridizationsAndProtonCounts.get(possibleNeighborAtomType)
+                                                                          .keySet())) {
+                        forbiddenNeighborHybridizationsAndProtonCounts.get(possibleNeighborAtomType)
+                                                                      .get(forbiddenNeighborHybridization)
+                                                                      .removeAll(connectivities.get(
+                                                                                                       possibleNeighborAtomType)
+                                                                                               .get(neighborHybridization));
+                        if (forbiddenNeighborHybridizationsAndProtonCounts.get(possibleNeighborAtomType)
+                                                                          .get(forbiddenNeighborHybridization)
+                                                                          .isEmpty()) {
+                            forbiddenNeighborHybridizationsAndProtonCounts.get(possibleNeighborAtomType)
+                                                                          .remove(forbiddenNeighborHybridization);
+                        }
+                    }
+                    if (forbiddenNeighborHybridizationsAndProtonCounts.get(possibleNeighborAtomType)
+                                                                      .isEmpty()) {
+                        forbiddenNeighborHybridizationsAndProtonCounts.remove(possibleNeighborAtomType);
+                        break;
+                    }
                 }
             }
         }

@@ -103,6 +103,7 @@ public class LISTAndPROPUtilities {
                                                               final List<Correlation> correlationList,
                                                               final Map<Integer, Object[]> indicesMap,
                                                               final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities,
+                                                              final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
                                                               final Set<String> atomTypesByMf) {
         // insert ELEM for each heavy atom type in MF
         LISTAndPROPUtilities.insertELEM(stringBuilder, listMap, atomTypesByMf);
@@ -130,8 +131,7 @@ public class LISTAndPROPUtilities {
                     == null) {
                 continue;
             }
-            forbiddenNeighborHybridizationsAndProtonCounts = Utilities.buildForbiddenNeighborHybridizationsAndProtonCounts(
-                    connectivities, atomTypesByMf);
+            forbiddenNeighborHybridizationsAndProtonCounts = forbiddenNeighbors.get(i);
 
             // put in the extracted information per correlation
             for (int k = 1; k

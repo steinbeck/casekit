@@ -490,6 +490,7 @@ public class PyLSDInputFileBuilder {
                                              final Map<Integer, Object[]> indicesMap,
                                              final Map<String, Integer> elementCounts,
                                              final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities,
+                                             final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
                                              final boolean allowHeteroHeteroBonds) {
         final StringBuilder stringBuilder = new StringBuilder();
         final Map<String, String> listMap = new HashMap<>();
@@ -500,7 +501,8 @@ public class PyLSDInputFileBuilder {
         }
         // insert forbidden connection lists and properties
         LISTAndPROPUtilities.insertForbiddenConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
-                                                                    detectedConnectivities, elementCounts.keySet());
+                                                                    detectedConnectivities, forbiddenNeighbors,
+                                                                    elementCounts.keySet());
 
         return stringBuilder.toString();
     }
@@ -603,6 +605,7 @@ public class PyLSDInputFileBuilder {
     public static String buildPyLSDInputFileContent(final Data data, final String mf,
                                                     final Map<Integer, List<Integer>> detectedHybridizations,
                                                     final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities,
+                                                    final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
                                                     final ElucidationOptions elucidationOptions) {
         final Map<String, Map<String, Object>> state = data.getCorrelations()
                                                            .getState();
@@ -679,7 +682,7 @@ public class PyLSDInputFileBuilder {
 
             // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance
             stringBuilder.append(buildLISTsAndPROPs(correlationList, indicesMap, elementCounts, detectedConnectivities,
-                                                    elucidationOptions.isAllowHeteroHeteroBonds()))
+                                                    forbiddenNeighbors, elucidationOptions.isAllowHeteroHeteroBonds()))
                          .append("\n");
             // DEFF and FEXP as filters (bad lists)
             stringBuilder.append(buildFilters(elucidationOptions.getFilterPaths()))

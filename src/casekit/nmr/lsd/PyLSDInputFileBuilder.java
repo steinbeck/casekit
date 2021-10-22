@@ -55,15 +55,8 @@ public class PyLSDInputFileBuilder {
         // index in correlation data -> [atom type, indices in PyLSD file...]
         final Map<Integer, Object[]> indicesMap = new HashMap<>();
         // init element indices within correlations with same order as in correlation data input
-        final int totalHeavyAtomsCount = elementCounts.entrySet()
-                                                      .stream()
-                                                      .filter(set -> !set.getKey()
-                                                                         .equals("H"))
-                                                      .map(Map.Entry::getValue)
-                                                      .reduce(0, Integer::sum);
         int heavyAtomIndexInPyLSDFile = 1;
-        int protonIndexInPyLSDFile = totalHeavyAtomsCount
-                + 1;
+        int protonIndexInPyLSDFile = 1;
         int protonsToInsert, protonsCount;
         Correlation correlation;
         for (int i = 0; i
@@ -279,7 +272,7 @@ public class PyLSDInputFileBuilder {
 
         return correlation.isPseudo()
                ? "?"
-               : String.valueOf(Statistics.roundDouble(signal.getShift(0), 2));
+               : String.valueOf(Statistics.roundDouble(signal.getShift(0), 3));
     }
 
     private static String buildShiftsComment(final Correlation correlation1, final Correlation correlation2) {
@@ -451,7 +444,7 @@ public class PyLSDInputFileBuilder {
             stringBuilder.append("SHIX ")
                          .append(indicesMap.get(index)[k])
                          .append(" ")
-                         .append(Statistics.roundDouble(signal.getShift(0), 2))
+                         .append(Statistics.roundDouble(signal.getShift(0), 3))
                          .append("\n");
         }
 
@@ -484,7 +477,7 @@ public class PyLSDInputFileBuilder {
                     stringBuilder.append("SHIH ")
                                  .append(indicesMap.get(index)[k])
                                  .append(" ")
-                                 .append(Statistics.roundDouble(signal.getShift(0), 3))
+                                 .append(Statistics.roundDouble(signal.getShift(0), 5))
                                  .append("\n");
                 }
             }

@@ -50,7 +50,7 @@ public class FileSystem {
         return false;
     }
 
-    public static boolean cleanup(final String[] directoriesToCheck, final String requestID) {
+    public static boolean cleanup(final String[] directoriesToCheck, final String pattern) {
         boolean cleaned = false;
 
         for (final String dir : directoriesToCheck) {
@@ -58,7 +58,7 @@ public class FileSystem {
                 cleaned = Files.walk(Paths.get(dir))
                                .map(Path::toFile)
                                .filter(file -> file.getAbsolutePath()
-                                                   .contains(requestID))
+                                                   .contains(pattern))
                                .allMatch(File::delete);
 
             } catch (final IOException e) {

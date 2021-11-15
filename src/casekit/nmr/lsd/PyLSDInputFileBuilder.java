@@ -10,7 +10,6 @@ import casekit.nmr.utils.Utils;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class PyLSDInputFileBuilder {
 
@@ -130,10 +129,7 @@ public class PyLSDInputFileBuilder {
                 && !correlation.getHybridization()
                                .isEmpty()) {
             // if hybridization is already given
-            hybridizations.addAll(correlation.getHybridization()
-                                             .stream()
-                                             .map(Constants.hybridizationConversionMap::get)
-                                             .collect(Collectors.toSet()));
+            hybridizations.addAll(correlation.getHybridization());
         } else {
             // if hybridization is not given then use the detected ones
             if (detectedHybridizations.containsKey(index)) {
@@ -489,9 +485,9 @@ public class PyLSDInputFileBuilder {
     private static String buildLISTsAndPROPs(final List<Correlation> correlationList,
                                              final Map<Integer, Object[]> indicesMap,
                                              final Map<String, Integer> elementCounts,
-                                             final Map<Integer, Map<String, Set<Integer>>> detectedConnectivities,
-                                             final Map<Integer, Map<String, Set<Integer>>> forbiddenNeighbors,
-                                             final Map<Integer, Map<String, Set<Integer>>> setNeighbors,
+                                             final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities,
+                                             final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
+                                             final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors,
                                              final boolean allowHeteroHeteroBonds) {
         final StringBuilder stringBuilder = new StringBuilder();
         final Map<String, String> listMap = new HashMap<>();
@@ -611,9 +607,9 @@ public class PyLSDInputFileBuilder {
 
     public static String buildPyLSDInputFileContent(final Data data, final String mf,
                                                     final Map<Integer, List<Integer>> detectedHybridizations,
-                                                    final Map<Integer, Map<String, Set<Integer>>> detectedConnectivities,
-                                                    final Map<Integer, Map<String, Set<Integer>>> forbiddenNeighbors,
-                                                    final Map<Integer, Map<String, Set<Integer>>> setNeighbors,
+                                                    final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities,
+                                                    final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
+                                                    final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors,
                                                     final ElucidationOptions elucidationOptions) {
         final Map<String, Map<String, Object>> state = data.getCorrelations()
                                                            .getState();

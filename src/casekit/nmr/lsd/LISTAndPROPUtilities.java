@@ -121,12 +121,12 @@ public class LISTAndPROPUtilities {
                 atomType = correlation.getAtomType();
                 neighborsTemp = neighbors.get(i);
 
-                // put in the extracted information per correlation
+                // put in the extracted information per correlation and equivalent
                 for (int k = 1; k
                         < indicesMap.get(i).length; k++) {
                     indexInPyLSD = (int) indicesMap.get(i)[k];
                     for (final String neighborAtomType : neighborsTemp.keySet()) {
-                        // forbid bonds to whole element groups if there is an empty map for an atom type
+                        // forbid/set bonds to whole element groups if there is an empty map for an atom type
                         if (neighborsTemp.get(neighborAtomType)
                                          .isEmpty()) {
                             stringBuilder.append("PROP ")

@@ -510,7 +510,7 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildFilterDEFFs(final Map<String, Boolean> fexpMap, final String[] filterPaths) {
+    private static String buildDEFFs(final String[] filterPaths, final String[] pathsToNeighborsFiles) {
         final StringBuilder stringBuilder = new StringBuilder();
         // DEFF -> add filters
         stringBuilder.append("; externally defined filters\n");
@@ -521,6 +521,11 @@ public class PyLSDInputFileBuilder {
                                 + counter, filterPath);
             counter++;
         }
+        for (final String pathToNeighborsFiles : pathsToNeighborsFiles) {
+            filters.put("F"
+                                + counter, pathToNeighborsFiles);
+            counter++;
+        }
 
         if (!filters.isEmpty()) {
             filters.forEach((label, filePath) -> stringBuilder.append("DEFF ")
@@ -529,13 +534,6 @@ public class PyLSDInputFileBuilder {
                                                               .append(filePath)
                                                               .append("\"\n"));
             stringBuilder.append("\n");
-
-            for (int i = 0; i
-                    < filters.size(); i++) {
-                fexpMap.put("F"
-                                    + (i
-                        + 1), false);
-            }
         }
 
         return stringBuilder.toString();
@@ -562,6 +560,43 @@ public class PyLSDInputFileBuilder {
             }
             stringBuilder.append("\"\n");
         }
+
+        return stringBuilder.toString();
+    }
+
+    private static String buildDEFFsAndFEXP(final List<Correlation> correlationList,
+                                            final Map<Integer, Object[]> indicesMap,
+                                            final ElucidationOptions elucidationOptions,
+                                            final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
+                                            final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors) {
+        final StringBuilder stringBuilder = new StringBuilder();
+        final Map<String, Boolean> fexpMap = new HashMap<>();
+        for (int i = 0; i
+                < elucidationOptions.getFilterPaths().length; i++) {
+            fexpMap.put("F"
+                                + (i
+                    + 1), false);
+        }
+        // build and write neighbors files
+        if (Utilities.writeNeighborsFile(elucidationOptions.getPathsToNeighborsFiles()[0], correlationList, indicesMap,
+                                         forbiddenNeighbors)) {
+            fexpMap.put("F"
+                                + (fexpMap.size()
+                    + 1), false);
+        }
+        if (Utilities.writeNeighborsFile(elucidationOptions.getPathsToNeighborsFiles()[1], correlationList, indicesMap,
+                                         setNeighbors)) {
+            fexpMap.put("F"
+                                + (fexpMap.size()
+                    + 1), true);
+        }
+        // build DEFFs
+        stringBuilder.append(
+                             buildDEFFs(elucidationOptions.getFilterPaths(), elucidationOptions.getPathsToNeighborsFiles()))
+                     .append("\n");
+        // build FEXP
+        stringBuilder.append(buildFEXP(fexpMap))
+                     .append("\n");
 
         return stringBuilder.toString();
     }
@@ -708,12 +743,8 @@ public class PyLSDInputFileBuilder {
                                                     elucidationOptions.isAllowHeteroHeteroBonds()))
                          .append("\n");
             // DEFF and FEXP as filters (good/bad lists)
-            final Map<String, Boolean> fexpMap = new HashMap<>();
-            stringBuilder.append(buildFilterDEFFs(fexpMap, elucidationOptions.getFilterPaths()))
-                         .append("\n");
-            System.out.println("fexpMap: "
-                                       + fexpMap);
-            stringBuilder.append(buildFEXP(fexpMap))
+            stringBuilder.append(buildDEFFsAndFEXP(correlationList, indicesMap, elucidationOptions, forbiddenNeighbors,
+                                                   setNeighbors))
                          .append("\n");
 
             return stringBuilder.toString();

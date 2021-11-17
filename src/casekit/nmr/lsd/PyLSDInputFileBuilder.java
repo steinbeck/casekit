@@ -498,8 +498,8 @@ public class PyLSDInputFileBuilder {
         }
         // insert ELEM for each heavy atom type in MF
         LISTAndPROPUtilities.insertELEM(stringBuilder, listMap, elementCounts.keySet());
-        // insert list combinations of carbon and hybridization states
-        LISTAndPROPUtilities.insertHeavyAtomCombinationLISTs(stringBuilder, listMap, correlationList, indicesMap);
+        //        // insert list combinations of carbon and hybridization states
+        //        LISTAndPROPUtilities.insertHeavyAtomCombinationLISTs(stringBuilder, listMap, correlationList, indicesMap);
         // insert forbidden connection lists and properties
         LISTAndPROPUtilities.insertForbiddenConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
                                                                     detectedConnectivities, forbiddenNeighbors);
@@ -510,9 +510,9 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildFilters(final String[] filterPaths) {
+    private static String buildFilterDEFFs(final Map<String, Boolean> fexpMap, final String[] filterPaths) {
         final StringBuilder stringBuilder = new StringBuilder();
-        // DEFF + FEXP -> add filters
+        // DEFF -> add filters
         stringBuilder.append("; externally defined filters\n");
         final Map<String, String> filters = new LinkedHashMap<>();
         int counter = 1;
@@ -530,13 +530,31 @@ public class PyLSDInputFileBuilder {
                                                               .append("\"\n"));
             stringBuilder.append("\n");
 
+            for (int i = 0; i
+                    < filters.size(); i++) {
+                fexpMap.put("F"
+                                    + (i
+                        + 1), false);
+            }
+        }
+
+        return stringBuilder.toString();
+    }
+
+    private static String buildFEXP(final Map<String, Boolean> fexpMap) {
+        final StringBuilder stringBuilder = new StringBuilder();
+
+        if (!fexpMap.isEmpty()) {
             stringBuilder.append("FEXP \"");
-            counter = 0;
-            for (final String label : filters.keySet()) {
-                stringBuilder.append("NOT ")
-                             .append(label);
+            int counter = 0;
+            for (final String label : fexpMap.keySet()) {
+                if (!fexpMap.get(label)) {
+                    stringBuilder.append("NOT ");
+                }
+                stringBuilder.append(label);
                 if (counter
-                        < filters.size()
+                        < fexpMap.keySet()
+                                 .size()
                         - 1) {
                     stringBuilder.append(" and ");
                 }
@@ -689,8 +707,13 @@ public class PyLSDInputFileBuilder {
                                                     forbiddenNeighbors, setNeighbors,
                                                     elucidationOptions.isAllowHeteroHeteroBonds()))
                          .append("\n");
-            // DEFF and FEXP as filters (bad lists)
-            stringBuilder.append(buildFilters(elucidationOptions.getFilterPaths()))
+            // DEFF and FEXP as filters (good/bad lists)
+            final Map<String, Boolean> fexpMap = new HashMap<>();
+            stringBuilder.append(buildFilterDEFFs(fexpMap, elucidationOptions.getFilterPaths()))
+                         .append("\n");
+            System.out.println("fexpMap: "
+                                       + fexpMap);
+            stringBuilder.append(buildFEXP(fexpMap))
                          .append("\n");
 
             return stringBuilder.toString();

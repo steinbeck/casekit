@@ -501,11 +501,11 @@ public class PyLSDInputFileBuilder {
         //        // insert list combinations of carbon and hybridization states
         //        LISTAndPROPUtilities.insertHeavyAtomCombinationLISTs(stringBuilder, listMap, correlationList, indicesMap);
         // insert forbidden connection lists and properties
-        LISTAndPROPUtilities.insertForbiddenConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
-                                                                    detectedConnectivities, forbiddenNeighbors);
+        LISTAndPROPUtilities.insertConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
+                                                           forbiddenNeighbors, "forbid");
         // insert set connection lists and properties
-        LISTAndPROPUtilities.insertSetConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
-                                                              setNeighbors);
+        LISTAndPROPUtilities.insertConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
+                                                           setNeighbors, "allow");
 
         return stringBuilder.toString();
     }

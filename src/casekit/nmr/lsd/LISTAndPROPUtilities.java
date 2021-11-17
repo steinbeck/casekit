@@ -98,144 +98,49 @@ public class LISTAndPROPUtilities {
             listMap.put(combinationEntry.getKey(), "L"
                     + (listMap.size()
                     + 1));
-
-            System.out.println("listMap: "
-                                       + listMap);
         }
     }
 
-    public static void insertForbiddenConnectionLISTsAndPROPs(final StringBuilder stringBuilder,
-                                                              final Map<String, String> listMap,
-                                                              final List<Correlation> correlationList,
-                                                              final Map<Integer, Object[]> indicesMap,
-                                                              final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities,
-                                                              final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors) {
+
+    public static void insertConnectionLISTsAndPROPs(final StringBuilder stringBuilder,
+                                                     final Map<String, String> listMap,
+                                                     final List<Correlation> correlationList,
+                                                     final Map<Integer, Object[]> indicesMap,
+                                                     final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> neighbors,
+                                                     final String mode) {
         Correlation correlation;
         Signal signal;
-        String atomType, listKey;
+        String atomType;
         int indexInPyLSD;
-        Map<String, Map<Integer, Set<Integer>>> connectivitiesTemp;
-        Map<String, Map<Integer, Set<Integer>>> forbiddenNeighborsTemp;
+        Map<String, Map<Integer, Set<Integer>>> neighborsTemp;
         for (int i = 0; i
                 < correlationList.size(); i++) {
-            correlation = correlationList.get(i);
-            signal = Utils.extractSignalFromCorrelation(correlation);
-            atomType = correlation.getAtomType();
-            connectivitiesTemp = detectedConnectivities.get(i);
-            // consider carbons here only, because of having complete connectivity information
-            if (!atomType.equals("C")
-                    || connectivitiesTemp
-                    == null
-                    || connectivitiesTemp.isEmpty()
-                    || signal
-                    == null) {
-                continue;
-            }
-            forbiddenNeighborsTemp = forbiddenNeighbors.get(i);
-
-            // put in the extracted information per correlation
-            for (int k = 1; k
-                    < indicesMap.get(i).length; k++) {
-                indexInPyLSD = (int) indicesMap.get(i)[k];
-                for (final String neighborAtomType : forbiddenNeighborsTemp.keySet()) {
-                    // forbid bonds to whole element groups if there is an empty map for an atom type
-                    if (forbiddenNeighborsTemp.get(neighborAtomType)
-                                              .isEmpty()) {
-                        stringBuilder.append("PROP ")
-                                     .append(indexInPyLSD)
-                                     .append(" 0 ")
-                                     .append(listMap.get(neighborAtomType))
-                                     .append(" -")
-                                     .append("; no bonds between ")
-                                     .append(indexInPyLSD)
-                                     .append(" (")
-                                     .append(atomType)
-                                     .append(", ")
-                                     .append(Statistics.roundDouble(signal.getShift(0), 2))
-                                     .append(") and ")
-                                     .append(listMap.get(neighborAtomType))
-                                     .append(" (")
-                                     .append(neighborAtomType)
-                                     .append(")")
-                                     .append("\n");
-                    } else {
-                        // forbid bonds to possible neighbors with certain hybridization states and proton counts
-                        for (final int forbiddenNeighborHybridization : forbiddenNeighborsTemp.get(neighborAtomType)
-                                                                                              .keySet()) {
-                            for (final int forbiddenProtonsCount : forbiddenNeighborsTemp.get(neighborAtomType)
-                                                                                         .get(forbiddenNeighborHybridization)) {
-                                listKey = buildListKey(neighborAtomType, forbiddenNeighborHybridization,
-                                                       forbiddenProtonsCount);
-                                System.out.println("forbidden: "
-                                                           + listKey);
-                                if (listMap.containsKey(listKey)) {
-                                    System.out.println("-> HUHU");
-                                    stringBuilder.append("PROP ")
-                                                 .append(indexInPyLSD)
-                                                 .append(" 0 ")
-                                                 .append(listMap.get(listKey))
-                                                 .append(" -")
-                                                 .append("; no bonds between ")
-                                                 .append(indexInPyLSD)
-                                                 .append(" (")
-                                                 .append(atomType)
-                                                 .append(", ")
-                                                 .append(Statistics.roundDouble(signal.getShift(0), 2))
-                                                 .append(", SP")
-                                                 .append(forbiddenNeighborHybridization)
-                                                 .append(") and ")
-                                                 .append(listMap.get(listKey))
-                                                 .append(" (")
-                                                 .append(neighborAtomType)
-                                                 .append(", SP")
-                                                 .append(forbiddenNeighborHybridization)
-                                                 .append(", ")
-                                                 .append(forbiddenProtonsCount)
-                                                 .append("H")
-                                                 .append(")")
-                                                 .append("\n");
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-    }
-
-    public static void insertSetConnectionLISTsAndPROPs(final StringBuilder stringBuilder,
-                                                        final Map<String, String> listMap,
-                                                        final List<Correlation> correlationList,
-                                                        final Map<Integer, Object[]> indicesMap,
-                                                        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors) {
-        Correlation correlation;
-        Signal signal;
-        String atomType, listKey;
-        int indexInPyLSD;
-        Map<String, Map<Integer, Set<Integer>>> setNeighborsTemp;
-        for (int i = 0; i
-                < correlationList.size(); i++) {
-            if (setNeighbors.containsKey(i)) {
+            if (neighbors.containsKey(i)) {
                 correlation = correlationList.get(i);
                 signal = Utils.extractSignalFromCorrelation(correlation);
                 atomType = correlation.getAtomType();
-                setNeighborsTemp = setNeighbors.get(i);
+                neighborsTemp = neighbors.get(i);
 
                 // put in the extracted information per correlation
                 for (int k = 1; k
                         < indicesMap.get(i).length; k++) {
                     indexInPyLSD = (int) indicesMap.get(i)[k];
-                    for (final String neighborAtomType : setNeighborsTemp.keySet()) {
+                    for (final String neighborAtomType : neighborsTemp.keySet()) {
                         // forbid bonds to whole element groups if there is an empty map for an atom type
-                        if (setNeighborsTemp.get(neighborAtomType)
-                                            .isEmpty()) {
+                        if (neighborsTemp.get(neighborAtomType)
+                                         .isEmpty()) {
                             stringBuilder.append("PROP ")
                                          .append(indexInPyLSD)
-                                         .append(" 1 ")
+                                         .append(mode.equals("forbid")
+                                                 ? " 0 "
+                                                 : " 1 ")
                                          .append(listMap.get(neighborAtomType))
-                                         .append(" +")
-                                         .append("; at least one bond between ")
+                                         .append(mode.equals("forbid")
+                                                 ? " -"
+                                                 : " +")
+                                         .append(mode.equals("forbid")
+                                                 ? "; no bonds between "
+                                                 : "; at least one bond between ")
                                          .append(indexInPyLSD)
                                          .append(" (")
                                          .append(atomType)
@@ -250,45 +155,46 @@ public class LISTAndPROPUtilities {
                                          .append(neighborAtomType)
                                          .append(")")
                                          .append("\n");
-                        } else {
-                            for (final int setNeighborHybridization : setNeighborsTemp.get(neighborAtomType)
-                                                                                      .keySet()) {
-                                for (final int setProtonsCount : setNeighborsTemp.get(neighborAtomType)
-                                                                                 .get(setNeighborHybridization)) {
-                                    listKey = buildListKey(neighborAtomType, setNeighborHybridization, setProtonsCount);
-                                    System.out.println("set: "
-                                                               + listKey);
-                                    if (listMap.containsKey(listKey)) {
-                                        System.out.println("-> HUHU");
-                                        stringBuilder.append("PROP ")
-                                                     .append(indexInPyLSD)
-                                                     .append(" 1 ")
-                                                     .append(listMap.get(listKey))
-                                                     .append(" +")
-                                                     .append("; at least one bond between ")
-                                                     .append(indexInPyLSD)
-                                                     .append(" (")
-                                                     .append(atomType)
-                                                     .append(", ")
-                                                     .append(signal
-                                                                     != null
-                                                             ? Statistics.roundDouble(signal.getShift(0), 2)
-                                                             : "?")
-                                                     .append(") and ")
-                                                     .append(listMap.get(listKey))
-                                                     .append(" (")
-                                                     .append(neighborAtomType)
-                                                     .append(", SP")
-                                                     .append(setNeighborHybridization)
-                                                     .append(", ")
-                                                     .append(setProtonsCount)
-                                                     .append("H")
-                                                     .append(")")
-                                                     .append("\n");
-                                    }
-                                }
-                            }
                         }
+                        //                        else {
+                        //                            for (final int setNeighborHybridization : setNeighborsTemp.get(neighborAtomType)
+                        //                                                                                      .keySet()) {
+                        //                                for (final int setProtonsCount : setNeighborsTemp.get(neighborAtomType)
+                        //                                                                                 .get(setNeighborHybridization)) {
+                        //                                    listKey = buildListKey(neighborAtomType, setNeighborHybridization, setProtonsCount);
+                        //                                    System.out.println("set: "
+                        //                                                               + listKey);
+                        //                                    if (listMap.containsKey(listKey)) {
+                        //                                        System.out.println("-> HUHU");
+                        //                                        stringBuilder.append("PROP ")
+                        //                                                     .append(indexInPyLSD)
+                        //                                                     .append(" 1 ")
+                        //                                                     .append(listMap.get(listKey))
+                        //                                                     .append(" +")
+                        //                                                     .append("; at least one bond between ")
+                        //                                                     .append(indexInPyLSD)
+                        //                                                     .append(" (")
+                        //                                                     .append(atomType)
+                        //                                                     .append(", ")
+                        //                                                     .append(signal
+                        //                                                                     != null
+                        //                                                             ? Statistics.roundDouble(signal.getShift(0), 2)
+                        //                                                             : "?")
+                        //                                                     .append(") and ")
+                        //                                                     .append(listMap.get(listKey))
+                        //                                                     .append(" (")
+                        //                                                     .append(neighborAtomType)
+                        //                                                     .append(", SP")
+                        //                                                     .append(setNeighborHybridization)
+                        //                                                     .append(", ")
+                        //                                                     .append(setProtonsCount)
+                        //                                                     .append("H")
+                        //                                                     .append(")")
+                        //                                                     .append("\n");
+                        //                                    }
+                        //                                }
+                        //                            }
+                        //                        }
                     }
                 }
             }

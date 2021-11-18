@@ -1,8 +1,6 @@
 package casekit.nmr.lsd;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class Constants {
 
@@ -12,6 +10,7 @@ public class Constants {
     public static final Map<String, int[]> defaultProtonsCountPerValencyMap = createDefaultProtonsCountPerValencyMap();
     public static final Map<String, String> defaultAtomLabelMap = createDefaultAtomLabelMap();
     public static final Map<String, Integer> hybridizationConversionMap = createHybridizationConversionMap();
+    public static final Map<String, Map<Integer, Set<Integer>>> hybridizationsByProtonsCountMap = createHybridizationsByProtonsCountMap();
 
     private static Map<String, String> createNucleiMap() {
         final Map<String, String> nuclei = new HashMap<>();
@@ -74,5 +73,67 @@ public class Constants {
         hybridizationConversionMap.put("SP1", 1);
 
         return Collections.unmodifiableMap(hybridizationConversionMap);
+    }
+
+    private static Map<String, Map<Integer, Set<Integer>>> createHybridizationsByProtonsCountMap() {
+        final Map<String, Map<Integer, Set<Integer>>> hybridizationsByProtonsCountMap = new HashMap<>();
+        hybridizationsByProtonsCountMap.put("C", new HashMap<>());
+        hybridizationsByProtonsCountMap.get("C")
+                                       .put(4, new HashSet<>());
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(4)
+                                       .add(3);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .put(3, new HashSet<>());
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(3)
+                                       .add(3);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .put(2, new HashSet<>());
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(2)
+                                       .add(3);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(2)
+                                       .add(2);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .put(1, new HashSet<>());
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(1)
+                                       .add(3);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(1)
+                                       .add(2);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(1)
+                                       .add(1);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .put(0, new HashSet<>());
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(0)
+                                       .add(3);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(0)
+                                       .add(2);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(0)
+                                       .add(1);
+        // N (3)
+        hybridizationsByProtonsCountMap.put("N", new HashMap<>());
+        hybridizationsByProtonsCountMap.get("N")
+                                       .put(3, new HashSet<>());
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(3)
+                                       .add(3);
+        hybridizationsByProtonsCountMap.get("N")
+                                       .put(2, new HashSet<>());
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(2)
+                                       .add(3);
+        hybridizationsByProtonsCountMap.get("C")
+                                       .get(2)
+                                       .add(2);
+
+        return Collections.unmodifiableMap(hybridizationsByProtonsCountMap);
     }
 }

@@ -46,7 +46,7 @@ public class Correlation {
     private int equivalence;
     private Map<String, List<Integer>> attachment;
     private List<Integer> protonsCount;
-    private List<String> hybridization;
+    private List<Integer> hybridization;
     private boolean pseudo;
     private Map<String, Boolean> edited;
 }

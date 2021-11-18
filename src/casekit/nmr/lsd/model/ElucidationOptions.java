@@ -13,6 +13,7 @@ public class ElucidationOptions {
 
     // PyLSD options
     private String[] filterPaths;
+    private String[] pathsToNeighborsFiles;
     private boolean allowHeteroHeteroBonds;
     private boolean useElim;
     private int elimP1;

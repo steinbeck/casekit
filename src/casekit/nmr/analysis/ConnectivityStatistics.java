@@ -149,13 +149,13 @@ public class ConnectivityStatistics {
         return extractedConnectivities;
     }
 
-    public static Map<String, Set<Integer>> filterExtractedConnectivities(
+    public static Map<String, Map<String, Set<Integer>>> filterExtractedConnectivities(
             final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivities,
             final double thresholdElementCount) {
         final Map<String, Integer> totalCounts = getTotalCounts(extractedConnectivities);
         final int totalCountsSum = getTotalCount(totalCounts);
 
-        final Map<String, Set<Integer>> filteredExtractedConnectivities = new HashMap<>();
+        final Map<String, Map<String, Set<Integer>>> filteredExtractedConnectivities = new HashMap<>();
         extractedConnectivities.keySet()
                                .forEach(neighborAtomType -> {
                                    extractedConnectivities.get(neighborAtomType)
@@ -169,15 +169,21 @@ public class ConnectivityStatistics {
                                                                           / (double) totalCountsSum
                                                                           >= thresholdElementCount) {
                                                                       filteredExtractedConnectivities.putIfAbsent(
-                                                                              neighborAtomType, new HashSet<>());
+                                                                              neighborAtomType, new HashMap<>());
                                                                       filteredExtractedConnectivities.get(
                                                                                                              neighborAtomType)
+                                                                                                     .putIfAbsent(
+                                                                                                             neighborHybridization,
+                                                                                                             new HashSet<>());
+                                                                      filteredExtractedConnectivities.get(
+                                                                                                             neighborAtomType)
+                                                                                                     .get(neighborHybridization)
                                                                                                      .add(entryProtonsCount.getKey());
                                                                   }
                                                               }
                                                           });
                                });
-        
+
         return filteredExtractedConnectivities;
     }
 

@@ -3,6 +3,7 @@ package casekit.nmr.lsd;
 import casekit.io.FileSystem;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
+import casekit.nmr.model.nmrium.Link;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 
@@ -223,12 +224,12 @@ public class Utilities {
                                          .append(sstrIndexCorrelation)
                                          .append(" S")
                                          .append(sstrIndex)
+                                         .append("\n")
                                          .append("\n");
                             sstrIndex++;
                         }
                     }
                 }
-                stringBuilder.append("\n");
             }
         }
 
@@ -297,5 +298,46 @@ public class Utilities {
         stringBuilder.append(")");
 
         return stringBuilder.toString();
+    }
+
+    public static Map<Integer, Set<Integer>> buildFixedNeighborsByINADEQUATE(final List<Correlation> correlationList) {
+        final Map<Integer, Set<Integer>> fixedNeighbors = new HashMap<>();
+        final Set<String> uniqueSet = new HashSet<>();
+        Correlation correlation;
+        for (int i = 0; i
+                < correlationList.size(); i++) {
+            correlation = correlationList.get(i);
+            // @TODO for now use INADEQUATE information of atoms without equivalences only
+            if (correlation.getEquivalence()
+                    > 1) {
+                continue;
+            }
+            for (final Link link : correlation.getLink()) {
+                if (link.getExperimentType()
+                        .equals("inadequate")) {
+                    for (final int matchIndex : link.getMatch()) {
+                        // insert BOND pair once only and not if equivalences exist
+                        if (!uniqueSet.contains(i
+                                                        + " "
+                                                        + matchIndex)
+                                && correlationList.get(matchIndex)
+                                                  .getEquivalence()
+                                == 1) {
+                            fixedNeighbors.putIfAbsent(i, new HashSet<>());
+                            fixedNeighbors.get(i)
+                                          .add(matchIndex);
+                            uniqueSet.add(i
+                                                  + " "
+                                                  + matchIndex);
+                            uniqueSet.add(matchIndex
+                                                  + " "
+                                                  + i);
+                        }
+                    }
+                }
+            }
+        }
+
+        return fixedNeighbors;
     }
 }

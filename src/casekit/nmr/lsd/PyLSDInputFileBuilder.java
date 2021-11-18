@@ -273,8 +273,12 @@ public class PyLSDInputFileBuilder {
 
     private static String buildShiftsComment(final Correlation correlation1, final Correlation correlation2) {
         return "; "
+                + correlation1.getAtomType()
+                + ": "
                 + buildShiftString(correlation1)
                 + " -> "
+                + correlation2.getAtomType()
+                + ": "
                 + buildShiftString(correlation2);
     }
 
@@ -578,21 +582,24 @@ public class PyLSDInputFileBuilder {
                     + 1), false);
         }
         // build and write neighbors files
+        final List<String> pathsToNeighborsFilesToUse = new ArrayList<>();
         if (Utilities.writeNeighborsFile(elucidationOptions.getPathsToNeighborsFiles()[0], correlationList, indicesMap,
                                          forbiddenNeighbors)) {
             fexpMap.put("F"
                                 + (fexpMap.size()
                     + 1), false);
+            pathsToNeighborsFilesToUse.add(elucidationOptions.getPathsToNeighborsFiles()[0]);
         }
         if (Utilities.writeNeighborsFile(elucidationOptions.getPathsToNeighborsFiles()[1], correlationList, indicesMap,
                                          setNeighbors)) {
             fexpMap.put("F"
                                 + (fexpMap.size()
                     + 1), true);
+            pathsToNeighborsFilesToUse.add(elucidationOptions.getPathsToNeighborsFiles()[1]);
         }
         // build DEFFs
         stringBuilder.append(
-                             buildDEFFs(elucidationOptions.getFilterPaths(), elucidationOptions.getPathsToNeighborsFiles()))
+                             buildDEFFs(elucidationOptions.getFilterPaths(), pathsToNeighborsFilesToUse.toArray(String[]::new)))
                      .append("\n");
         // build FEXP
         stringBuilder.append(buildFEXP(fexpMap))
@@ -600,48 +607,45 @@ public class PyLSDInputFileBuilder {
 
         return stringBuilder.toString();
     }
-
-    private static String buildBONDByINADEQUATE(final List<Correlation> correlationList,
-                                                final Map<Integer, Object[]> indicesMap) {
+    
+    private static String buildBONDByFixedNeighbors(final List<Correlation> correlationList,
+                                                    final Map<Integer, Object[]> indicesMap,
+                                                    final Map<Integer, Set<Integer>> fixedNeighbors) {
         final StringBuilder stringBuilder = new StringBuilder();
 
         final Set<String> uniqueSet = new HashSet<>();
-        Correlation correlation;
-        for (int i = 0; i
-                < correlationList.size(); i++) {
-            correlation = correlationList.get(i);
-            // @TODO for now use INADEQUATE information of atoms without equivalences only
-            if (!correlation.getAtomType()
-                            .equals("C")
-                    || correlation.getEquivalence()
+        int correlationIndex1;
+        Correlation correlation1, correlation2;
+        for (final Map.Entry<Integer, Set<Integer>> entry : fixedNeighbors.entrySet()) {
+            correlationIndex1 = entry.getKey();
+            correlation1 = correlationList.get(correlationIndex1);
+            if (correlation1.getEquivalence()
                     > 1) {
                 continue;
             }
-            for (final Link link : correlation.getLink()) {
-                if (link.getExperimentType()
-                        .equals("inadequate")) {
-                    for (final int matchIndex : link.getMatch()) {
-                        // insert BOND pair once only and not if equivalences exist
-                        if (!uniqueSet.contains(indicesMap.get(i)[1]
-                                                        + " "
-                                                        + indicesMap.get(matchIndex)[1])
-                                && correlationList.get(matchIndex)
-                                                  .getEquivalence()
-                                == 1) {
-                            stringBuilder.append("BOND ")
-                                         .append(indicesMap.get(i)[1])
-                                         .append(" ")
-                                         .append(indicesMap.get(matchIndex)[1])
-                                         .append(buildShiftsComment(correlation, correlationList.get(matchIndex)))
-                                         .append("\n");
-                            uniqueSet.add(indicesMap.get(i)[1]
-                                                  + " "
-                                                  + indicesMap.get(matchIndex)[1]);
-                            uniqueSet.add(indicesMap.get(matchIndex)[1]
-                                                  + " "
-                                                  + indicesMap.get(i)[1]);
-                        }
-                    }
+            for (final int correlationIndex2 : entry.getValue()) {
+                correlation2 = correlationList.get(correlationIndex2);
+                // @TODO for now use fixed neighbor information of atoms without equivalences only
+                if (correlation2.getEquivalence()
+                        > 1) {
+                    continue;
+                }
+                // insert BOND pair once only and not if equivalences exist
+                if (!uniqueSet.contains(indicesMap.get(correlationIndex1)[1]
+                                                + " "
+                                                + indicesMap.get(correlationIndex2)[1])) {
+                    stringBuilder.append("BOND ")
+                                 .append(indicesMap.get(correlationIndex1)[1])
+                                 .append(" ")
+                                 .append(indicesMap.get(correlationIndex2)[1])
+                                 .append(buildShiftsComment(correlation1, correlation2))
+                                 .append("\n");
+                    uniqueSet.add(indicesMap.get(correlationIndex1)[1]
+                                          + " "
+                                          + indicesMap.get(correlationIndex2)[1]);
+                    uniqueSet.add(indicesMap.get(correlationIndex2)[1]
+                                          + " "
+                                          + indicesMap.get(correlationIndex1)[1]);
                 }
             }
         }
@@ -649,13 +653,10 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildBOND(final List<Correlation> correlationList, final Map<Integer, Object[]> indicesMap) {
-        final StringBuilder stringBuilder = new StringBuilder();
-
-        stringBuilder.append(buildBONDByINADEQUATE(correlationList, indicesMap))
-                     .append("\n");
-
-        return stringBuilder.toString();
+    private static String buildBOND(final List<Correlation> correlationList, final Map<Integer, Object[]> indicesMap,
+                                    final Map<Integer, Set<Integer>> fixedNeighbors) {
+        return buildBONDByFixedNeighbors(correlationList, indicesMap, fixedNeighbors)
+                + "\n";
     }
 
     public static String buildPyLSDInputFileContent(final Data data, final String mf,
@@ -663,6 +664,7 @@ public class PyLSDInputFileBuilder {
                                                     final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities,
                                                     final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
                                                     final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors,
+                                                    final Map<Integer, Set<Integer>> fixedNeighbors,
                                                     final ElucidationOptions elucidationOptions) {
         final Map<String, Map<String, Object>> state = data.getCorrelations()
                                                            .getState();
@@ -734,7 +736,7 @@ public class PyLSDInputFileBuilder {
                       });
 
             // BOND (interpretation, INADEQUATE, previous assignments) -> input fragments
-            stringBuilder.append(buildBOND(correlationList, indicesMap))
+            stringBuilder.append(buildBOND(correlationList, indicesMap, fixedNeighbors))
                          .append("\n");
 
             // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance

@@ -40,6 +40,7 @@ public class Signal2D
 
     private Map<String, Object> x;
     private Map<String, Object> y;
+    private PathLength pathLength;
 
     public Signal2D(final Signal signal) {
         super(signal.getId(), signal.getKind(), signal.getMultiplicity(), signal.getSign());

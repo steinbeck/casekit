@@ -330,15 +330,17 @@ public class PyLSDInputFileBuilder {
     }
 
     private static String buildHMBC(final List<Correlation> correlationList, final int index,
-                                    final Map<Integer, Object[]> indicesMap, final int hmbcP3, final int hmbcP4) {
+                                    final Map<Integer, Object[]> indicesMap) {
         final Correlation correlation = correlationList.get(index);
         if (correlation.getAtomType()
                        .equals("H")) {
             return null;
         }
-        final String defaultBondDistance = hmbcP3
+        final String defaultBondDistanceString = 2
                 + " "
-                + hmbcP4;
+                + 3;
+        String bondDistanceString;
+        Map<String, Object> signal2DMap, pathLengthMap;
         final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType()
@@ -358,11 +360,24 @@ public class PyLSDInputFileBuilder {
                                                       .contains(index)
                                     && l
                                     == k)) {
+                                bondDistanceString = null;
+                                signal2DMap = (Map<String, Object>) link.getSignal();
+                                if (signal2DMap
+                                        != null
+                                        && signal2DMap.containsKey("pathLength")) {
+                                    pathLengthMap = (Map<String, Object>) signal2DMap.get("pathLength");
+                                    bondDistanceString = pathLengthMap.get("min")
+                                            + " "
+                                            + pathLengthMap.get("max");
+                                }
                                 uniqueSet.add(indicesMap.get(index)[k]
                                                       + " "
                                                       + indicesMap.get(matchIndex)[l]
                                                       + " "
-                                                      + defaultBondDistance
+                                                      + (bondDistanceString
+                                                                 != null
+                                                         ? bondDistanceString
+                                                         : defaultBondDistanceString)
                                                       + buildShiftsComment(correlation,
                                                                            correlationList.get(matchIndex)));
                             }
@@ -381,15 +396,17 @@ public class PyLSDInputFileBuilder {
     }
 
     private static String buildCOSY(final List<Correlation> correlationList, final int index,
-                                    final Map<Integer, Object[]> indicesMap, final int cosyP3, final int cosyP4) {
+                                    final Map<Integer, Object[]> indicesMap) {
         final Correlation correlation = correlationList.get(index);
         if (!correlation.getAtomType()
                         .equals("H")) {
             return null;
         }
-        final String defaultBondDistance = cosyP3
+        final String defaultBondDistanceString = 3
                 + " "
-                + cosyP4;
+                + 4;
+        String bondDistanceString;
+        Map<String, Object> signal2DMap, pathLengthMap;
         final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType()
@@ -404,11 +421,24 @@ public class PyLSDInputFileBuilder {
                             // only allow COSY values between possible equivalent protons and only one another non-equivalent proton
                             if (indicesMap.get(matchIndex).length
                                     == 2) {
+                                bondDistanceString = null;
+                                signal2DMap = (Map<String, Object>) link.getSignal();
+                                if (signal2DMap
+                                        != null
+                                        && signal2DMap.containsKey("pathLength")) {
+                                    pathLengthMap = (Map<String, Object>) signal2DMap.get("pathLength");
+                                    bondDistanceString = pathLengthMap.get("min")
+                                            + " "
+                                            + pathLengthMap.get("max");
+                                }
                                 uniqueSet.add(indicesMap.get(index)[k]
                                                       + " "
                                                       + indicesMap.get(matchIndex)[1]
                                                       + " "
-                                                      + defaultBondDistance
+                                                      + (bondDistanceString
+                                                                 != null
+                                                         ? bondDistanceString
+                                                         : defaultBondDistanceString)
                                                       + buildShiftsComment(correlation,
                                                                            correlationList.get(matchIndex)));
                             }
@@ -607,7 +637,7 @@ public class PyLSDInputFileBuilder {
 
         return stringBuilder.toString();
     }
-    
+
     private static String buildBONDByFixedNeighbors(final List<Correlation> correlationList,
                                                     final Map<Integer, Object[]> indicesMap,
                                                     final Map<Integer, Set<Integer>> fixedNeighbors) {
@@ -715,11 +745,9 @@ public class PyLSDInputFileBuilder {
                 collection.get("HSQC")
                           .add(buildHSQC(correlationList, i, indicesMap));
                 collection.get("HMBC")
-                          .add(buildHMBC(correlationList, i, indicesMap, elucidationOptions.getHmbcP3(),
-                                         elucidationOptions.getHmbcP4()));
+                          .add(buildHMBC(correlationList, i, indicesMap));
                 collection.get("COSY")
-                          .add(buildCOSY(correlationList, i, indicesMap, elucidationOptions.getCosyP3(),
-                                         elucidationOptions.getCosyP4()));
+                          .add(buildCOSY(correlationList, i, indicesMap));
                 collection.get("SHIX")
                           .add(buildSHIX(correlation, i, indicesMap));
                 collection.get("SHIH")

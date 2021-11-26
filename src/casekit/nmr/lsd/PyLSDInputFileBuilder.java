@@ -696,17 +696,8 @@ public class PyLSDInputFileBuilder {
                                                     final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors,
                                                     final Map<Integer, Set<Integer>> fixedNeighbors,
                                                     final ElucidationOptions elucidationOptions) {
-        final Map<String, Map<String, Object>> state = data.getCorrelations()
-                                                           .getState();
-        final boolean hasErrors = state.keySet()
-                                       .stream()
-                                       .anyMatch(atomType -> state.get(atomType)
-                                                                  .containsKey("error")
-                                               && !((Map<String, Object>) state.get(atomType)
-                                                                               .get("error")).isEmpty());
         if (mf
-                != null
-                && !hasErrors) {
+                != null) {
             final List<Correlation> correlationList = data.getCorrelations()
                                                           .getValues();
             final Map<String, Integer> elementCounts = new LinkedHashMap<>(Utils.getMolecularFormulaElementCounts(mf));

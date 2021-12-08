@@ -74,27 +74,21 @@ public class PyLSDInputFileBuilder {
                             protonsCount = correlationList.get(matchIndex)
                                                           .getProtonsCount()
                                                           .get(0);
-                            if (protonsCount
-                                    == 3) {
-                                protonsCount = 1;
-                            }
-                            protonsToInsert += correlationList.get(matchIndex)
-                                                              .getEquivalence()
-                                    * (protonsCount
-                                    / correlationList.get(matchIndex)
+                            protonsToInsert += (correlation.getEquivalence()
+                                    / (double) protonsCount)
+                                    * correlationList.get(matchIndex)
                                                      .getAttachment()
                                                      .get("H")
-                                                     .size());
+                                                     .size();
                         }
                     }
                 }
                 indicesMap.put(i, new Object[1
                         + protonsToInsert]);
                 indicesMap.get(i)[0] = correlation.getAtomType();
-                for (int j = 0; j
-                        < protonsToInsert; j++) {
-                    indicesMap.get(i)[1
-                            + j] = protonIndexInPyLSDFile;
+                for (int j = 1; j
+                        <= protonsToInsert; j++) {
+                    indicesMap.get(i)[j] = protonIndexInPyLSDFile;
                     protonIndexInPyLSDFile++;
                 }
             } else {
@@ -108,6 +102,17 @@ public class PyLSDInputFileBuilder {
                 }
             }
         }
+        //        System.out.println("\n\n");
+        //        for (final Map.Entry<Integer, Object[]> entry : indicesMap.entrySet()) {
+        //            System.out.println(entry.getKey()
+        //                                       + ": "
+        //                                       + entry.getValue()[0]);
+        //            for (int i = 1; i
+        //                    < entry.getValue().length; i++) {
+        //                System.out.println(entry.getValue()[i]);
+        //            }
+        //        }
+        //        System.out.println("\n\n");
 
         return indicesMap;
     }
@@ -290,37 +295,24 @@ public class PyLSDInputFileBuilder {
             return null;
         }
         final StringBuilder stringBuilder = new StringBuilder();
-        final Map<Integer, Integer> protonEquivalenceIndexMap = new HashMap<>();
-        int protonsCount;
         for (final Link link : correlation.getLink()) {
             if (link.getExperimentType()
                     .equals("hsqc")
                     || link.getExperimentType()
                            .equals("hmqc")) {
                 for (final int matchIndex : link.getMatch()) {
-                    protonEquivalenceIndexMap.putIfAbsent(matchIndex, 1); // k = 1 in indicesMap
                     // for each equivalence of heavy atom and attached protons
                     for (int k = 1; k
                             < indicesMap.get(index).length; k++) {
-                        protonsCount = correlation.getProtonsCount()
-                                                  .get(0);
-                        // consider CH3 same as CH (avoid multiple entries in PyLSD input file)
-                        if (protonsCount
-                                == 3) {
-                            protonsCount = 1;
-                        }
-                        for (int p = 0; p
-                                < Math.min(protonsCount, correlationList.get(matchIndex)
-                                                                        .getEquivalence()); p++) {
-                            stringBuilder.append("HSQC ")
-                                         .append(indicesMap.get(index)[k])
-                                         .append(" ")
-                                         .append(indicesMap.get(matchIndex)[protonEquivalenceIndexMap.get(matchIndex)])
-                                         .append(buildShiftsComment(correlation, correlationList.get(matchIndex)))
-                                         .append("\n");
-                            protonEquivalenceIndexMap.put(matchIndex, protonEquivalenceIndexMap.get(matchIndex)
-                                    + 1);
-                        }
+                        //                        for (int p = 1; p
+                        //                                < indicesMap.get(matchIndex).length; p++) {
+                        stringBuilder.append("HSQC ")
+                                     .append(indicesMap.get(index)[k])
+                                     .append(" ")
+                                     .append(indicesMap.get(matchIndex)[k])
+                                     .append(buildShiftsComment(correlation, correlationList.get(matchIndex)))
+                                     .append("\n");
+                        //                        }
                     }
                 }
             }
@@ -357,9 +349,7 @@ public class PyLSDInputFileBuilder {
                                     && correlationList.get(matchIndex)
                                                       .getAttachment()
                                                       .get(correlation.getAtomType())
-                                                      .contains(index)
-                                    && l
-                                    == k)) {
+                                                      .contains(index))) {
                                 bondDistanceString = null;
                                 signal2DMap = (Map<String, Object>) link.getSignal();
                                 if (signal2DMap
@@ -412,7 +402,7 @@ public class PyLSDInputFileBuilder {
             if (link.getExperimentType()
                     .equals("cosy")) {
                 for (final int matchIndex : link.getMatch()) {
-                    // only add an COSY correlation if the two signals there is not equivalent
+                    // only add a COSY entry if it is not from same signal
                     if (!correlationList.get(matchIndex)
                                         .getId()
                                         .equals(correlation.getId())) {

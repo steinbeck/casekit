@@ -1,5 +1,6 @@
 package casekit.nmr.lsd;
 
+import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
@@ -679,12 +680,7 @@ public class PyLSDInputFileBuilder {
                 + "\n";
     }
 
-    public static String buildPyLSDInputFileContent(final Data data, final String mf,
-                                                    final Map<Integer, List<Integer>> detectedHybridizations,
-                                                    final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities,
-                                                    final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
-                                                    final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors,
-                                                    final Map<Integer, Set<Integer>> fixedNeighbors,
+    public static String buildPyLSDInputFileContent(final Data data, final String mf, final Detections detections,
                                                     final ElucidationOptions elucidationOptions) {
         if (mf
                 != null) {
@@ -722,7 +718,7 @@ public class PyLSDInputFileBuilder {
                     < correlationList.size(); i++) {
                 correlation = correlationList.get(i);
                 collection.get("MULT")
-                          .add(buildMULT(correlation, i, indicesMap, detectedHybridizations));
+                          .add(buildMULT(correlation, i, indicesMap, detections.getDetectedHybridizations()));
                 collection.get("HSQC")
                           .add(buildHSQC(correlationList, i, indicesMap));
                 collection.get("HMBC")
@@ -745,17 +741,18 @@ public class PyLSDInputFileBuilder {
                       });
 
             // BOND (interpretation, INADEQUATE, previous assignments) -> input fragments
-            stringBuilder.append(buildBOND(correlationList, indicesMap, fixedNeighbors))
+            stringBuilder.append(buildBOND(correlationList, indicesMap, detections.getFixedNeighbors()))
                          .append("\n");
 
             // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance
-            stringBuilder.append(buildLISTsAndPROPs(correlationList, indicesMap, elementCounts, detectedConnectivities,
-                                                    forbiddenNeighbors, setNeighbors,
+            stringBuilder.append(buildLISTsAndPROPs(correlationList, indicesMap, elementCounts,
+                                                    detections.getDetectedConnectivities(),
+                                                    detections.getForbiddenNeighbors(), detections.getSetNeighbors(),
                                                     elucidationOptions.isAllowHeteroHeteroBonds()))
                          .append("\n");
             // DEFF and FEXP as filters (good/bad lists)
-            stringBuilder.append(buildDEFFsAndFEXP(correlationList, indicesMap, elucidationOptions, forbiddenNeighbors,
-                                                   setNeighbors))
+            stringBuilder.append(buildDEFFsAndFEXP(correlationList, indicesMap, elucidationOptions,
+                                                   detections.getForbiddenNeighbors(), detections.getSetNeighbors()))
                          .append("\n");
 
             return stringBuilder.toString();

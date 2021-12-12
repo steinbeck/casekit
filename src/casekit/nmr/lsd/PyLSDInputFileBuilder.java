@@ -4,7 +4,7 @@ import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
-import casekit.nmr.model.nmrium.Data;
+import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.model.nmrium.Link;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
@@ -680,12 +680,12 @@ public class PyLSDInputFileBuilder {
                 + "\n";
     }
 
-    public static String buildPyLSDInputFileContent(final Data data, final String mf, final Detections detections,
+    public static String buildPyLSDInputFileContent(final Correlations correlations, final String mf,
+                                                    final Detections detections,
                                                     final ElucidationOptions elucidationOptions) {
         if (mf
                 != null) {
-            final List<Correlation> correlationList = data.getCorrelations()
-                                                          .getValues();
+            final List<Correlation> correlationList = correlations.getValues();
             final Map<String, Integer> elementCounts = new LinkedHashMap<>(Utils.getMolecularFormulaElementCounts(mf));
             final StringBuilder stringBuilder = new StringBuilder();
             // create header

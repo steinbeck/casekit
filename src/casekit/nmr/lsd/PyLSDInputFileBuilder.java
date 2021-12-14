@@ -16,7 +16,7 @@ public class PyLSDInputFileBuilder {
 
     private static String buildHeader() {
         final StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("; PyLSD input file created by webCASE\n");
+        stringBuilder.append("; PyLSD input file created by casekit (https://github.com/michaelwenk/casekit)\n");
         final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
         final Date date = new Date(System.currentTimeMillis());
         stringBuilder.append("; ")

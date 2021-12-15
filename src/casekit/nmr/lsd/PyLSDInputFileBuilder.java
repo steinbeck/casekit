@@ -50,8 +50,7 @@ public class PyLSDInputFileBuilder {
                 + elimP2;
     }
 
-    private static Map<Integer, Object[]> buildIndicesMap(final List<Correlation> correlationList,
-                                                          final Map<String, Integer> elementCounts) {
+    private static Map<Integer, Object[]> buildIndicesMap(final List<Correlation> correlationList) {
         // index in correlation data -> [atom type, indices in PyLSD file...]
         final Map<Integer, Object[]> indicesMap = new HashMap<>();
         // init element indices within correlations with same order as in correlation data input
@@ -510,7 +509,6 @@ public class PyLSDInputFileBuilder {
     private static String buildLISTsAndPROPs(final List<Correlation> correlationList,
                                              final Map<Integer, Object[]> indicesMap,
                                              final Map<String, Integer> elementCounts,
-                                             final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities,
                                              final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
                                              final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors,
                                              final boolean allowHeteroHeteroBonds) {
@@ -711,7 +709,7 @@ public class PyLSDInputFileBuilder {
             collection.put("SHIX", new ArrayList<>());
             collection.put("SHIH", new ArrayList<>());
             // index in correlation data -> [atom type, index in PyLSD file]
-            final Map<Integer, Object[]> indicesMap = buildIndicesMap(correlationList, elementCounts);
+            final Map<Integer, Object[]> indicesMap = buildIndicesMap(correlationList);
 
             Correlation correlation;
             for (int i = 0; i
@@ -745,10 +743,9 @@ public class PyLSDInputFileBuilder {
                          .append("\n");
 
             // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance
-            stringBuilder.append(buildLISTsAndPROPs(correlationList, indicesMap, elementCounts,
-                                                    detections.getDetectedConnectivities(),
-                                                    detections.getForbiddenNeighbors(), detections.getSetNeighbors(),
-                                                    elucidationOptions.isAllowHeteroHeteroBonds()))
+            stringBuilder.append(
+                                 buildLISTsAndPROPs(correlationList, indicesMap, elementCounts, detections.getForbiddenNeighbors(),
+                                                    detections.getSetNeighbors(), elucidationOptions.isAllowHeteroHeteroBonds()))
                          .append("\n");
             // DEFF and FEXP as filters (good/bad lists)
             stringBuilder.append(buildDEFFsAndFEXP(correlationList, indicesMap, elucidationOptions,

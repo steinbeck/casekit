@@ -14,6 +14,11 @@ public class Utilities {
 
     public static void reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(final List<Correlation> correlationList,
                                                                                final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities) {
+        if (detectedConnectivities
+                == null
+                || detectedConnectivities.isEmpty()) {
+            return;
+        }
         final Map<String, Set<Integer>> allowedNeighborAtomHybridizations = buildAllowedNeighborAtomHybridizations(
                 correlationList, detectedConnectivities);
         final Map<String, Set<Integer>> allowedNeighborAtomProtonCounts = buildAllowedNeighborAtomProtonCounts(

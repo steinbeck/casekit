@@ -13,7 +13,8 @@ import java.util.stream.Collectors;
 public class Utilities {
 
     public static void reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(final List<Correlation> correlationList,
-                                                                               final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities) {
+                                                                               final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities,
+                                                                               final Map<Integer, List<Integer>> detectedHybridizations) {
         if (detectedConnectivities
                 == null
                 || detectedConnectivities.isEmpty()) {
@@ -25,7 +26,10 @@ public class Utilities {
                 correlationList, detectedConnectivities);
         // hetero atoms can bond to carbons only, due to that we can use further connectivity information
         // do not allow bond between carbon and hetero atoms in certain hybridization states and proton counts
-        for (final Correlation correlation : correlationList) {
+        Correlation correlation;
+        for (int i = 0; i
+                < correlationList.size(); i++) {
+            correlation = correlationList.get(i);
             // ignore C and H atoms
             if (correlation.getAtomType()
                            .equals("C")
@@ -33,12 +37,26 @@ public class Utilities {
                                   .equals("H")) {
                 continue;
             }
+            final Set<Integer> hybridizationsToAdd = allowedNeighborAtomHybridizations.containsKey(
+                    correlation.getAtomType())
+                                                     ? allowedNeighborAtomHybridizations.get(correlation.getAtomType())
+                                                     : Arrays.stream(Constants.defaultHybridizationMap.get(
+                                                                     correlation.getAtomType()))
+                                                             .boxed()
+                                                             .collect(Collectors.toSet());
+            final Set<Integer> protonCountsToAdd = allowedNeighborAtomProtonCounts.containsKey(
+                    correlation.getAtomType())
+                                                   ? allowedNeighborAtomProtonCounts.get(correlation.getAtomType())
+                                                   : Arrays.stream(Constants.defaultProtonsCountPerValencyMap.get(
+                                                                   correlation.getAtomType()))
+                                                           .boxed()
+                                                           .collect(Collectors.toSet());
             // but only if we have seen the hetero atom type in connectivity statistics
             // and hybridization states or protons count was not set beforehand
             if (correlation.getHybridization()
                            .isEmpty()) {
                 correlation.getHybridization()
-                           .addAll(allowedNeighborAtomHybridizations.get(correlation.getAtomType()));
+                           .addAll(hybridizationsToAdd);
             } else if (correlation.getEdited()
                     != null
                     && correlation.getEdited()
@@ -47,22 +65,24 @@ public class Utilities {
                                    .get("hybridization")
                     && allowedNeighborAtomHybridizations.containsKey(correlation.getAtomType())) {
                 correlation.getHybridization()
-                           .retainAll(allowedNeighborAtomHybridizations.get(correlation.getAtomType()));
+                           .retainAll(hybridizationsToAdd);
             }
             if (correlation.getProtonsCount()
                            .isEmpty()) {
                 correlation.getProtonsCount()
-                           .addAll(allowedNeighborAtomProtonCounts.get(correlation.getAtomType()));
+                           .addAll(protonCountsToAdd);
             } else if (correlation.getEdited()
                     != null
                     && correlation.getEdited()
                                   .containsKey("protonsCount")
                     && !correlation.getEdited()
-                                   .get("protonsCount")
-                    && allowedNeighborAtomProtonCounts.containsKey(correlation.getAtomType())) {
+                                   .get("protonsCount")) {
                 correlation.getProtonsCount()
-                           .retainAll(allowedNeighborAtomProtonCounts.get(correlation.getAtomType()));
+                           .retainAll(protonCountsToAdd);
             }
+            detectedHybridizations.putIfAbsent(i, new ArrayList<>());
+            detectedHybridizations.get(i)
+                                  .addAll(correlation.getHybridization());
         }
     }
 

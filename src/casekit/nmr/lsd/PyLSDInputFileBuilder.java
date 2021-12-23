@@ -513,7 +513,8 @@ public class PyLSDInputFileBuilder {
                                              final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors,
                                              final boolean allowHeteroHeteroBonds) {
         final StringBuilder stringBuilder = new StringBuilder();
-        final Map<String, String> listMap = new HashMap<>();
+        // list key -> [list name, size]
+        final Map<String, Object[]> listMap = new HashMap<>();
 
         // LIST and PROP for hetero hetero bonds to disallow
         if (!allowHeteroHeteroBonds) {
@@ -521,8 +522,8 @@ public class PyLSDInputFileBuilder {
         }
         // insert ELEM for each heavy atom type in MF
         LISTAndPROPUtilities.insertELEM(stringBuilder, listMap, elementCounts.keySet());
-        //        // insert list combinations of carbon and hybridization states
-        //        LISTAndPROPUtilities.insertHeavyAtomCombinationLISTs(stringBuilder, listMap, correlationList, indicesMap);
+        // insert list combinations of carbon and hybridization states
+        LISTAndPROPUtilities.insertHeavyAtomCombinationLISTs(stringBuilder, listMap, correlationList, indicesMap);
         // insert forbidden connection lists and properties
         LISTAndPROPUtilities.insertConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
                                                            forbiddenNeighbors, "forbid");
@@ -536,7 +537,6 @@ public class PyLSDInputFileBuilder {
     private static String buildDEFFs(final String[] filterPaths, final String[] pathsToNeighborsFiles) {
         final StringBuilder stringBuilder = new StringBuilder();
         // DEFF -> add filters
-        stringBuilder.append("; externally defined filters\n");
         final Map<String, String> filters = new LinkedHashMap<>();
         int counter = 1;
         for (final String filterPath : filterPaths) {
@@ -551,6 +551,7 @@ public class PyLSDInputFileBuilder {
         }
 
         if (!filters.isEmpty()) {
+            stringBuilder.append("; externally defined filters\n");
             filters.forEach((label, filePath) -> stringBuilder.append("DEFF ")
                                                               .append(label)
                                                               .append(" \"")
@@ -600,25 +601,26 @@ public class PyLSDInputFileBuilder {
                                 + (i
                     + 1), false);
         }
-        // build and write neighbors files
-        final List<String> pathsToNeighborsFilesToUse = new ArrayList<>();
-        if (Utilities.writeNeighborsFile(elucidationOptions.getPathsToNeighborsFiles()[0], correlationList, indicesMap,
-                                         forbiddenNeighbors)) {
-            fexpMap.put("F"
-                                + (fexpMap.size()
-                    + 1), false);
-            pathsToNeighborsFilesToUse.add(elucidationOptions.getPathsToNeighborsFiles()[0]);
-        }
-        if (Utilities.writeNeighborsFile(elucidationOptions.getPathsToNeighborsFiles()[1], correlationList, indicesMap,
-                                         setNeighbors)) {
-            fexpMap.put("F"
-                                + (fexpMap.size()
-                    + 1), true);
-            pathsToNeighborsFilesToUse.add(elucidationOptions.getPathsToNeighborsFiles()[1]);
-        }
+        //        // build and write neighbors files
+        //        final List<String> pathsToNeighborsFilesToUse = new ArrayList<>();
+        //        if (Utilities.writeNeighborsFile(elucidationOptions.getPathsToNeighborsFiles()[0], correlationList, indicesMap,
+        //                                         forbiddenNeighbors)) {
+        //            fexpMap.put("F"
+        //                                + (fexpMap.size()
+        //                    + 1), false);
+        //            pathsToNeighborsFilesToUse.add(elucidationOptions.getPathsToNeighborsFiles()[0]);
+        //        }
+        //        if (Utilities.writeNeighborsFile(elucidationOptions.getPathsToNeighborsFiles()[1], correlationList, indicesMap,
+        //                                         setNeighbors)) {
+        //            fexpMap.put("F"
+        //                                + (fexpMap.size()
+        //                    + 1), true);
+        //            pathsToNeighborsFilesToUse.add(elucidationOptions.getPathsToNeighborsFiles()[1]);
+        //        }
         // build DEFFs
         stringBuilder.append(
-                             buildDEFFs(elucidationOptions.getFilterPaths(), pathsToNeighborsFilesToUse.toArray(String[]::new)))
+                             //                             buildDEFFs(elucidationOptions.getFilterPaths(), pathsToNeighborsFilesToUse.toArray(String[]::new)))
+                             buildDEFFs(elucidationOptions.getFilterPaths(), new String[]{}))
                      .append("\n");
         // build FEXP
         stringBuilder.append(buildFEXP(fexpMap))

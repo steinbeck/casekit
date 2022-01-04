@@ -1,4 +1,4 @@
-package casekit.nmr.lsd;
+package casekit.nmr.lsd.inputfile;
 
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;

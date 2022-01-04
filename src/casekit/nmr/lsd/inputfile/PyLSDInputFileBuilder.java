@@ -1,5 +1,6 @@
-package casekit.nmr.lsd;
+package casekit.nmr.lsd.inputfile;
 
+import casekit.nmr.lsd.Constants;
 import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.Signal;

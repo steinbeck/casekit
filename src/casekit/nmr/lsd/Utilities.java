@@ -1,6 +1,7 @@
 package casekit.nmr.lsd;
 
 import casekit.io.FileSystem;
+import casekit.nmr.lsd.model.Grouping;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Link;
@@ -217,8 +218,9 @@ public class Utilities {
                                                                                                          .entrySet()) {
                             sstrIndexCorrelation = sstrIndex;
                             stringBuilder.append(
-                                    buildSSTR(sstrIndexCorrelation, atomType, correlation.getHybridization(),
-                                              correlation.getProtonsCount()));
+                                    casekit.nmr.lsd.inputfile.Utilities.buildSSTR(sstrIndexCorrelation, atomType,
+                                                                                  correlation.getHybridization(),
+                                                                                  correlation.getProtonsCount()));
                             stringBuilder.append("; ")
                                          .append(atomType)
                                          .append(" at ")
@@ -242,8 +244,10 @@ public class Utilities {
                                     != -1) {
                                 tempList.add(entryPerHybridization.getKey());
                             }
-                            stringBuilder.append(buildSSTR(sstrIndex, neighborAtomType, tempList,
-                                                           new ArrayList<>(entryPerHybridization.getValue())))
+                            stringBuilder.append(
+                                                 casekit.nmr.lsd.inputfile.Utilities.buildSSTR(sstrIndex, neighborAtomType, tempList,
+                                                                                               new ArrayList<>(
+                                                                                                       entryPerHybridization.getValue())))
                                          .append("\n");
                             stringBuilder.append("LINK S")
                                          .append(sstrIndexCorrelation)
@@ -266,65 +270,6 @@ public class Utilities {
                 && FileSystem.writeFile(pathToNeighborsFile, stringBuilder.toString());
     }
 
-    private static String buildSSTR(final int sstrIndex, final String atomType, final List<Integer> hybridization,
-                                    final List<Integer> protonsCount) {
-        if (hybridization.isEmpty()) {
-            hybridization.addAll(Arrays.stream(Constants.defaultHybridizationMap.get(atomType))
-                                       .boxed()
-                                       .collect(Collectors.toList()));
-        }
-        if (protonsCount.isEmpty()) {
-            protonsCount.addAll(Arrays.stream(Constants.defaultProtonsCountPerValencyMap.get(atomType))
-                                      .boxed()
-                                      .collect(Collectors.toList()));
-        }
-        final StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("SSTR S")
-                     .append(sstrIndex)
-                     .append(" ")
-                     .append(atomType)
-                     .append(" ");
-        if (hybridization.size()
-                == 1) {
-            stringBuilder.append(hybridization.get(0))
-                         .append(" ");
-            if (protonsCount.size()
-                    == 1) {
-                stringBuilder.append(protonsCount.get(0));
-            } else {
-                stringBuilder.append(buildMultipleValuesString(protonsCount));
-            }
-        } else {
-            stringBuilder.append(buildMultipleValuesString(hybridization));
-            stringBuilder.append(" ");
-            if (protonsCount.size()
-                    == 1) {
-                stringBuilder.append(protonsCount.get(0));
-            } else {
-                stringBuilder.append(buildMultipleValuesString(protonsCount));
-            }
-        }
-
-        return stringBuilder.toString();
-    }
-
-    private static String buildMultipleValuesString(final List<Integer> values) {
-        final StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("(");
-        for (int l = 0; l
-                < values.size(); l++) {
-            stringBuilder.append(values.get(l));
-            if (l
-                    < values.size()
-                    - 1) {
-                stringBuilder.append(" ");
-            }
-        }
-        stringBuilder.append(")");
-
-        return stringBuilder.toString();
-    }
-
     public static Map<Integer, Set<Integer>> buildFixedNeighborsByINADEQUATE(final List<Correlation> correlationList) {
         final Map<Integer, Set<Integer>> fixedNeighbors = new HashMap<>();
         final Set<String> uniqueSet = new HashSet<>();
@@ -334,7 +279,7 @@ public class Utilities {
             correlation = correlationList.get(i);
             // @TODO for now use INADEQUATE information of atoms without equivalences only
             if (correlation.getEquivalence()
-                    > 1) {
+                    != 1) {
                 continue;
             }
             for (final Link link : correlation.getLink()) {
@@ -364,5 +309,121 @@ public class Utilities {
         }
 
         return fixedNeighbors;
+    }
+
+    public static boolean hasMatch(final Correlation correlation1, final Correlation correlation2,
+                                   final double tolerance) {
+        final Signal signal1 = Utils.extractSignalFromCorrelation(correlation1);
+        final Signal signal2 = Utils.extractSignalFromCorrelation(correlation2);
+        if (signal1
+                == null
+                || signal2
+                == null) {
+            return false;
+        }
+        int dim1 = -1;
+        int dim2 = -1;
+        String atomType;
+        for (int i = 0; i
+                < signal1.getNuclei().length; i++) {
+            atomType = Utils.getAtomTypeFromNucleus(signal1.getNuclei()[i]);
+            if (atomType.equals(correlation1.getAtomType())) {
+                dim1 = i;
+                break;
+            }
+        }
+        for (int i = 0; i
+                < signal2.getNuclei().length; i++) {
+            atomType = Utils.getAtomTypeFromNucleus(signal2.getNuclei()[i]);
+            if (atomType.equals(correlation2.getAtomType())) {
+                dim2 = i;
+                break;
+            }
+        }
+        if (dim1
+                == -1
+                || dim2
+                == -1) {
+            return false;
+        }
+
+        final double shift1 = signal1.getShift(dim1);
+        final double shift2 = signal2.getShift(dim2);
+
+        return Math.abs(shift1
+                                - shift2)
+                <= tolerance;
+
+    }
+
+    public static Map<String, Map<Integer, Set<Integer>>> findGroups(final List<Correlation> correlationList,
+                                                                     final Map<String, Double> tolerances) {
+        // cluster group index -> list of correlation index pair
+        final Map<String, Map<Integer, Set<Integer>>> groups = new HashMap<>();
+        int groupIndex = 0;
+        final Set<Integer> inserted = new HashSet<>();
+        int foundGroupIndex;
+        for (int i = 0; i
+                < correlationList.size(); i++) {
+            final Correlation correlation = correlationList.get(i);
+            if (inserted.contains(i)
+                    || correlation.isPseudo()) {
+                continue;
+            }
+            groups.putIfAbsent(correlation.getAtomType(), new HashMap<>());
+            // if we have a match somewhere then add the correlation index into to group
+            // if not then create a new group
+            foundGroupIndex = -1;
+            for (final Map.Entry<Integer, Set<Integer>> groupEntry : groups.get(correlation.getAtomType())
+                                                                           .entrySet()) {
+                if (groupEntry.getValue()
+                              .stream()
+                              .anyMatch(correlationIndex -> hasMatch(correlation, correlationList.get(correlationIndex),
+                                                                     tolerances.get(correlation.getAtomType())))) {
+                    foundGroupIndex = groupEntry.getKey();
+                    break;
+                }
+            }
+            if (foundGroupIndex
+                    != -1) {
+                groups.get(correlation.getAtomType())
+                      .get(foundGroupIndex)
+                      .add(i);
+                inserted.add(i);
+            } else {
+                groups.get(correlation.getAtomType())
+                      .put(groupIndex, new HashSet<>());
+                groups.get(correlation.getAtomType())
+                      .get(groupIndex)
+                      .add(i);
+                inserted.add(i);
+                groupIndex++;
+            }
+        }
+
+        return groups;
+    }
+
+    public static Map<String, Map<Integer, Integer>> transformGroups(
+            final Map<String, Map<Integer, Set<Integer>>> groups) {
+        final Map<String, Map<Integer, Integer>> transformedGroups = new HashMap<>();
+        for (final Map.Entry<String, Map<Integer, Set<Integer>>> atomTypeEntry : groups.entrySet()) {
+            transformedGroups.put(atomTypeEntry.getKey(), new HashMap<>());
+            for (final Map.Entry<Integer, Set<Integer>> groupEntry : atomTypeEntry.getValue()
+                                                                                  .entrySet()) {
+                for (final int correlationIndex : groupEntry.getValue()) {
+                    transformedGroups.get(atomTypeEntry.getKey())
+                                     .put(correlationIndex, groupEntry.getKey());
+                }
+            }
+        }
+
+        return transformedGroups;
+    }
+
+    public static Grouping buildGroups(final List<Correlation> correlationList, final Map<String, Double> tolerances) {
+        final Map<String, Map<Integer, Set<Integer>>> groups = findGroups(correlationList, tolerances);
+
+        return new Grouping(tolerances, groups, transformGroups(groups));
     }
 }

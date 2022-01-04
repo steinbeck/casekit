@@ -111,23 +111,25 @@ public class LISTAndPROPUtilities {
 
 
     private static boolean checkSkipPROPInsertion(final Map<String, Object[]> listMap,
-                                                  final Map<String, Integer> usedPropsCount, final String listKey) {
+                                                  final Map<String, Integer> usedPropsCount, final String listKey,
+                                                  final String mode) {
         if (!listMap.containsKey(listKey)) {
             return true;
         }
-        // LSD crashes if we try to use more atoms with specific hybridization or/and proton count
+        // LSD crashes if we try to use more atoms with specific hybridization or/and proton count (in mode "allow")
         // thus count and limit that usage as following:
         // list name -> number of usages
         usedPropsCount.putIfAbsent((String) listMap.get(listKey)[0], 1);
-        return listMap.get(listKey).length
+        return mode.equals("allow")
+                && listMap.get(listKey).length
                 > 1
                 && usedPropsCount.get((String) listMap.get(listKey)[0])
                 > (int) listMap.get(listKey)[1];
     }
 
     private static void insertPROP(final StringBuilder stringBuilder, final Map<String, Object[]> listMap,
-                                   final String atomType, final Signal signal, final String neighborAtomType,
-                                   final int indexInPyLSD, final String listKey, final String mode) {
+                                   final String atomType, final Signal signal, final int indexInPyLSD,
+                                   final String listKey, final String mode) {
         stringBuilder.append("PROP ")
                      .append(indexInPyLSD)
                      .append(mode.equals("forbid")
@@ -181,8 +183,7 @@ public class LISTAndPROPUtilities {
                         // forbid/set bonds to whole element groups if there is an empty map for an atom type
                         if (neighborsTemp.get(neighborAtomType)
                                          .isEmpty()) {
-                            insertPROP(stringBuilder, listMap, atomType, signal, neighborAtomType, indexInPyLSD,
-                                       neighborAtomType, mode);
+                            insertPROP(stringBuilder, listMap, atomType, signal, indexInPyLSD, neighborAtomType, mode);
                         } else {
                             for (final int neighborHybridization : neighborsTemp.get(neighborAtomType)
                                                                                 .keySet()) {
@@ -193,12 +194,12 @@ public class LISTAndPROPUtilities {
                                                                              ? new ArrayList<>()
                                                                              : List.of(neighborHybridization),
                                                            List.of(protonsCount));
-                                    if (checkSkipPROPInsertion(listMap, usedPropsCount, listKey)) {
+                                    if (checkSkipPROPInsertion(listMap, usedPropsCount, listKey, mode)) {
                                         continue;
                                     }
                                     if (listMap.containsKey(listKey)) {
-                                        insertPROP(stringBuilder, listMap, atomType, signal, neighborAtomType,
-                                                   indexInPyLSD, listKey, mode);
+                                        insertPROP(stringBuilder, listMap, atomType, signal, indexInPyLSD, listKey,
+                                                   mode);
                                         usedPropsCount.put((String) listMap.get(listKey)[0],
                                                            usedPropsCount.get((String) listMap.get(listKey)[0])
                                                                    + 1);

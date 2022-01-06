@@ -118,9 +118,10 @@ public class PyLSDInputFileBuilder {
         return indicesMap;
     }
 
-    private static String buildMULT(final Correlation correlation, final int index,
+    private static String buildMULT(final List<Correlation> correlationList, final int index,
                                     final Map<Integer, Object[]> indicesMap,
                                     final Map<Integer, List<Integer>> detectedHybridizations) {
+        final Correlation correlation = correlationList.get(index);
         if (correlation.getAtomType()
                        .equals("H")) {
             return null;
@@ -251,7 +252,7 @@ public class PyLSDInputFileBuilder {
                          .append(attachedProtonsCountStringBuilder);
             if (!correlation.isPseudo()) {
                 stringBuilder.append("; ")
-                             .append(buildShiftString(correlation));
+                             .append(buildShiftString(correlationList, correlation));
             }
             if (j
                     >= 2) {
@@ -264,7 +265,7 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildShiftString(final Correlation correlation) {
+    private static String buildShiftString(final List<Correlation> correlationList, final Correlation correlation) {
 
         final Signal signal = Utils.extractSignalFromCorrelation(correlation);
         if (signal
@@ -272,20 +273,41 @@ public class PyLSDInputFileBuilder {
             return "?";
         }
 
+        String heavyAtomShiftString = "";
+        if (correlation.getAtomType()
+                       .equals("H")) {
+            final ArrayList<String> bondHeavyAtomTypes = new ArrayList<>(correlation.getAttachment()
+                                                                                    .keySet());
+            if (!bondHeavyAtomTypes.isEmpty()) {
+                final Optional<Integer> firstOptional = correlation.getAttachment()
+                                                                   .get(bondHeavyAtomTypes.get(0))
+                                                                   .stream()
+                                                                   .findFirst();
+                if (firstOptional.isPresent()) {
+                    heavyAtomShiftString = " ("
+                            + buildShiftString(correlationList, correlationList.get(firstOptional.get()))
+                            + ")";
+                }
+            }
+
+        }
+
         return correlation.isPseudo()
                ? "?"
-               : String.valueOf(Statistics.roundDouble(signal.getShift(0), 3));
+               : Statistics.roundDouble(signal.getShift(0), 3)
+                       + heavyAtomShiftString;
     }
 
-    private static String buildShiftsComment(final Correlation correlation1, final Correlation correlation2) {
+    private static String buildShiftsComment(final List<Correlation> correlationList, final Correlation correlation1,
+                                             final Correlation correlation2) {
         return "; "
                 + correlation1.getAtomType()
                 + ": "
-                + buildShiftString(correlation1)
+                + buildShiftString(correlationList, correlation1)
                 + " -> "
                 + correlation2.getAtomType()
                 + ": "
-                + buildShiftString(correlation2);
+                + buildShiftString(correlationList, correlation2);
     }
 
     private static String buildHSQC(final List<Correlation> correlationList, final int index,
@@ -305,21 +327,42 @@ public class PyLSDInputFileBuilder {
                     // for each equivalence of heavy atom and attached protons
                     for (int k = 1; k
                             < indicesMap.get(index).length; k++) {
-                        //                        for (int p = 1; p
-                        //                                < indicesMap.get(matchIndex).length; p++) {
                         stringBuilder.append("HSQC ")
                                      .append(indicesMap.get(index)[k])
                                      .append(" ")
                                      .append(indicesMap.get(matchIndex)[k])
-                                     .append(buildShiftsComment(correlation, correlationList.get(matchIndex)))
+                                     .append(buildShiftsComment(correlationList, correlation,
+                                                                correlationList.get(matchIndex)))
                                      .append("\n");
-                        //                        }
                     }
                 }
             }
         }
 
         return stringBuilder.toString();
+    }
+
+    private static String buildPossibilitiesString(final Map<Integer, Object[]> indicesMap, final int index) {
+        final StringBuilder possibilitiesStringBuilder = new StringBuilder();
+        if (indicesMap.get(index).length
+                > 2) {
+            possibilitiesStringBuilder.append("(");
+        }
+        for (int k = 1; k
+                < indicesMap.get(index).length; k++) {
+            possibilitiesStringBuilder.append((int) indicesMap.get(index)[k]);
+            if (k
+                    < indicesMap.get(index).length
+                    - 1) {
+                possibilitiesStringBuilder.append(" ");
+            }
+        }
+        if (indicesMap.get(index).length
+                > 2) {
+            possibilitiesStringBuilder.append(")");
+        }
+
+        return possibilitiesStringBuilder.toString();
     }
 
     private static String buildHMBC(final List<Correlation> correlationList, final int index,
@@ -329,6 +372,27 @@ public class PyLSDInputFileBuilder {
                        .equals("H")) {
             return null;
         }
+
+        //        final Set<Integer> group = new HashSet<>();
+        //        if (grouping.getTransformedGroups()
+        //                    .containsKey(correlation.getAtomType())
+        //                && grouping.getTransformedGroups()
+        //                           .get(correlation.getAtomType())
+        //                           .containsKey(index)) {
+        //            final int groupIndex = grouping.getTransformedGroups()
+        //                                           .get(correlation.getAtomType())
+        //                                           .get(index);
+        //            group.addAll(grouping.getGroups()
+        //                                 .get(correlation.getAtomType())
+        //                                 .get(groupIndex));
+        //            System.out.println("\nindex: "
+        //                                       + index
+        //                                       + " -> groupIndex: "
+        //                                       + groupIndex
+        //                                       + " -> group: "
+        //                                       + group);
+        //        }
+
         final String defaultBondDistanceString = 2
                 + " "
                 + 3;
@@ -339,40 +403,41 @@ public class PyLSDInputFileBuilder {
             if (link.getExperimentType()
                     .equals("hmbc")) {
                 for (final int matchIndex : link.getMatch()) {
-                    for (int k = 1; k
-                            < indicesMap.get(index).length; k++) {
-                        for (int l = 1; l
-                                < indicesMap.get(matchIndex).length; l++) {
-                            // only add an HMBC correlation if there is no direct link via HSQC and the equivalence index is not equal
-                            if (!(correlationList.get(matchIndex)
-                                                 .getAttachment()
-                                                 .containsKey(correlation.getAtomType())
-                                    && correlationList.get(matchIndex)
-                                                      .getAttachment()
-                                                      .get(correlation.getAtomType())
-                                                      .contains(index))) {
-                                bondDistanceString = null;
-                                signal2DMap = (Map<String, Object>) link.getSignal();
-                                if (signal2DMap
-                                        != null
-                                        && signal2DMap.containsKey("pathLength")) {
-                                    pathLengthMap = (Map<String, Object>) signal2DMap.get("pathLength");
-                                    bondDistanceString = pathLengthMap.get("min")
-                                            + " "
-                                            + pathLengthMap.get("max");
-                                }
-                                uniqueSet.add(indicesMap.get(index)[k]
-                                                      + " "
-                                                      + indicesMap.get(matchIndex)[l]
-                                                      + " "
-                                                      + (bondDistanceString
-                                                                 != null
-                                                         ? bondDistanceString
-                                                         : defaultBondDistanceString)
-                                                      + buildShiftsComment(correlation,
-                                                                           correlationList.get(matchIndex)));
-                            }
+                    //                    for (int k = 1; k
+                    //                            < indicesMap.get(index).length; k++) {
+                    for (int l = 1; l
+                            < indicesMap.get(matchIndex).length; l++) {
+                        //                            // only add an HMBC correlation if there is no direct link via HSQC and the equivalence index is not equal
+                        //                            if (!(correlationList.get(matchIndex)
+                        //                                                 .getAttachment()
+                        //                                                 .containsKey(correlation.getAtomType())
+                        //                                    && correlationList.get(matchIndex)
+                        //                                                      .getAttachment()
+                        //                                                      .get(correlation.getAtomType())
+                        //                                                      .contains(index))) {
+                        bondDistanceString = null;
+                        signal2DMap = (Map<String, Object>) link.getSignal();
+                        if (signal2DMap
+                                != null
+                                && signal2DMap.containsKey("pathLength")) {
+                            pathLengthMap = (Map<String, Object>) signal2DMap.get("pathLength");
+                            bondDistanceString = pathLengthMap.get("min")
+                                    + " "
+                                    + pathLengthMap.get("max");
                         }
+                        uniqueSet.add(buildPossibilitiesString(indicesMap, index)
+                                              //indicesMap.get(index)[k]
+                                              + " "
+                                              + indicesMap.get(matchIndex)[l]
+                                              + " "
+                                              + (bondDistanceString
+                                                         != null
+                                                 ? bondDistanceString
+                                                 : defaultBondDistanceString)
+                                              + buildShiftsComment(correlationList, correlation,
+                                                                   correlationList.get(matchIndex)));
+                        //                    }
+                        //                        }
                     }
                 }
             }
@@ -403,38 +468,39 @@ public class PyLSDInputFileBuilder {
             if (link.getExperimentType()
                     .equals("cosy")) {
                 for (final int matchIndex : link.getMatch()) {
-                    // only add a COSY entry if it is not from same signal
-                    if (!correlationList.get(matchIndex)
-                                        .getId()
-                                        .equals(correlation.getId())) {
-                        for (int k = 1; k
-                                < indicesMap.get(index).length; k++) {
-                            // only allow COSY values between possible equivalent protons and only one another non-equivalent proton
-                            if (indicesMap.get(matchIndex).length
-                                    == 2) {
-                                bondDistanceString = null;
-                                signal2DMap = (Map<String, Object>) link.getSignal();
-                                if (signal2DMap
-                                        != null
-                                        && signal2DMap.containsKey("pathLength")) {
-                                    pathLengthMap = (Map<String, Object>) signal2DMap.get("pathLength");
-                                    bondDistanceString = pathLengthMap.get("min")
-                                            + " "
-                                            + pathLengthMap.get("max");
-                                }
-                                uniqueSet.add(indicesMap.get(index)[k]
-                                                      + " "
-                                                      + indicesMap.get(matchIndex)[1]
-                                                      + " "
-                                                      + (bondDistanceString
-                                                                 != null
-                                                         ? bondDistanceString
-                                                         : defaultBondDistanceString)
-                                                      + buildShiftsComment(correlation,
-                                                                           correlationList.get(matchIndex)));
-                            }
+                    //                    // only add a COSY entry if it is not from same signal
+                    //                    if (!correlationList.get(matchIndex)
+                    //                                        .getId()
+                    //                                        .equals(correlation.getId())) {
+                    for (int l = 1; l
+                            < indicesMap.get(matchIndex).length; l++) {
+                        //                        // only allow COSY values between possible equivalent protons and only one another non-equivalent proton
+                        //                        if (indicesMap.get(matchIndex).length
+                        //                                == 2) {
+                        bondDistanceString = null;
+                        signal2DMap = (Map<String, Object>) link.getSignal();
+                        if (signal2DMap
+                                != null
+                                && signal2DMap.containsKey("pathLength")) {
+                            pathLengthMap = (Map<String, Object>) signal2DMap.get("pathLength");
+                            bondDistanceString = pathLengthMap.get("min")
+                                    + " "
+                                    + pathLengthMap.get("max");
                         }
+                        uniqueSet.add(buildPossibilitiesString(indicesMap, index)
+                                              //indicesMap.get(index)[k]
+                                              + " "
+                                              + indicesMap.get(matchIndex)[l]
+                                              + " "
+                                              + (bondDistanceString
+                                                         != null
+                                                 ? bondDistanceString
+                                                 : defaultBondDistanceString)
+                                              + buildShiftsComment(correlationList, correlation,
+                                                                   correlationList.get(matchIndex)));
+                        //                        }
                     }
+                    //                    }
                 }
             }
         }
@@ -660,7 +726,7 @@ public class PyLSDInputFileBuilder {
                                  .append(indicesMap.get(correlationIndex1)[1])
                                  .append(" ")
                                  .append(indicesMap.get(correlationIndex2)[1])
-                                 .append(buildShiftsComment(correlation1, correlation2))
+                                 .append(buildShiftsComment(correlationList, correlation1, correlation2))
                                  .append("\n");
                     uniqueSet.add(indicesMap.get(correlationIndex1)[1]
                                           + " "
@@ -719,7 +785,7 @@ public class PyLSDInputFileBuilder {
                     < correlationList.size(); i++) {
                 correlation = correlationList.get(i);
                 collection.get("MULT")
-                          .add(buildMULT(correlation, i, indicesMap, detections.getDetectedHybridizations()));
+                          .add(buildMULT(correlationList, i, indicesMap, detections.getDetectedHybridizations()));
                 collection.get("HSQC")
                           .add(buildHSQC(correlationList, i, indicesMap));
                 collection.get("HMBC")

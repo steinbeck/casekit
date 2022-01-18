@@ -3,6 +3,7 @@ package casekit.nmr.lsd.inputfile;
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.lsd.model.ElucidationOptions;
+import casekit.nmr.lsd.model.Grouping;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Correlations;
@@ -342,112 +343,61 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildPossibilitiesString(final Map<Integer, Object[]> indicesMap, final int index) {
+    private static String buildPossibilitiesString(final List<Correlation> correlationList, final int index,
+                                                   final Map<Integer, Object[]> indicesMap, final Grouping grouping) {
         final StringBuilder possibilitiesStringBuilder = new StringBuilder();
-        if (indicesMap.get(index).length
-                > 2) {
+        final Correlation correlation = correlationList.get(index);
+        // add PyLSD indices from grouping
+        final Set<Integer> pyLSDIndices = new HashSet<>();
+        if (grouping.getTransformedGroups()
+                    .containsKey(correlation.getAtomType())) {
+            final int groupIndex = grouping.getTransformedGroups()
+                                           .get(correlation.getAtomType())
+                                           .get(index);
+            for (final int groupCorrelationIndex : grouping.getGroups()
+                                                           .get(correlation.getAtomType())
+                                                           .get(groupIndex)) {
+                // add equivalence indices as well
+                for (int k = 1; k
+                        < indicesMap.get(groupCorrelationIndex).length; k++) {
+                    pyLSDIndices.add((int) indicesMap.get(groupCorrelationIndex)[k]);
+                }
+            }
+        } else {
+            // add for equivalences only
+            for (int k = 1; k
+                    < indicesMap.get(index).length; k++) {
+                pyLSDIndices.add((int) indicesMap.get(index)[k]);
+            }
+        }
+        // build the string
+        if (pyLSDIndices.size()
+                > 1) {
             possibilitiesStringBuilder.append("(");
         }
-        for (int k = 1; k
-                < indicesMap.get(index).length; k++) {
-            possibilitiesStringBuilder.append((int) indicesMap.get(index)[k]);
+        int k = 0;
+        for (final int pyLSDIndex : pyLSDIndices) {
+            possibilitiesStringBuilder.append(pyLSDIndex);
             if (k
-                    < indicesMap.get(index).length
+                    < pyLSDIndices.size()
                     - 1) {
                 possibilitiesStringBuilder.append(" ");
             }
+            k++;
         }
-        if (indicesMap.get(index).length
-                > 2) {
+        if (pyLSDIndices.size()
+                > 1) {
             possibilitiesStringBuilder.append(")");
         }
 
         return possibilitiesStringBuilder.toString();
     }
 
-    private static String buildHMBC(final List<Correlation> correlationList, final int index,
-                                    final Map<Integer, Object[]> indicesMap) {
-        final Correlation correlation = correlationList.get(index);
-        if (correlation.getAtomType()
-                       .equals("H")) {
-            return null;
-        }
-
-        //        final Set<Integer> group = new HashSet<>();
-        //        if (grouping.getTransformedGroups()
-        //                    .containsKey(correlation.getAtomType())
-        //                && grouping.getTransformedGroups()
-        //                           .get(correlation.getAtomType())
-        //                           .containsKey(index)) {
-        //            final int groupIndex = grouping.getTransformedGroups()
-        //                                           .get(correlation.getAtomType())
-        //                                           .get(index);
-        //            group.addAll(grouping.getGroups()
-        //                                 .get(correlation.getAtomType())
-        //                                 .get(groupIndex));
-        //            System.out.println("\nindex: "
-        //                                       + index
-        //                                       + " -> groupIndex: "
-        //                                       + groupIndex
-        //                                       + " -> group: "
-        //                                       + group);
-        //        }
-
-        final String defaultBondDistanceString = 2
-                + " "
-                + 3;
-        String bondDistanceString;
-        Map<String, Object> signal2DMap, pathLengthMap;
-        final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
-        for (final Link link : correlation.getLink()) {
-            if (link.getExperimentType()
-                    .equals("hmbc")) {
-                buildPerLink(correlationList, index, indicesMap, correlation, defaultBondDistanceString, uniqueSet,
-                             link);
-            }
-        }
-
-        return uniqueSet.stream()
-                        .map(str -> "HMBC "
-                                + str
-                                + "\n")
-                        .reduce("", (strAll, str) -> strAll
-                                + str);
-    }
-
-    private static String buildCOSY(final List<Correlation> correlationList, final int index,
-                                    final Map<Integer, Object[]> indicesMap) {
-        final Correlation correlation = correlationList.get(index);
-        if (!correlation.getAtomType()
-                        .equals("H")) {
-            return null;
-        }
-        final String defaultBondDistanceString = 3
-                + " "
-                + 4;
-        String bondDistanceString;
-        Map<String, Object> signal2DMap, pathLengthMap;
-        final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
-        for (final Link link : correlation.getLink()) {
-            if (link.getExperimentType()
-                    .equals("cosy")) {
-                buildPerLink(correlationList, index, indicesMap, correlation, defaultBondDistanceString, uniqueSet,
-                             link);
-            }
-        }
-
-        return uniqueSet.stream()
-                        .map(str -> "COSY "
-                                + str
-                                + "\n")
-                        .reduce("", (strAll, str) -> strAll
-                                + str);
-    }
-
-    private static void buildPerLink(final List<Correlation> correlationList, final int index,
-                                     final Map<Integer, Object[]> indicesMap, final Correlation correlation,
-                                     final String defaultBondDistanceString, final Set<String> uniqueSet,
-                                     final Link link) {
+    private static void buildMultipleBondCorrelationPerLink(final List<Correlation> correlationList, final int index,
+                                                            final Map<Integer, Object[]> indicesMap,
+                                                            final Grouping grouping,
+                                                            final String defaultBondDistanceString,
+                                                            final Set<String> uniqueSet, final Link link) {
         String bondDistanceString;
         Map<String, Object> signal2DMap;
         Map<String, Object> pathLengthMap;
@@ -464,7 +414,7 @@ public class PyLSDInputFileBuilder {
                             + " "
                             + pathLengthMap.get("max");
                 }
-                uniqueSet.add(buildPossibilitiesString(indicesMap, index)
+                uniqueSet.add(buildPossibilitiesString(correlationList, index, indicesMap, grouping)
                                       + " "
                                       + indicesMap.get(matchIndex)[l]
                                       + " "
@@ -472,10 +422,65 @@ public class PyLSDInputFileBuilder {
                                                  != null
                                          ? bondDistanceString
                                          : defaultBondDistanceString)
-                                      + buildShiftsComment(correlationList, correlation,
+                                      + buildShiftsComment(correlationList, correlationList.get(index),
                                                            correlationList.get(matchIndex)));
             }
         }
+    }
+
+    private static String buildHMBC(final List<Correlation> correlationList, final int index,
+                                    final Map<Integer, Object[]> indicesMap, final Grouping grouping) {
+        final Correlation correlation = correlationList.get(index);
+        if (correlation.getAtomType()
+                       .equals("H")) {
+            return null;
+        }
+
+        final String defaultBondDistanceString = 2
+                + " "
+                + 3;
+        final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
+        for (final Link link : correlation.getLink()) {
+            if (link.getExperimentType()
+                    .equals("hmbc")) {
+                buildMultipleBondCorrelationPerLink(correlationList, index, indicesMap, grouping,
+                                                    defaultBondDistanceString, uniqueSet, link);
+            }
+        }
+
+        return uniqueSet.stream()
+                        .map(str -> "HMBC "
+                                + str
+                                + "\n")
+                        .reduce("", (strAll, str) -> strAll
+                                + str);
+    }
+
+    private static String buildCOSY(final List<Correlation> correlationList, final int index,
+                                    final Map<Integer, Object[]> indicesMap, final Grouping grouping) {
+        final Correlation correlation = correlationList.get(index);
+        if (!correlation.getAtomType()
+                        .equals("H")) {
+            return null;
+        }
+        final String defaultBondDistanceString = 3
+                + " "
+                + 4;
+        final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
+        for (final Link link : correlation.getLink()) {
+            if (link.getExperimentType()
+                    .equals("cosy")) {
+                buildMultipleBondCorrelationPerLink(correlationList, index, indicesMap, grouping,
+                                                    defaultBondDistanceString, uniqueSet, link);
+            }
+        }
+
+        return uniqueSet.stream()
+                        .map(str -> "COSY "
+                                + str
+                                + "\n")
+                        .reduce("", (strAll, str) -> strAll
+                                + str);
     }
 
     private static String buildSHIX(final Correlation correlation, final int index,
@@ -713,7 +718,7 @@ public class PyLSDInputFileBuilder {
     }
 
     public static String buildPyLSDInputFileContent(final Correlations correlations, final String mf,
-                                                    final Detections detections,
+                                                    final Detections detections, final Grouping grouping,
                                                     final ElucidationOptions elucidationOptions) {
         if (mf
                 != null) {
@@ -754,9 +759,9 @@ public class PyLSDInputFileBuilder {
                 collection.get("HSQC")
                           .add(buildHSQC(correlationList, i, indicesMap));
                 collection.get("HMBC")
-                          .add(buildHMBC(correlationList, i, indicesMap));
+                          .add(buildHMBC(correlationList, i, indicesMap, grouping));
                 collection.get("COSY")
-                          .add(buildCOSY(correlationList, i, indicesMap));
+                          .add(buildCOSY(correlationList, i, indicesMap, grouping));
                 collection.get("SHIX")
                           .add(buildSHIX(correlation, i, indicesMap));
                 collection.get("SHIH")

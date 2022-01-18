@@ -1,6 +1,5 @@
 package casekit.nmr.analysis;
 
-import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
@@ -117,6 +116,108 @@ public class ConnectivityStatistics {
     }
 
     /**
+     * @param dataSet
+     * @param atomType
+     * @param occurrenceStatistics multiplicity -> hybridization -> shift (int) -> "elemental composition" -> connected atom symbol -> [#found, #notFound]
+     */
+    public static void buildOccurrenceStatistics(final DataSet dataSet, final String atomType,
+                                                 final Map<String, Map<String, Map<Integer, Map<String, Map<String, Integer[]>>>>> occurrenceStatistics) {
+        final IAtomContainer structure = dataSet.getStructure()
+                                                .toAtomContainer();
+        final Spectrum spectrum = dataSet.getSpectrum()
+                                         .toSpectrum();
+        final List<String> elements = new ArrayList<>(Utils.getMolecularFormulaElementCounts(dataSet.getMeta()
+                                                                                                    .get("mf"))
+                                                           .keySet());
+        elements.remove("H");
+        Collections.sort(elements);
+        final String elementsString = String.join(",", elements);
+
+        int shift, atomIndex;
+        IAtom atom;
+        String multiplicity, hybridization;
+        Set<String> found, notFound;
+        for (int signalIndex = 0; signalIndex
+                < spectrum.getSignalCount(); signalIndex++) {
+            shift = spectrum.getShift(signalIndex, 0)
+                            .intValue();
+            for (int equivalenceIndex = 0; equivalenceIndex
+                    < dataSet.getAssignment()
+                             .getAssignment(0, signalIndex).length; equivalenceIndex++) {
+                atomIndex = dataSet.getAssignment()
+                                   .getAssignment(0, signalIndex, equivalenceIndex);
+                atom = structure.getAtom(atomIndex);
+                if (atom.getSymbol()
+                        .equals(atomType)) {
+                    multiplicity = Utils.getMultiplicityFromProtonsCount(atom.getImplicitHydrogenCount());
+                    if (multiplicity
+                            == null) {
+                        continue;
+                    }
+                    multiplicity = multiplicity.toLowerCase();
+                    hybridization = atom.getHybridization()
+                                        .name();
+                    occurrenceStatistics.putIfAbsent(multiplicity, new ConcurrentHashMap<>());
+                    occurrenceStatistics.get(multiplicity)
+                                        .putIfAbsent(hybridization, new ConcurrentHashMap<>());
+                    occurrenceStatistics.get(multiplicity)
+                                        .get(hybridization)
+                                        .putIfAbsent(shift, new ConcurrentHashMap<>());
+                    occurrenceStatistics.get(multiplicity)
+                                        .get(hybridization)
+                                        .get(shift)
+                                        .putIfAbsent(elementsString, new ConcurrentHashMap<>());
+                    // check for connected hetero atoms
+                    found = new HashSet<>();
+                    for (final IAtom connectedAtom : structure.getConnectedAtomsList(atom)) {
+                        if (connectedAtom.getSymbol()
+                                         .equals("H")) {
+                            continue;
+                        }
+                        found.add(connectedAtom.getSymbol());
+                    }
+                    for (final String connectedAtomType : found) {
+                        occurrenceStatistics.get(multiplicity)
+                                            .get(hybridization)
+                                            .get(shift)
+                                            .get(elementsString)
+                                            .putIfAbsent(connectedAtomType, new Integer[]{0, 0});
+                        occurrenceStatistics.get(multiplicity)
+                                            .get(hybridization)
+                                            .get(shift)
+                                            .get(elementsString)
+                                            .get(connectedAtomType)[0] = occurrenceStatistics.get(multiplicity)
+                                                                                             .get(hybridization)
+                                                                                             .get(shift)
+                                                                                             .get(elementsString)
+                                                                                             .get(connectedAtomType)[0]
+                                + 1;
+                    }
+                    notFound = new HashSet<>(elements);
+                    notFound.removeAll(found);
+                    for (final String notConnectedAtomType : notFound) {
+                        occurrenceStatistics.get(multiplicity)
+                                            .get(hybridization)
+                                            .get(shift)
+                                            .get(elementsString)
+                                            .putIfAbsent(notConnectedAtomType, new Integer[]{0, 0});
+                        occurrenceStatistics.get(multiplicity)
+                                            .get(hybridization)
+                                            .get(shift)
+                                            .get(elementsString)
+                                            .get(notConnectedAtomType)[1] = occurrenceStatistics.get(multiplicity)
+                                                                                                .get(hybridization)
+                                                                                                .get(shift)
+                                                                                                .get(elementsString)
+                                                                                                .get(notConnectedAtomType)[1]
+                                + 1;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * @param connectivityStatistics   multiplicity -> hybridization -> shift (int) -> connected atom symbol -> connected atom hybridization -> connected atom protons count -> occurrence
      * @param multiplicity
      * @param hybridization
@@ -150,9 +251,8 @@ public class ConnectivityStatistics {
         return extractedConnectivities;
     }
 
-    public static Map<String, Map<Integer, Set<Integer>>> filterExtractedConnectivities(
+    public static Map<String, Map<Integer, Map<Integer, Integer>>> filterExtractedConnectivitiesByHybridizations(
             final Map<String, Map<Integer, Map<Integer, Integer>>> extractedConnectivities,
-            final double thresholdElementCount, final boolean onAtomTypeLevel,
             final Set<Integer> knownCarbonHybridizations) {
         // remove hybridization of carbons which we do not expect
         for (final String atomType : extractedConnectivities.keySet()) {
@@ -166,6 +266,13 @@ public class ConnectivityStatistics {
                 }
             }
         }
+
+        return extractedConnectivities;
+    }
+
+    public static Map<String, Map<Integer, Set<Integer>>> filterExtractedConnectivitiesByCount(
+            final Map<String, Map<Integer, Map<Integer, Integer>>> extractedConnectivities,
+            final double thresholdElementCount, final boolean onAtomTypeLevel) {
         final Map<String, Integer> totalCounts = getTotalCounts(extractedConnectivities);
         final int totalCountsSum = getSum(new HashSet<>(totalCounts.values()));
         final Map<String, Map<Integer, Set<Integer>>> filteredExtractedConnectivities = new HashMap<>();
@@ -229,37 +336,5 @@ public class ConnectivityStatistics {
     private static int getSum(final Set<Integer> values) {
         return values.stream()
                      .reduce(0, (total, current) -> total += current);
-    }
-
-    public static Map<String, Map<Integer, Map<Integer, Integer>>> convertToNumericHybridizationMapKeys(
-            final Map<String, Map<String, Map<Integer, Integer>>> map) {
-        final Map<String, Map<Integer, Map<Integer, Integer>>> converted = new HashMap<>();
-        int numericHybridization;
-        for (final Map.Entry<String, Map<String, Map<Integer, Integer>>> entryPerAtomType : map.entrySet()) {
-            converted.put(entryPerAtomType.getKey(), new HashMap<>());
-            for (final Map.Entry<String, Map<Integer, Integer>> entryPerHybridizationString : entryPerAtomType.getValue()
-                                                                                                              .entrySet()) {
-                if (Constants.hybridizationConversionMap.containsKey(entryPerHybridizationString.getKey())) {
-                    numericHybridization = Constants.hybridizationConversionMap.get(
-                            entryPerHybridizationString.getKey());
-                    converted.get(entryPerAtomType.getKey())
-                             .putIfAbsent(numericHybridization, new HashMap<>());
-                    for (final Map.Entry<Integer, Integer> entryPerProtonsCount : entryPerHybridizationString.getValue()
-                                                                                                             .entrySet()) {
-                        converted.get(entryPerAtomType.getKey())
-                                 .get(numericHybridization)
-                                 .putIfAbsent(entryPerProtonsCount.getKey(), 0);
-                        converted.get(entryPerAtomType.getKey())
-                                 .get(numericHybridization)
-                                 .put(entryPerProtonsCount.getKey(), converted.get(entryPerAtomType.getKey())
-                                                                              .get(numericHybridization)
-                                                                              .get(entryPerProtonsCount.getKey())
-                                         + entryPerProtonsCount.getValue());
-                    }
-                }
-            }
-        }
-
-        return converted;
     }
 }

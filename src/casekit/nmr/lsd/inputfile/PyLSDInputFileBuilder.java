@@ -398,12 +398,32 @@ public class PyLSDInputFileBuilder {
                                                             final Grouping grouping,
                                                             final String defaultBondDistanceString,
                                                             final Set<String> uniqueSet, final Link link) {
+        // ignore H atoms without any attachment to a heavy atom
+        if (correlationList.get(index)
+                           .getAtomType()
+                           .equals("H")
+                && correlationList.get(index)
+                                  .getAttachment()
+                                  .keySet()
+                                  .isEmpty()) {
+            return;
+        }
         String bondDistanceString;
         Map<String, Object> signal2DMap;
         Map<String, Object> pathLengthMap;
         for (final int matchIndex : link.getMatch()) {
             for (int l = 1; l
                     < indicesMap.get(matchIndex).length; l++) {
+                // ignore linked H atoms without any attachment to a heavy atom
+                if (correlationList.get(matchIndex)
+                                   .getAtomType()
+                                   .equals("H")
+                        && correlationList.get(matchIndex)
+                                          .getAttachment()
+                                          .keySet()
+                                          .isEmpty()) {
+                    continue;
+                }
                 bondDistanceString = null;
                 signal2DMap = (Map<String, Object>) link.getSignal();
                 if (signal2DMap

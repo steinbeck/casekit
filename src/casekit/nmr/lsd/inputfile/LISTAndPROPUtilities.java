@@ -1,30 +1,13 @@
 package casekit.nmr.lsd.inputfile;
 
+import casekit.nmr.lsd.model.MolecularConnectivity;
 import casekit.nmr.model.Signal;
-import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.utils.Statistics;
-import casekit.nmr.utils.Utils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class LISTAndPROPUtilities {
-
-    public static void insertELEM(final StringBuilder stringBuilder, final Map<String, Object[]> listMap,
-                                  final Set<String> atomTypesByMf) {
-        final Set<String> atomTypes = new HashSet<>(atomTypesByMf);
-        atomTypes.remove("H");
-        for (final String atomType : atomTypes) {
-            listMap.put(atomType, new Object[]{"L"
-                                                       + (listMap.size()
-                    + 1)});
-            stringBuilder.append("ELEM")
-                         .append(" ")
-                         .append(listMap.get(atomType)[0])
-                         .append(" ")
-                         .append(atomType)
-                         .append("\n");
-        }
-    }
 
     public static void insertNoHeteroHeteroBonds(final StringBuilder stringBuilder,
                                                  final Map<String, Object[]> listMap) {
@@ -38,8 +21,41 @@ public class LISTAndPROPUtilities {
         stringBuilder.append("PROP L1 0 L1 -; no hetero-hetero bonds\n");
     }
 
-    private static String buildListKey(final String atomType, final List<Integer> hybridizations,
-                                       final List<Integer> protonsCounts) {
+    public static void insertGeneralLISTs(final StringBuilder stringBuilder, final Map<String, Object[]> listMap,
+                                          final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap,
+                                          final Set<String> atomTypesByMf) {
+        final Set<String> atomTypes = new HashSet<>(atomTypesByMf);
+        atomTypes.remove("H");
+        Set<Integer> elementIndices;
+        for (final String atomType : atomTypes) {
+            listMap.put(atomType, new Object[]{"L"
+                                                       + (listMap.size()
+                    + 1)});
+            elementIndices = new HashSet<>();
+            for (final int correlationIndex : molecularConnectivityMap.keySet()) {
+                elementIndices.addAll(molecularConnectivityMap.get(correlationIndex)
+                                                              .stream()
+                                                              .filter(molecularConnectivity -> molecularConnectivity.getAtomType()
+                                                                                                                    .equals(atomType))
+                                                              .map(MolecularConnectivity::getIndex)
+                                                              .collect(Collectors.toSet()));
+            }
+
+            stringBuilder.append("LIST ")
+                         .append(listMap.get(atomType)[0]);
+            for (final int elementIndex : elementIndices) {
+                stringBuilder.append(" ")
+                             .append(elementIndex);
+            }
+            stringBuilder.append("; list of all ")
+                         .append(atomType)
+                         .append(" atoms")
+                         .append("\n");
+        }
+    }
+
+    private static String buildListKey(final String atomType, final Set<Integer> hybridizations,
+                                       final Set<Integer> protonsCounts) {
         return atomType
                 + "_"
                 + (!hybridizations.isEmpty()
@@ -53,33 +69,27 @@ public class LISTAndPROPUtilities {
 
     public static void insertHeavyAtomCombinationLISTs(final StringBuilder stringBuilder,
                                                        final Map<String, Object[]> listMap,
-                                                       final List<Correlation> correlationList,
-                                                       final Map<Integer, Object[]> indicesMap) {
+                                                       final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap) {
         final Map<String, Set<Integer>> atomIndicesMap = new LinkedHashMap<>();
-        Correlation correlation;
-        int indexInPyLSD;
         String listKey;
-        for (int i = 0; i
-                < correlationList.size(); i++) {
-            for (int k = 1; k
-                    < indicesMap.get(i).length; k++) {
-                correlation = correlationList.get(i);
-                if (correlation.getAtomType()
-                               .equals("H")
-                        || correlation.getHybridization()
-                                      .size()
-                        != 1
-                        || correlation.getProtonsCount()
-                                      .size()
+        for (final int correlationIndex : molecularConnectivityMap.keySet()) {
+            for (final MolecularConnectivity molecularConnectivity : molecularConnectivityMap.get(correlationIndex)) {
+                if (molecularConnectivity.getAtomType()
+                                         .equals("H")
+                        //                        || molecularConnectivity.getHybridizations()
+                        //                                                .size()
+                        //                        != 1
+                        || molecularConnectivity.getProtonCounts()
+                                                .size()
                         != 1) {
                     continue;
                 }
-                listKey = buildListKey(correlation.getAtomType(), new ArrayList<>(), //correlation.getHybridization(),
-                                       correlation.getProtonsCount());
-                indexInPyLSD = (int) indicesMap.get(i)[k];
+                listKey = buildListKey(molecularConnectivity.getAtomType(), new HashSet<>(),
+                                       // correlation.getHybridization(),
+                                       molecularConnectivity.getProtonCounts());
                 atomIndicesMap.putIfAbsent(listKey, new HashSet<>());
                 atomIndicesMap.get(listKey)
-                              .add(indexInPyLSD);
+                              .add(molecularConnectivity.getIndex());
             }
         }
         String[] split;
@@ -157,33 +167,29 @@ public class LISTAndPROPUtilities {
 
     public static void insertConnectionLISTsAndPROPs(final StringBuilder stringBuilder,
                                                      final Map<String, Object[]> listMap,
-                                                     final List<Correlation> correlationList,
-                                                     final Map<Integer, Object[]> indicesMap,
-                                                     final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> neighbors,
+                                                     final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap,
                                                      final String mode) {
-        Correlation correlation;
-        Signal signal;
-        String atomType, listKey;
-        int indexInPyLSD;
+        String listKey;
         Map<String, Map<Integer, Set<Integer>>> neighborsTemp;
         final Map<String, Integer> usedPropsCount = new HashMap<>();
-        for (int i = 0; i
-                < correlationList.size(); i++) {
-            if (neighbors.containsKey(i)) {
-                correlation = correlationList.get(i);
-                signal = Utils.extractSignalFromCorrelation(correlation);
-                atomType = correlation.getAtomType();
-                neighborsTemp = neighbors.get(i);
-
-                // put in the extracted information per correlation and equivalent
-                for (int k = 1; k
-                        < indicesMap.get(i).length; k++) {
-                    indexInPyLSD = (int) indicesMap.get(i)[k];
+        for (final int correlationIndex : molecularConnectivityMap.keySet()) {
+            for (final MolecularConnectivity molecularConnectivity : molecularConnectivityMap.get(correlationIndex)) {
+                if (mode.equals("forbid")) {
+                    neighborsTemp = molecularConnectivity.getForbiddenNeighbors();
+                } else if (mode.equals("allow")) {
+                    neighborsTemp = molecularConnectivity.getSetNeighbors();
+                } else {
+                    neighborsTemp = null;
+                }
+                if (neighborsTemp
+                        != null) {
                     for (final String neighborAtomType : neighborsTemp.keySet()) {
                         // forbid/set bonds to whole element groups if there is an empty map for an atom type
                         if (neighborsTemp.get(neighborAtomType)
                                          .isEmpty()) {
-                            insertPROP(stringBuilder, listMap, atomType, signal, indexInPyLSD, neighborAtomType, mode);
+                            insertPROP(stringBuilder, listMap, molecularConnectivity.getAtomType(),
+                                       molecularConnectivity.getSignal(), molecularConnectivity.getIndex(),
+                                       neighborAtomType, mode);
                         } else {
                             for (final int neighborHybridization : neighborsTemp.get(neighborAtomType)
                                                                                 .keySet()) {
@@ -191,15 +197,16 @@ public class LISTAndPROPUtilities {
                                                                            .get(neighborHybridization)) {
                                     listKey = buildListKey(neighborAtomType, neighborHybridization
                                                                                      == -1
-                                                                             ? new ArrayList<>()
-                                                                             : List.of(neighborHybridization),
-                                                           List.of(protonsCount));
+                                                                             ? new HashSet<>()
+                                                                             : Set.of(neighborHybridization),
+                                                           Set.of(protonsCount));
                                     if (checkSkipPROPInsertion(listMap, usedPropsCount, listKey, mode)) {
                                         continue;
                                     }
                                     if (listMap.containsKey(listKey)) {
-                                        insertPROP(stringBuilder, listMap, atomType, signal, indexInPyLSD, listKey,
-                                                   mode);
+                                        insertPROP(stringBuilder, listMap, molecularConnectivity.getAtomType(),
+                                                   molecularConnectivity.getSignal(), molecularConnectivity.getIndex(),
+                                                   listKey, mode);
                                         usedPropsCount.put((String) listMap.get(listKey)[0],
                                                            usedPropsCount.get((String) listMap.get(listKey)[0])
                                                                    + 1);

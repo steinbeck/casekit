@@ -1,13 +1,13 @@
 package casekit.nmr.lsd.inputfile;
 
 import casekit.nmr.lsd.Constants;
+import casekit.nmr.lsd.Utilities;
 import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.lsd.model.Grouping;
-import casekit.nmr.model.Signal;
+import casekit.nmr.lsd.model.MolecularConnectivity;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Correlations;
-import casekit.nmr.model.nmrium.Link;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 
@@ -52,340 +52,24 @@ public class PyLSDInputFileBuilder {
                 + elimP2;
     }
 
-    private static Map<Integer, Object[]> buildIndicesMap(final List<Correlation> correlationList) {
-        // index in correlation data -> [atom type, indices in PyLSD file...]
-        final Map<Integer, Object[]> indicesMap = new HashMap<>();
-        // init element indices within correlations with same order as in correlation data input
-        int heavyAtomIndexInPyLSDFile = 1;
-        int protonIndexInPyLSDFile = 1;
-        int protonsToInsert, protonsCount;
-        Correlation correlation;
-        for (int i = 0; i
-                < correlationList.size(); i++) {
-            correlation = correlationList.get(i);
-            // set entry for each correlation with consideration of equivalences
-            if (correlation.getAtomType()
-                           .equals("H")) {
-                protonsToInsert = 0;
-                for (final Link link : correlation.getLink()) {
-                    if (link.getExperimentType()
-                            .equals("hsqc")
-                            || link.getExperimentType()
-                                   .equals("hmqc")) {
-                        for (final int matchIndex : link.getMatch()) {
-                            protonsCount = correlationList.get(matchIndex)
-                                                          .getProtonsCount()
-                                                          .get(0);
-                            protonsToInsert += (correlation.getEquivalence()
-                                    / (double) protonsCount)
-                                    * correlationList.get(matchIndex)
-                                                     .getAttachment()
-                                                     .get("H")
-                                                     .size();
-                        }
-                    }
-                }
-                indicesMap.put(i, new Object[1
-                        + protonsToInsert]);
-                indicesMap.get(i)[0] = correlation.getAtomType();
-                for (int j = 1; j
-                        <= protonsToInsert; j++) {
-                    indicesMap.get(i)[j] = protonIndexInPyLSDFile;
-                    protonIndexInPyLSDFile++;
-                }
-            } else {
-                indicesMap.put(i, new Object[1
-                        + correlation.getEquivalence()]);
-                indicesMap.get(i)[0] = correlation.getAtomType();
-                for (int j = 1; j
-                        <= correlation.getEquivalence(); j++) {
-                    indicesMap.get(i)[j] = heavyAtomIndexInPyLSDFile;
-                    heavyAtomIndexInPyLSDFile++;
-                }
-            }
-        }
-        //        System.out.println("\n\n");
-        //        for (final Map.Entry<Integer, Object[]> entry : indicesMap.entrySet()) {
-        //            System.out.println(entry.getKey()
-        //                                       + ": "
-        //                                       + entry.getValue()[0]);
-        //            for (int i = 1; i
-        //                    < entry.getValue().length; i++) {
-        //                System.out.println(entry.getValue()[i]);
-        //            }
-        //        }
-        //        System.out.println("\n\n");
-
-        return indicesMap;
-    }
-
-    private static String buildMULT(final List<Correlation> correlationList, final int index,
-                                    final Map<Integer, Object[]> indicesMap,
-                                    final Map<Integer, List<Integer>> detectedHybridizations) {
-        final Correlation correlation = correlationList.get(index);
-        if (correlation.getAtomType()
-                       .equals("H")) {
-            return null;
-        }
-        final StringBuilder stringBuilder = new StringBuilder();
-        List<Integer> hybridizations = new ArrayList<>();
-        final StringBuilder hybridizationStringBuilder;
-        final StringBuilder attachedProtonsCountStringBuilder;
-
-        if (correlation.getHybridization()
-                != null
-                && !correlation.getHybridization()
-                               .isEmpty()) {
-            // if hybridization is already given
-            hybridizations.addAll(correlation.getHybridization());
-        } else {
-            // if hybridization is not given then use the detected ones
-            if (detectedHybridizations.containsKey(index)) {
-                hybridizations = detectedHybridizations.get(index);
-            }
-            if (hybridizations.isEmpty()
-                    && correlation.getAtomType()
-                                  .equals("C")
-                    && !correlation.getProtonsCount()
-                                   .isEmpty()
-                    && correlation.getProtonsCount()
-                                  .get(0)
-                    >= 2) {
-                // a carbon with at least two protons can only be SP2 or SP3
-                hybridizations.add(2);
-                hybridizations.add(3);
-            }
-        }
-        if (hybridizations.isEmpty()) {
-            hybridizationStringBuilder = new StringBuilder();
-            if (Constants.defaultHybridizationMap.get(correlation.getAtomType()).length
-                    > 1) {
-                hybridizationStringBuilder.append("(");
-            }
-            for (int i = 0; i
-                    < Constants.defaultHybridizationMap.get(correlation.getAtomType()).length; i++) {
-                hybridizationStringBuilder.append(Constants.defaultHybridizationMap.get(correlation.getAtomType())[i]);
-                if (i
-                        < Constants.defaultHybridizationMap.get(correlation.getAtomType()).length
-                        - 1) {
-                    hybridizationStringBuilder.append(" ");
-                }
-            }
-            if (Constants.defaultHybridizationMap.get(correlation.getAtomType()).length
-                    > 1) {
-                hybridizationStringBuilder.append(")");
-            }
-        } else {
-            hybridizationStringBuilder = new StringBuilder();
-            if (hybridizations.size()
-                    > 1) {
-                hybridizationStringBuilder.append("(");
-            }
-            for (int k = 0; k
-                    < hybridizations.size(); k++) {
-                hybridizationStringBuilder.append(hybridizations.get(k));
-                if (k
-                        < hybridizations.size()
-                        - 1) {
-                    hybridizationStringBuilder.append(" ");
-                }
-            }
-            if (hybridizations.size()
-                    > 1) {
-                hybridizationStringBuilder.append(")");
-            }
-        }
-        // set attached protons count
-        attachedProtonsCountStringBuilder = new StringBuilder();
-        // if protons count is given
-        if (correlation.getProtonsCount()
-                != null
-                && !correlation.getProtonsCount()
-                               .isEmpty()) {
-            if (correlation.getProtonsCount()
-                           .size()
-                    == 1) {
-                attachedProtonsCountStringBuilder.append(correlation.getProtonsCount()
-                                                                    .get(0));
-            } else {
-                attachedProtonsCountStringBuilder.append("(");
-                for (final int protonsCount : correlation.getProtonsCount()) {
-                    attachedProtonsCountStringBuilder.append(protonsCount)
-                                                     .append(" ");
-                }
-                attachedProtonsCountStringBuilder.deleteCharAt(attachedProtonsCountStringBuilder.length()
-                                                                       - 1);
-                attachedProtonsCountStringBuilder.append(")");
-            }
-        } else { // if protons count is not given then set it to default value
-            if (Constants.defaultProtonsCountPerValencyMap.get(
-                    Constants.defaultAtomLabelMap.get(correlation.getAtomType())).length
-                    > 1) {
-                attachedProtonsCountStringBuilder.append("(");
-            }
-            for (int i = 0; i
-                    < Constants.defaultProtonsCountPerValencyMap.get(
-                    Constants.defaultAtomLabelMap.get(correlation.getAtomType())).length; i++) {
-                attachedProtonsCountStringBuilder.append(Constants.defaultProtonsCountPerValencyMap.get(
-                        Constants.defaultAtomLabelMap.get(correlation.getAtomType()))[i]);
-                if (i
-                        < Constants.defaultProtonsCountPerValencyMap.get(
-                        Constants.defaultAtomLabelMap.get(correlation.getAtomType())).length
-                        - 1) {
-                    attachedProtonsCountStringBuilder.append(" ");
-                }
-            }
-            if (Constants.defaultProtonsCountPerValencyMap.get(
-                    Constants.defaultAtomLabelMap.get(correlation.getAtomType())).length
-                    > 1) {
-                attachedProtonsCountStringBuilder.append(")");
-            }
-        }
-        for (int j = 1; j
-                < indicesMap.get(index).length; j++) {
-            stringBuilder.append("MULT ")
-                         .append(indicesMap.get(index)[j])
-                         .append(" ")
-                         .append(correlation.getAtomType())
-                         .append(" ")
-                         .append(hybridizationStringBuilder)
-                         .append(" ")
-                         .append(attachedProtonsCountStringBuilder);
-            if (!correlation.isPseudo()) {
-                stringBuilder.append("; ")
-                             .append(buildShiftString(correlationList, correlation));
-            }
-            if (j
-                    >= 2) {
-                stringBuilder.append("; equivalent to ")
-                             .append(indicesMap.get(index)[1]);
-            }
-            stringBuilder.append("\n");
-        }
-
-        return stringBuilder.toString();
-    }
-
-    private static String buildShiftString(final List<Correlation> correlationList, final Correlation correlation) {
-
-        final Signal signal = Utils.extractSignalFromCorrelation(correlation);
-        if (signal
-                == null) {
-            return "?";
-        }
-
-        String heavyAtomShiftString = "";
-        if (correlation.getAtomType()
-                       .equals("H")) {
-            final ArrayList<String> bondHeavyAtomTypes = new ArrayList<>(correlation.getAttachment()
-                                                                                    .keySet());
-            if (!bondHeavyAtomTypes.isEmpty()) {
-                final Optional<Integer> firstOptional = correlation.getAttachment()
-                                                                   .get(bondHeavyAtomTypes.get(0))
-                                                                   .stream()
-                                                                   .findFirst();
-                if (firstOptional.isPresent()) {
-                    heavyAtomShiftString = " ("
-                            + buildShiftString(correlationList, correlationList.get(firstOptional.get()))
-                            + ")";
-                }
-            }
-
-        }
-
-        return correlation.isPseudo()
-               ? "?"
-               : Statistics.roundDouble(signal.getShift(0), 3)
-                       + heavyAtomShiftString;
-    }
-
-    private static String buildShiftsComment(final List<Correlation> correlationList, final Correlation correlation1,
-                                             final Correlation correlation2) {
-        return "; "
-                + correlation1.getAtomType()
-                + ": "
-                + buildShiftString(correlationList, correlation1)
-                + " -> "
-                + correlation2.getAtomType()
-                + ": "
-                + buildShiftString(correlationList, correlation2);
-    }
-
-    private static String buildHSQC(final List<Correlation> correlationList, final int index,
-                                    final Map<Integer, Object[]> indicesMap) {
-        final Correlation correlation = correlationList.get(index);
-        if (correlation.getAtomType()
-                       .equals("H")) {
-            return null;
-        }
-        final StringBuilder stringBuilder = new StringBuilder();
-        for (final Link link : correlation.getLink()) {
-            if (link.getExperimentType()
-                    .equals("hsqc")
-                    || link.getExperimentType()
-                           .equals("hmqc")) {
-                for (final int matchIndex : link.getMatch()) {
-                    // for each equivalence of heavy atom and attached protons
-                    for (int k = 1; k
-                            < indicesMap.get(index).length; k++) {
-                        stringBuilder.append("HSQC ")
-                                     .append(indicesMap.get(index)[k])
-                                     .append(" ")
-                                     .append(indicesMap.get(matchIndex)[k])
-                                     .append(buildShiftsComment(correlationList, correlation,
-                                                                correlationList.get(matchIndex)))
-                                     .append("\n");
-                    }
-                }
-            }
-        }
-
-        return stringBuilder.toString();
-    }
-
-    private static String buildPossibilitiesString(final List<Correlation> correlationList, final int index,
-                                                   final Map<Integer, Object[]> indicesMap, final Grouping grouping) {
+    private static String buildPossibilitiesString(final Set<Integer> possibilities) {
         final StringBuilder possibilitiesStringBuilder = new StringBuilder();
-        final Correlation correlation = correlationList.get(index);
-        // add PyLSD indices from grouping
-        final Set<Integer> pyLSDIndices = new HashSet<>();
-        if (grouping.getTransformedGroups()
-                    .containsKey(correlation.getAtomType())) {
-            final int groupIndex = grouping.getTransformedGroups()
-                                           .get(correlation.getAtomType())
-                                           .get(index);
-            for (final int groupCorrelationIndex : grouping.getGroups()
-                                                           .get(correlation.getAtomType())
-                                                           .get(groupIndex)) {
-                // add equivalence indices as well
-                for (int k = 1; k
-                        < indicesMap.get(groupCorrelationIndex).length; k++) {
-                    pyLSDIndices.add((int) indicesMap.get(groupCorrelationIndex)[k]);
-                }
-            }
-        } else {
-            // add for equivalences only
-            for (int k = 1; k
-                    < indicesMap.get(index).length; k++) {
-                pyLSDIndices.add((int) indicesMap.get(index)[k]);
-            }
-        }
-        // build the string
-        if (pyLSDIndices.size()
+
+        if (possibilities.size()
                 > 1) {
             possibilitiesStringBuilder.append("(");
         }
-        int k = 0;
-        for (final int pyLSDIndex : pyLSDIndices) {
-            possibilitiesStringBuilder.append(pyLSDIndex);
-            if (k
-                    < pyLSDIndices.size()
+        int counter = 0;
+        for (final int possibility : possibilities) {
+            possibilitiesStringBuilder.append(possibility);
+            if (counter
+                    < possibilities.size()
                     - 1) {
                 possibilitiesStringBuilder.append(" ");
             }
-            k++;
+            counter++;
         }
-        if (pyLSDIndices.size()
+        if (possibilities.size()
                 > 1) {
             possibilitiesStringBuilder.append(")");
         }
@@ -393,181 +77,253 @@ public class PyLSDInputFileBuilder {
         return possibilitiesStringBuilder.toString();
     }
 
-    private static void buildMultipleBondCorrelationPerLink(final List<Correlation> correlationList, final int index,
-                                                            final Map<Integer, Object[]> indicesMap,
-                                                            final Grouping grouping,
-                                                            final String defaultBondDistanceString,
-                                                            final Set<String> uniqueSet, final Link link) {
-        // ignore H atoms without any attachment to a heavy atom
-        if (correlationList.get(index)
-                           .getAtomType()
-                           .equals("H")
-                && correlationList.get(index)
-                                  .getAttachment()
-                                  .keySet()
-                                  .isEmpty()) {
-            return;
-        }
-        String bondDistanceString;
-        Map<String, Object> signal2DMap;
-        Map<String, Object> pathLengthMap;
-        for (final int matchIndex : link.getMatch()) {
-            for (int l = 1; l
-                    < indicesMap.get(matchIndex).length; l++) {
-                // ignore linked H atoms without any attachment to a heavy atom
-                if (correlationList.get(matchIndex)
-                                   .getAtomType()
-                                   .equals("H")
-                        && correlationList.get(matchIndex)
-                                          .getAttachment()
-                                          .keySet()
-                                          .isEmpty()) {
-                    continue;
+    private static Map<String, StringBuilder> buildStringBuilderMap(
+            final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap) {
+        StringBuilder stringBuilder;
+        final Map<String, StringBuilder> stringBuilderMap = new HashMap<>();
+        stringBuilderMap.put("MULT", new StringBuilder());
+        stringBuilderMap.put("HSQC", new StringBuilder());
+        stringBuilderMap.put("HMBC", new StringBuilder());
+        stringBuilderMap.put("COSY", new StringBuilder());
+        stringBuilderMap.put("BOND", new StringBuilder());
+        stringBuilderMap.put("SHIX", new StringBuilder());
+        stringBuilderMap.put("SHIH", new StringBuilder());
+        StringBuilder hybridizationStringBuilder, attachedProtonsCountStringBuilder;
+        int counter;
+        int firstOfEquivalenceIndexPyLSD;
+        for (final int correlationIndex : molecularConnectivityMap.keySet()) {
+            firstOfEquivalenceIndexPyLSD = -1;
+            for (final MolecularConnectivity molecularConnectivity : molecularConnectivityMap.get(correlationIndex)) {
+                if (firstOfEquivalenceIndexPyLSD
+                        == -1) {
+                    firstOfEquivalenceIndexPyLSD = molecularConnectivity.getIndex();
                 }
-                bondDistanceString = null;
-                signal2DMap = (Map<String, Object>) link.getSignal();
-                if (signal2DMap
-                        != null
-                        && signal2DMap.containsKey("pathLength")) {
-                    pathLengthMap = (Map<String, Object>) signal2DMap.get("pathLength");
-                    bondDistanceString = pathLengthMap.get("min")
-                            + " "
-                            + pathLengthMap.get("max");
-                }
-                uniqueSet.add(buildPossibilitiesString(correlationList, index, indicesMap, grouping)
-                                      + " "
-                                      + indicesMap.get(matchIndex)[l]
-                                      + " "
-                                      + (bondDistanceString
-                                                 != null
-                                         ? bondDistanceString
-                                         : defaultBondDistanceString)
-                                      + buildShiftsComment(correlationList, correlationList.get(index),
-                                                           correlationList.get(matchIndex)));
-            }
-        }
-    }
+                if (!molecularConnectivity.getAtomType()
+                                          .equals("H")) {
 
-    private static String buildHMBC(final List<Correlation> correlationList, final int index,
-                                    final Map<Integer, Object[]> indicesMap, final Grouping grouping) {
-        final Correlation correlation = correlationList.get(index);
-        if (correlation.getAtomType()
-                       .equals("H")) {
-            return null;
-        }
-
-        final String defaultBondDistanceString = 2
-                + " "
-                + 3;
-        final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
-        for (final Link link : correlation.getLink()) {
-            if (link.getExperimentType()
-                    .equals("hmbc")) {
-                buildMultipleBondCorrelationPerLink(correlationList, index, indicesMap, grouping,
-                                                    defaultBondDistanceString, uniqueSet, link);
-            }
-        }
-
-        return uniqueSet.stream()
-                        .map(str -> "HMBC "
-                                + str
-                                + "\n")
-                        .reduce("", (strAll, str) -> strAll
-                                + str);
-    }
-
-    private static String buildCOSY(final List<Correlation> correlationList, final int index,
-                                    final Map<Integer, Object[]> indicesMap, final Grouping grouping) {
-        final Correlation correlation = correlationList.get(index);
-        if (!correlation.getAtomType()
-                        .equals("H")) {
-            return null;
-        }
-        final String defaultBondDistanceString = 3
-                + " "
-                + 4;
-        final Set<String> uniqueSet = new LinkedHashSet<>(); // in case of same content exists multiple times
-        for (final Link link : correlation.getLink()) {
-            if (link.getExperimentType()
-                    .equals("cosy")) {
-                buildMultipleBondCorrelationPerLink(correlationList, index, indicesMap, grouping,
-                                                    defaultBondDistanceString, uniqueSet, link);
-            }
-        }
-
-        return uniqueSet.stream()
-                        .map(str -> "COSY "
-                                + str
-                                + "\n")
-                        .reduce("", (strAll, str) -> strAll
-                                + str);
-    }
-
-    private static String buildSHIX(final Correlation correlation, final int index,
-                                    final Map<Integer, Object[]> indicesMap) {
-        if (correlation.getAtomType()
-                       .equals("H")
-                || correlation.isPseudo()) {
-            return null;
-        }
-        final Signal signal = Utils.extractSignalFromCorrelation(correlation);
-        if (signal
-                == null) {
-            return null;
-        }
-        final StringBuilder stringBuilder = new StringBuilder();
-        for (int k = 1; k
-                < indicesMap.get(index).length; k++) {
-            stringBuilder.append("SHIX ")
-                         .append(indicesMap.get(index)[k])
-                         .append(" ")
-                         .append(Statistics.roundDouble(signal.getShift(0), 3))
-                         .append("\n");
-        }
-
-        return stringBuilder.toString();
-    }
-
-    private static String buildSHIH(final Correlation correlation, final int index,
-                                    final Map<Integer, Object[]> indicesMap) {
-        if (!correlation.getAtomType()
-                        .equals("H")
-                || correlation.isPseudo()) {
-            return null;
-        }
-        final Signal signal = Utils.extractSignalFromCorrelation(correlation);
-        if (signal
-                == null) {
-            return null;
-        }
-        final StringBuilder stringBuilder = new StringBuilder();
-        // only consider protons which are attached via HSQC/HMQC (pseudo and real links)
-        for (final Link link : correlation.getLink()) {
-            if ((link.getExperimentType()
-                     .equals("hsqc")
-                    || link.getExperimentType()
-                           .equals("hmqc"))
-                    && !link.getMatch()
-                            .isEmpty()) { // && !link.isPseudo()
-                for (int k = 1; k
-                        < indicesMap.get(index).length; k++) {
-                    stringBuilder.append("SHIH ")
-                                 .append(indicesMap.get(index)[k])
+                    hybridizationStringBuilder = new StringBuilder();
+                    if (molecularConnectivity.getHybridizations()
+                                             .size()
+                            > 1) {
+                        hybridizationStringBuilder.append("(");
+                    }
+                    counter = 0;
+                    for (final int hybrid : molecularConnectivity.getHybridizations()) {
+                        hybridizationStringBuilder.append(hybrid);
+                        if (counter
+                                < molecularConnectivity.getHybridizations()
+                                                       .size()
+                                - 1) {
+                            hybridizationStringBuilder.append(" ");
+                        }
+                        counter++;
+                    }
+                    if (molecularConnectivity.getHybridizations()
+                                             .size()
+                            > 1) {
+                        hybridizationStringBuilder.append(")");
+                    }
+                    attachedProtonsCountStringBuilder = new StringBuilder();
+                    if (molecularConnectivity.getProtonCounts()
+                                             .size()
+                            > 1) {
+                        attachedProtonsCountStringBuilder.append("(");
+                    }
+                    counter = 0;
+                    for (final int protonCount : molecularConnectivity.getProtonCounts()) {
+                        attachedProtonsCountStringBuilder.append(protonCount);
+                        if (counter
+                                < molecularConnectivity.getProtonCounts()
+                                                       .size()
+                                - 1) {
+                            attachedProtonsCountStringBuilder.append(" ");
+                        }
+                        counter++;
+                    }
+                    if (molecularConnectivity.getProtonCounts()
+                                             .size()
+                            > 1) {
+                        attachedProtonsCountStringBuilder.append(")");
+                    }
+                    stringBuilder = stringBuilderMap.get("MULT");
+                    stringBuilder.append("MULT ")
+                                 .append(molecularConnectivity.getIndex())
                                  .append(" ")
-                                 .append(Statistics.roundDouble(signal.getShift(0), 5))
+                                 .append(Constants.defaultAtomLabelMap.get(molecularConnectivity.getAtomType()))
+                                 .append(" ")
+                                 .append(hybridizationStringBuilder)
+                                 .append(" ")
+                                 .append(attachedProtonsCountStringBuilder);
+                    stringBuilder.append("; ")
+                                 .append(buildShiftString(molecularConnectivityMap, molecularConnectivity));
+                    if (molecularConnectivityMap.get(correlationIndex)
+                                                .size()
+                            > 1
+                            && molecularConnectivity.getIndex()
+                            != firstOfEquivalenceIndexPyLSD) {
+                        stringBuilder.append("; equivalent to ")
+                                     .append(firstOfEquivalenceIndexPyLSD);
+                    }
+                    stringBuilder.append("\n");
+                    if (molecularConnectivity.getHsqc()
+                            != null) {
+                        stringBuilder = stringBuilderMap.get("HSQC");
+                        for (final int protonIndexPyLSD : molecularConnectivity.getHsqc()) {
+                            stringBuilder.append("HSQC ")
+                                         .append(molecularConnectivity.getIndex())
+                                         .append(" ")
+                                         .append(protonIndexPyLSD)
+                                         .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
+                                                                    Utilities.findMolecularConnectivityByIndex(
+                                                                            molecularConnectivityMap, "H", false,
+                                                                            protonIndexPyLSD)))
+                                         .append("\n");
+                        }
+                    }
+                    if (molecularConnectivity.getHmbc()
+                            != null) {
+                        stringBuilder = stringBuilderMap.get("HMBC");
+                        for (final int protonIndexPyLSD : molecularConnectivity.getHmbc()
+                                                                               .keySet()) {
+                            stringBuilder.append("HMBC ")
+                                         .append(buildPossibilitiesString(molecularConnectivity.getGroupMembers()))
+                                         .append(" ")
+                                         .append(protonIndexPyLSD)
+                                         .append(" ")
+                                         .append(molecularConnectivity.getHmbc()
+                                                                      .get(protonIndexPyLSD)[0])
+                                         .append(" ")
+                                         .append(molecularConnectivity.getHmbc()
+                                                                      .get(protonIndexPyLSD)[1])
+                                         .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
+
+                                                                    Utilities.findMolecularConnectivityByIndex(
+                                                                            molecularConnectivityMap, "H", false,
+                                                                            protonIndexPyLSD)))
+                                         .append("\n");
+                        }
+                    }
+                    if (molecularConnectivity.getFixedNeighbors()
+                            != null) {
+                        stringBuilder = stringBuilderMap.get("BOND");
+                        for (final int bondedIndexInPyLSD : molecularConnectivity.getFixedNeighbors()) {
+                            stringBuilder.append("BOND ")
+                                         .append(molecularConnectivity.getIndex())
+                                         .append(" ")
+                                         .append(bondedIndexInPyLSD)
+                                         .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
+                                                                    Utilities.findMolecularConnectivityByIndex(
+                                                                            molecularConnectivityMap, "H", true,
+                                                                            bondedIndexInPyLSD)))
+                                         .append("\n");
+                        }
+                    }
+                } else if (molecularConnectivity.getAtomType()
+                                                .equals("H")) {
+                    if (molecularConnectivity.getCosy()
+                            != null) {
+                        stringBuilder = stringBuilderMap.get("COSY");
+                        for (final int protonIndexInPyLSD : molecularConnectivity.getCosy()
+                                                                                 .keySet()) {
+                            stringBuilder.append("COSY ")
+                                         .append(buildPossibilitiesString(molecularConnectivity.getGroupMembers()))
+                                         .append(" ")
+                                         .append(protonIndexInPyLSD)
+                                         .append(" ")
+                                         .append(molecularConnectivity.getCosy()
+                                                                      .get(protonIndexInPyLSD)[0])
+                                         .append(" ")
+                                         .append(molecularConnectivity.getCosy()
+                                                                      .get(protonIndexInPyLSD)[1])
+                                         .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
+                                                                    Utilities.findMolecularConnectivityByIndex(
+                                                                            molecularConnectivityMap, "H", false,
+                                                                            protonIndexInPyLSD)))
+                                         .append("\n");
+                        }
+                    }
+                }
+                if (molecularConnectivity.getSignal()
+                        != null) {
+                    stringBuilder = stringBuilderMap.get(molecularConnectivity.getAtomType()
+                                                                              .equals("H")
+                                                         ? "SHIH"
+                                                         : "SHIX");
+                    stringBuilder.append(molecularConnectivity.getAtomType()
+                                                              .equals("H")
+                                         ? "SHIH"
+                                         : "SHIX")
+                                 .append(" ")
+                                 .append(molecularConnectivity.getIndex())
+                                 .append(" ")
+                                 .append(Statistics.roundDouble(molecularConnectivity.getSignal()
+                                                                                     .getShift(0), 5))
                                  .append("\n");
                 }
             }
         }
 
-        return stringBuilder.toString();
+        return stringBuilderMap;
     }
 
-    private static String buildLISTsAndPROPs(final List<Correlation> correlationList,
-                                             final Map<Integer, Object[]> indicesMap,
+    private static String buildShiftString(final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap,
+                                           final MolecularConnectivity molecularConnectivity) {
+        if (molecularConnectivity
+                == null
+                || molecularConnectivity.getSignal()
+                == null) {
+            return "?";
+        }
+
+        final String heavyAtomShiftString = "";
+        //        if (molecularConnectivity.getAtomType()
+        //                                 .equals("H")) {
+        //            MolecularConnectivity heavyAtomMolecularConnectivity = null;
+        //            boolean found = false;
+        //            for (final int correlationIndex : molecularConnectivityMap.keySet()) {
+        //                for (final MolecularConnectivity molecularConnectivityTemp : molecularConnectivityMap.get(
+        //                        correlationIndex)) {
+        //                    if (molecularConnectivityTemp.getHsqc()
+        //                            != null
+        //                            && molecularConnectivityTemp.getHsqc()
+        //                                                        .contains(molecularConnectivity.getIndex())) {
+        //                        heavyAtomMolecularConnectivity = molecularConnectivityTemp;
+        //                        found = true;
+        //                        break;
+        //                    }
+        //                }
+        //                if (found) {
+        //                    break;
+        //                }
+        //            }
+        //            if (heavyAtomMolecularConnectivity
+        //                    != null) {
+        //                heavyAtomShiftString = " ("
+        //                        + buildShiftString(molecularConnectivityMap, heavyAtomMolecularConnectivity)
+        //                        + ")";
+        //            }
+        //        }
+
+        return Statistics.roundDouble(molecularConnectivity.getSignal()
+                                                           .getShift(0), 3)
+                + heavyAtomShiftString;
+    }
+
+    private static String buildShiftsComment(final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap,
+                                             final MolecularConnectivity molecularConnectivity1,
+                                             final MolecularConnectivity molecularConnectivity2) {
+        return "; "
+                + molecularConnectivity1.getAtomType()
+                + ": "
+                + buildShiftString(molecularConnectivityMap, molecularConnectivity1)
+                + " -> "
+                + molecularConnectivity2.getAtomType()
+                + ": "
+                + buildShiftString(molecularConnectivityMap, molecularConnectivity2);
+    }
+
+    private static String buildLISTsAndPROPs(final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap,
                                              final Map<String, Integer> elementCounts,
-                                             final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
-                                             final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors,
                                              final boolean allowHeteroHeteroBonds) {
         final StringBuilder stringBuilder = new StringBuilder();
         // list key -> [list name, size]
@@ -577,16 +333,15 @@ public class PyLSDInputFileBuilder {
         if (!allowHeteroHeteroBonds) {
             LISTAndPROPUtilities.insertNoHeteroHeteroBonds(stringBuilder, listMap);
         }
-        // insert ELEM for each heavy atom type in MF
-        LISTAndPROPUtilities.insertELEM(stringBuilder, listMap, elementCounts.keySet());
+        // insert LIST for each heavy atom type in MF
+        LISTAndPROPUtilities.insertGeneralLISTs(stringBuilder, listMap, molecularConnectivityMap,
+                                                elementCounts.keySet());
         // insert list combinations of carbon and hybridization states
-        LISTAndPROPUtilities.insertHeavyAtomCombinationLISTs(stringBuilder, listMap, correlationList, indicesMap);
+        LISTAndPROPUtilities.insertHeavyAtomCombinationLISTs(stringBuilder, listMap, molecularConnectivityMap);
         // insert forbidden connection lists and properties
-        LISTAndPROPUtilities.insertConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
-                                                           forbiddenNeighbors, "forbid");
+        LISTAndPROPUtilities.insertConnectionLISTsAndPROPs(stringBuilder, listMap, molecularConnectivityMap, "forbid");
         // insert set connection lists and properties
-        LISTAndPROPUtilities.insertConnectionLISTsAndPROPs(stringBuilder, listMap, correlationList, indicesMap,
-                                                           setNeighbors, "allow");
+        LISTAndPROPUtilities.insertConnectionLISTsAndPROPs(stringBuilder, listMap, molecularConnectivityMap, "allow");
 
         return stringBuilder.toString();
     }
@@ -645,11 +400,7 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildDEFFsAndFEXP(final List<Correlation> correlationList,
-                                            final Map<Integer, Object[]> indicesMap,
-                                            final ElucidationOptions elucidationOptions,
-                                            final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors,
-                                            final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors) {
+    private static String buildDEFFsAndFEXP(final ElucidationOptions elucidationOptions) {
         final StringBuilder stringBuilder = new StringBuilder();
         final Map<String, Boolean> fexpMap = new HashMap<>();
         for (int i = 0; i
@@ -686,134 +437,68 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildBONDByFixedNeighbors(final List<Correlation> correlationList,
-                                                    final Map<Integer, Object[]> indicesMap,
-                                                    final Map<Integer, Set<Integer>> fixedNeighbors) {
-        final StringBuilder stringBuilder = new StringBuilder();
-
-        final Set<String> uniqueSet = new HashSet<>();
-        int correlationIndex1;
-        Correlation correlation1, correlation2;
-        for (final Map.Entry<Integer, Set<Integer>> entry : fixedNeighbors.entrySet()) {
-            correlationIndex1 = entry.getKey();
-            correlation1 = correlationList.get(correlationIndex1);
-            if (correlation1.getEquivalence()
-                    > 1) {
-                continue;
-            }
-            for (final int correlationIndex2 : entry.getValue()) {
-                correlation2 = correlationList.get(correlationIndex2);
-                // @TODO for now use fixed neighbor information of atoms without equivalences only
-                if (correlation2.getEquivalence()
-                        > 1) {
-                    continue;
-                }
-                // insert BOND pair once only and not if equivalences exist
-                if (!uniqueSet.contains(indicesMap.get(correlationIndex1)[1]
-                                                + " "
-                                                + indicesMap.get(correlationIndex2)[1])) {
-                    stringBuilder.append("BOND ")
-                                 .append(indicesMap.get(correlationIndex1)[1])
-                                 .append(" ")
-                                 .append(indicesMap.get(correlationIndex2)[1])
-                                 .append(buildShiftsComment(correlationList, correlation1, correlation2))
-                                 .append("\n");
-                    uniqueSet.add(indicesMap.get(correlationIndex1)[1]
-                                          + " "
-                                          + indicesMap.get(correlationIndex2)[1]);
-                    uniqueSet.add(indicesMap.get(correlationIndex2)[1]
-                                          + " "
-                                          + indicesMap.get(correlationIndex1)[1]);
-                }
-            }
-        }
-
-        return stringBuilder.toString();
-    }
-
-    private static String buildBOND(final List<Correlation> correlationList, final Map<Integer, Object[]> indicesMap,
-                                    final Map<Integer, Set<Integer>> fixedNeighbors) {
-        return buildBONDByFixedNeighbors(correlationList, indicesMap, fixedNeighbors)
-                + "\n";
-    }
-
     public static String buildPyLSDInputFileContent(final Correlations correlations, final String mf,
                                                     final Detections detections, final Grouping grouping,
                                                     final ElucidationOptions elucidationOptions) {
         if (mf
-                != null) {
-            final List<Correlation> correlationList = correlations.getValues();
-            final Map<String, Integer> elementCounts = new LinkedHashMap<>(Utils.getMolecularFormulaElementCounts(mf));
-            final StringBuilder stringBuilder = new StringBuilder();
-            // create header
-            stringBuilder.append(buildHeader())
+                == null) {
+            return "";
+        }
+        final List<Correlation> correlationList = correlations.getValues();
+        final Map<String, Integer> elementCounts = new LinkedHashMap<>(Utils.getMolecularFormulaElementCounts(mf));
+        final StringBuilder stringBuilder = new StringBuilder();
+        // create header
+        stringBuilder.append(buildHeader())
+                     .append("\n\n");
+        // FORM
+        stringBuilder.append(buildFORM(mf, elementCounts))
+                     .append("\n\n");
+        // PIEC
+        stringBuilder.append(buildPIEC())
+                     .append("\n\n");
+        // ELIM
+        if (elucidationOptions.isUseElim()) {
+            stringBuilder.append(buildELIM(elucidationOptions.getElimP1(), elucidationOptions.getElimP2()))
                          .append("\n\n");
-            // FORM
-            stringBuilder.append(buildFORM(mf, elementCounts))
-                         .append("\n\n");
-            // PIEC
-            stringBuilder.append(buildPIEC())
-                         .append("\n\n");
-            // ELIM
-            if (elucidationOptions.isUseElim()) {
-                stringBuilder.append(buildELIM(elucidationOptions.getElimP1(), elucidationOptions.getElimP2()))
-                             .append("\n\n");
-            }
-
-            final Map<String, List<String>> collection = new LinkedHashMap<>();
-            collection.put("MULT", new ArrayList<>());
-            collection.put("HSQC", new ArrayList<>());
-            collection.put("HMBC", new ArrayList<>());
-            collection.put("COSY", new ArrayList<>());
-            collection.put("SHIX", new ArrayList<>());
-            collection.put("SHIH", new ArrayList<>());
-            // index in correlation data -> [atom type, index in PyLSD file]
-            final Map<Integer, Object[]> indicesMap = buildIndicesMap(correlationList);
-
-            Correlation correlation;
-            for (int i = 0; i
-                    < correlationList.size(); i++) {
-                correlation = correlationList.get(i);
-                collection.get("MULT")
-                          .add(buildMULT(correlationList, i, indicesMap, detections.getDetectedHybridizations()));
-                collection.get("HSQC")
-                          .add(buildHSQC(correlationList, i, indicesMap));
-                collection.get("HMBC")
-                          .add(buildHMBC(correlationList, i, indicesMap, grouping));
-                collection.get("COSY")
-                          .add(buildCOSY(correlationList, i, indicesMap, grouping));
-                collection.get("SHIX")
-                          .add(buildSHIX(correlation, i, indicesMap));
-                collection.get("SHIH")
-                          .add(buildSHIH(correlation, i, indicesMap));
-            }
-
-            collection.keySet()
-                      .forEach(key -> {
-                          collection.get(key)
-                                    .stream()
-                                    .filter(Objects::nonNull)
-                                    .forEach(stringBuilder::append);
-                          stringBuilder.append("\n");
-                      });
-
-            // BOND (interpretation, INADEQUATE, previous assignments) -> input fragments
-            stringBuilder.append(buildBOND(correlationList, indicesMap, detections.getFixedNeighbors()))
-                         .append("\n");
-
-            // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance
-            stringBuilder.append(
-                                 buildLISTsAndPROPs(correlationList, indicesMap, elementCounts, detections.getForbiddenNeighbors(),
-                                                    detections.getSetNeighbors(), elucidationOptions.isAllowHeteroHeteroBonds()))
-                         .append("\n");
-            // DEFF and FEXP as filters (good/bad lists)
-            stringBuilder.append(buildDEFFsAndFEXP(correlationList, indicesMap, elucidationOptions,
-                                                   detections.getForbiddenNeighbors(), detections.getSetNeighbors()))
-                         .append("\n");
-
-            return stringBuilder.toString();
         }
 
-        return "";
+        final Map<String, Integer[]> defaultBondDistances = new HashMap<>();
+        defaultBondDistances.put("hmbc", new Integer[]{2, 3});
+        defaultBondDistances.put("cosy", new Integer[]{3, 4});
+        final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap = Utilities.buildMolecularConnectivityMap(
+                correlationList, detections, grouping, defaultBondDistances);
+        final Map<String, StringBuilder> stringBuilderMap = buildStringBuilderMap(molecularConnectivityMap);
+        stringBuilder.append(stringBuilderMap.get("MULT")
+                                             .toString())
+                     .append("\n");
+        stringBuilder.append(stringBuilderMap.get("HSQC")
+                                             .toString())
+                     .append("\n");
+
+        stringBuilder.append(stringBuilderMap.get("BOND")
+                                             .toString())
+                     .append("\n");
+        stringBuilder.append(stringBuilderMap.get("HMBC")
+                                             .toString())
+                     .append("\n");
+        stringBuilder.append(stringBuilderMap.get("COSY")
+                                             .toString())
+                     .append("\n");
+        stringBuilder.append(stringBuilderMap.get("SHIX")
+                                             .toString())
+                     .append("\n");
+        stringBuilder.append(stringBuilderMap.get("SHIH")
+                                             .toString())
+                     .append("\n");
+
+        // LIST PROP for certain limitations or properties of atoms in lists, e.g. hetero hetero bonds allowance
+        stringBuilder.append(buildLISTsAndPROPs(molecularConnectivityMap, elementCounts,
+                                                elucidationOptions.isAllowHeteroHeteroBonds()))
+                     .append("\n");
+        // DEFF and FEXP as filters (good/bad lists)
+        stringBuilder.append(buildDEFFsAndFEXP(elucidationOptions))
+                     .append("\n");
+
+        return stringBuilder.toString();
     }
 }

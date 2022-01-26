@@ -21,6 +21,7 @@ public class Constants {
         nuclei.put("S", "33S");
         nuclei.put("F", "19F");
         nuclei.put("P", "31P");
+        nuclei.put("Si", "29Si");
 
         return Collections.unmodifiableMap(nuclei);
     }
@@ -36,6 +37,7 @@ public class Constants {
         defaultHybridization.put("Cl", new int[]{3});
         defaultHybridization.put("Br", new int[]{3});
         defaultHybridization.put("P", new int[]{1, 2, 3});
+        defaultHybridization.put("Si", new int[]{1, 2, 3});
 
         return Collections.unmodifiableMap(defaultHybridization);
     }
@@ -58,6 +60,7 @@ public class Constants {
         defaultProtonsCountPerValency.put("P", new int[]{0, 1, 2});
         defaultProtonsCountPerValency.put("P5", new int[]{0, 1, 2, 3});
         defaultProtonsCountPerValency.put("P35", new int[]{0, 1, 2, 3});
+        defaultProtonsCountPerValency.put("Si", new int[]{0, 1, 2, 3});
 
         return defaultProtonsCountPerValency;
     }
@@ -73,6 +76,7 @@ public class Constants {
         defaultAtomLabel.put("Cl", "Cl");
         defaultAtomLabel.put("Br", "Br");
         defaultAtomLabel.put("P", "P35");
+        defaultAtomLabel.put("Si", "Si");
 
         return Collections.unmodifiableMap(defaultAtomLabel);
     }

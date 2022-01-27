@@ -89,8 +89,9 @@ public class PyLSDInputFileBuilder {
         stringBuilderMap.put("SHIX", new StringBuilder());
         stringBuilderMap.put("SHIH", new StringBuilder());
         StringBuilder hybridizationStringBuilder, attachedProtonsCountStringBuilder;
-        int counter;
-        int firstOfEquivalenceIndexPyLSD;
+        int counter, firstOfEquivalenceIndexPyLSD;
+        Set<Integer> groupMembers;
+        MolecularConnectivity molecularConnectivityGroupMember, molecularConnectivityHeavyAtom;
         for (final int correlationIndex : molecularConnectivityMap.keySet()) {
             firstOfEquivalenceIndexPyLSD = -1;
             for (final MolecularConnectivity molecularConnectivity : molecularConnectivityMap.get(correlationIndex)) {
@@ -183,24 +184,38 @@ public class PyLSDInputFileBuilder {
                     if (molecularConnectivity.getHmbc()
                             != null) {
                         stringBuilder = stringBuilderMap.get("HMBC");
-                        for (final int protonIndexPyLSD : molecularConnectivity.getHmbc()
-                                                                               .keySet()) {
-                            stringBuilder.append("HMBC ")
-                                         .append(buildPossibilitiesString(molecularConnectivity.getGroupMembers()))
-                                         .append(" ")
-                                         .append(protonIndexPyLSD)
-                                         .append(" ")
-                                         .append(molecularConnectivity.getHmbc()
-                                                                      .get(protonIndexPyLSD)[0])
-                                         .append(" ")
-                                         .append(molecularConnectivity.getHmbc()
-                                                                      .get(protonIndexPyLSD)[1])
-                                         .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
-
-                                                                    Utilities.findMolecularConnectivityByIndex(
-                                                                            molecularConnectivityMap, "H", false,
-                                                                            protonIndexPyLSD)))
-                                         .append("\n");
+                        for (final int protonIndexInPyLSD : molecularConnectivity.getHmbc()
+                                                                                 .keySet()) {
+                            // filter out group members which are directly bonded to that proton
+                            groupMembers = new HashSet<>(molecularConnectivity.getGroupMembers());
+                            for (final int groupMemberIndex : new HashSet<>(groupMembers)) {
+                                molecularConnectivityGroupMember = Utilities.findMolecularConnectivityByIndex(
+                                        molecularConnectivityMap, molecularConnectivity.getAtomType(), false,
+                                        groupMemberIndex);
+                                if (molecularConnectivityGroupMember.getHsqc()
+                                        != null
+                                        && molecularConnectivityGroupMember.getHsqc()
+                                                                           .contains(protonIndexInPyLSD)) {
+                                    groupMembers.remove(groupMemberIndex);
+                                }
+                            }
+                            if (!groupMembers.isEmpty()) {
+                                stringBuilder.append("HMBC ")
+                                             .append(buildPossibilitiesString(groupMembers))
+                                             .append(" ")
+                                             .append(protonIndexInPyLSD)
+                                             .append(" ")
+                                             .append(molecularConnectivity.getHmbc()
+                                                                          .get(protonIndexInPyLSD)[0])
+                                             .append(" ")
+                                             .append(molecularConnectivity.getHmbc()
+                                                                          .get(protonIndexInPyLSD)[1])
+                                             .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
+                                                                        Utilities.findMolecularConnectivityByIndex(
+                                                                                molecularConnectivityMap, "H", false,
+                                                                                protonIndexInPyLSD)))
+                                             .append("\n");
+                            }
                         }
                     }
                     if (molecularConnectivity.getFixedNeighbors()
@@ -225,21 +240,49 @@ public class PyLSDInputFileBuilder {
                         stringBuilder = stringBuilderMap.get("COSY");
                         for (final int protonIndexInPyLSD : molecularConnectivity.getCosy()
                                                                                  .keySet()) {
-                            stringBuilder.append("COSY ")
-                                         .append(buildPossibilitiesString(molecularConnectivity.getGroupMembers()))
-                                         .append(" ")
-                                         .append(protonIndexInPyLSD)
-                                         .append(" ")
-                                         .append(molecularConnectivity.getCosy()
-                                                                      .get(protonIndexInPyLSD)[0])
-                                         .append(" ")
-                                         .append(molecularConnectivity.getCosy()
-                                                                      .get(protonIndexInPyLSD)[1])
-                                         .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
-                                                                    Utilities.findMolecularConnectivityByIndex(
-                                                                            molecularConnectivityMap, "H", false,
-                                                                            protonIndexInPyLSD)))
-                                         .append("\n");
+                            // filter out group members which
+                            groupMembers = new HashSet<>(molecularConnectivity.getGroupMembers());
+                            // 1) use only one attached proton of a CH2 group (optional)
+                            final Set<Integer> alreadyFoundHeavyAtomIndex = new HashSet<>();
+                            for (final int groupMemberIndex : new HashSet<>(groupMembers)) {
+                                molecularConnectivityHeavyAtom = Utilities.getHeavyAtomMolecularConnectivity(
+                                        molecularConnectivityMap, groupMemberIndex);
+                                if (alreadyFoundHeavyAtomIndex.contains(molecularConnectivityHeavyAtom.getIndex())) {
+                                    groupMembers.remove(groupMemberIndex);
+                                } else {
+                                    alreadyFoundHeavyAtomIndex.add(molecularConnectivityHeavyAtom.getIndex());
+                                }
+                            }
+                            // 2) would direct to itself when using COSY correlation
+                            molecularConnectivityHeavyAtom = Utilities.getHeavyAtomMolecularConnectivity(
+                                    molecularConnectivityMap, protonIndexInPyLSD);
+                            if (molecularConnectivityHeavyAtom
+                                    != null) {
+                                for (final int groupMemberIndex : new HashSet<>(groupMembers)) {
+                                    if (molecularConnectivityHeavyAtom.getHsqc()
+                                                                      .contains(groupMemberIndex)) {
+                                        groupMembers.remove(groupMemberIndex);
+                                    }
+                                }
+                                if (!groupMembers.isEmpty()) {
+                                    stringBuilder.append("COSY ")
+                                                 .append(buildPossibilitiesString(groupMembers))
+                                                 .append(" ")
+                                                 .append(protonIndexInPyLSD)
+                                                 .append(" ")
+                                                 .append(molecularConnectivity.getCosy()
+                                                                              .get(protonIndexInPyLSD)[0])
+                                                 .append(" ")
+                                                 .append(molecularConnectivity.getCosy()
+                                                                              .get(protonIndexInPyLSD)[1])
+                                                 .append(buildShiftsComment(molecularConnectivityMap,
+                                                                            molecularConnectivity,
+                                                                            Utilities.findMolecularConnectivityByIndex(
+                                                                                    molecularConnectivityMap, "H",
+                                                                                    false, protonIndexInPyLSD)))
+                                                 .append("\n");
+                                }
+                            }
                         }
                     }
                 }

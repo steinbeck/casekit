@@ -805,7 +805,26 @@ public class Utilities {
             }
         }
 
-
         return molecularConnectivityMap;
+    }
+
+    public static MolecularConnectivity getHeavyAtomMolecularConnectivity(
+            final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap, final int protonIndex) {
+        for (final Map.Entry<Integer, List<MolecularConnectivity>> entry : molecularConnectivityMap.entrySet()) {
+            for (final MolecularConnectivity molecularConnectivityTemp : entry.getValue()
+                                                                              .stream()
+                                                                              .filter(mc -> !mc.getAtomType()
+                                                                                               .equals("H"))
+                                                                              .collect(Collectors.toSet())) {
+                if (molecularConnectivityTemp.getHsqc()
+                        != null
+                        && molecularConnectivityTemp.getHsqc()
+                                                    .contains(protonIndex)) {
+                    return molecularConnectivityTemp;
+                }
+            }
+        }
+
+        return null;
     }
 }

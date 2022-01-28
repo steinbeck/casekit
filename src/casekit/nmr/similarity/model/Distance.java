@@ -1,4 +1,4 @@
-package casekit.nmr.similarity;
+package casekit.nmr.similarity.model;
 
 public class Distance {
 

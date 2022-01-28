@@ -2,6 +2,7 @@ package casekit.nmr.similarity;
 
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.similarity.model.Distance;
 
 import java.util.ArrayList;
 import java.util.Comparator;

@@ -16,6 +16,7 @@ import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.similarity.model.Distance;
 import casekit.nmr.utils.Statistics;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.similarity.Tanimoto;
@@ -280,6 +281,8 @@ public class Similarity {
                                                                         shiftTolerance, checkMultiplicity,
                                                                         checkEquivalencesCount,
                                                                         allowLowerEquivalencesCount);
+        System.out.println("\n"
+                                   + distanceList);
         final Assignment matchAssignment = new Assignment();
         matchAssignment.setNuclei(spectrum1.getNuclei());
         matchAssignment.initAssignments(spectrum1.getSignalCount());
@@ -297,6 +300,7 @@ public class Similarity {
                 assignedSpectrum2.add(distance.getSignalIndexSpectrum2());
             }
         }
+        System.out.println(matchAssignment);
 
         return matchAssignment;
     }

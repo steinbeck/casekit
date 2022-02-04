@@ -18,7 +18,7 @@ public class MolecularConnectivity {
     private Signal signal;
     private Set<Integer> protonCounts;
     private Set<Integer> hybridizations;
-    private Set<Integer> hsqc;
+    private Integer hsqc;
     private Map<Integer, Integer[]> hmbc;
     private Map<Integer, Integer[]> cosy;
     private Map<String, Map<Integer, Set<Integer>>> forbiddenNeighbors;

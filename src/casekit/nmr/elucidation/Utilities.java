@@ -1,4 +1,4 @@
-package casekit.nmr.lsd;
+package casekit.nmr.elucidation;
 
 import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.elucidation.model.Grouping;
@@ -190,85 +190,6 @@ public class Utilities {
         return forbiddenNeighbors;
     }
 
-    public static boolean writeNeighborsFile(final String pathToNeighborsFile, final List<Correlation> correlationList,
-                                             final Map<Integer, Object[]> indicesMap,
-                                             final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> neighbors) {
-        final StringBuilder stringBuilder = new StringBuilder();
-        Correlation correlation;
-        Signal signal;
-        String atomType;
-        int indexInPyLSD;
-        int sstrIndex = 1, sstrIndexCorrelation;
-        Map<String, Map<Integer, Set<Integer>>> neighborsTemp;
-        for (int i = 0; i
-                < correlationList.size(); i++) {
-            if (neighbors.containsKey(i)) {
-                correlation = correlationList.get(i);
-                signal = Utils.extractSignalFromCorrelation(correlation);
-                atomType = correlation.getAtomType();
-                neighborsTemp = neighbors.get(i);
-
-                // put in the extracted information per correlation and equivalent
-                for (int k = 1; k
-                        < indicesMap.get(i).length; k++) {
-                    indexInPyLSD = (int) indicesMap.get(i)[k];
-                    for (final String neighborAtomType : neighborsTemp.keySet()) {
-                        for (final Map.Entry<Integer, Set<Integer>> entryPerHybridization : neighborsTemp.get(
-                                                                                                                 neighborAtomType)
-                                                                                                         .entrySet()) {
-                            sstrIndexCorrelation = sstrIndex;
-                            stringBuilder.append(
-                                    casekit.nmr.lsd.inputfile.Utilities.buildSSTR(sstrIndexCorrelation, atomType,
-                                                                                  correlation.getHybridization(),
-                                                                                  correlation.getProtonsCount()));
-                            stringBuilder.append("; ")
-                                         .append(atomType)
-                                         .append(" at ")
-                                         .append(signal
-                                                         != null
-                                                 ? Statistics.roundDouble(signal.getShift(0), 2)
-                                                 : "?")
-                                         .append(" (")
-                                         .append(indexInPyLSD)
-                                         .append(")")
-                                         .append("\n");
-                            stringBuilder.append("ASGN S")
-                                         .append(sstrIndexCorrelation)
-                                         .append(" ")
-                                         .append(indexInPyLSD)
-                                         .append("\n");
-                            sstrIndex++;
-
-                            final List<Integer> tempList = new ArrayList<>();
-                            if (entryPerHybridization.getKey()
-                                    != -1) {
-                                tempList.add(entryPerHybridization.getKey());
-                            }
-                            stringBuilder.append(
-                                                 casekit.nmr.lsd.inputfile.Utilities.buildSSTR(sstrIndex, neighborAtomType, tempList,
-                                                                                               new ArrayList<>(
-                                                                                                       entryPerHybridization.getValue())))
-                                         .append("\n");
-                            stringBuilder.append("LINK S")
-                                         .append(sstrIndexCorrelation)
-                                         .append(" S")
-                                         .append(sstrIndex)
-                                         .append("\n")
-                                         .append("\n");
-                            sstrIndex++;
-                        }
-                    }
-                }
-            }
-        }
-
-        System.out.println(stringBuilder);
-
-
-        return !stringBuilder.toString()
-                             .isEmpty()
-                && FileSystem.writeFile(pathToNeighborsFile, stringBuilder.toString());
-    }
 
     public static Map<Integer, Set<Integer>> buildFixedNeighborsByINADEQUATE(final List<Correlation> correlationList) {
         final Map<Integer, Set<Integer>> fixedNeighbors = new HashMap<>();
@@ -311,8 +232,8 @@ public class Utilities {
         return fixedNeighbors;
     }
 
-    public static boolean hasMatch(final Correlation correlation1, final Correlation correlation2,
-                                   final double tolerance) {
+    private static boolean hasMatch(final Correlation correlation1, final Correlation correlation2,
+                                    final double tolerance) {
         final Signal signal1 = Utils.extractSignalFromCorrelation(correlation1);
         final Signal signal2 = Utils.extractSignalFromCorrelation(correlation2);
         if (signal1
@@ -356,8 +277,8 @@ public class Utilities {
 
     }
 
-    public static Map<String, Map<Integer, Set<Integer>>> findGroups(final List<Correlation> correlationList,
-                                                                     final Map<String, Double> tolerances) {
+    private static Map<String, Map<Integer, Set<Integer>>> findGroups(final List<Correlation> correlationList,
+                                                                      final Map<String, Double> tolerances) {
         // cluster group index -> list of correlation index pair
         final Map<String, Map<Integer, Set<Integer>>> groups = new HashMap<>();
         int groupIndex = 0;
@@ -404,7 +325,7 @@ public class Utilities {
         return groups;
     }
 
-    public static Map<String, Map<Integer, Integer>> transformGroups(
+    private static Map<String, Map<Integer, Integer>> transformGroups(
             final Map<String, Map<Integer, Set<Integer>>> groups) {
         final Map<String, Map<Integer, Integer>> transformedGroups = new HashMap<>();
         for (final Map.Entry<String, Map<Integer, Set<Integer>>> atomTypeEntry : groups.entrySet()) {
@@ -486,46 +407,100 @@ public class Utilities {
         return hybridizations;
     }
 
-    private static Map<Integer, Integer[]> buildIndicesMap(final List<Correlation> correlationList) {
+    //    public static Map<Integer, Integer[]> buildIndicesMap(final List<Correlation> correlationList) {
+    //        // index in correlation data -> [indices in PyLSD file...]
+    //        final Map<Integer, Integer[]> indicesMap = new HashMap<>();
+    //        // init element indices within correlations with same order as in correlation data input
+    //        int heavyAtomIndexInPyLSDFile = 1;
+    //        int protonIndexInPyLSDFile = 1;
+    //        int protonsToInsert, protonsCount;
+    //        Correlation correlation;
+    //        for (int i = 0; i
+    //                < correlationList.size(); i++) {
+    //            correlation = correlationList.get(i);
+    //            // set entry for each correlation with consideration of equivalences
+    //            if (correlation.getAtomType()
+    //                           .equals("H")) {
+    //                protonsToInsert = 0;
+    //                for (final Link link : correlation.getLink()) {
+    //                    if (link.getExperimentType()
+    //                            .equals("hsqc")
+    //                            || link.getExperimentType()
+    //                                   .equals("hmqc")) {
+    //                        for (final int matchIndex : link.getMatch()) {
+    //                            protonsCount = correlationList.get(matchIndex)
+    //                                                          .getProtonsCount()
+    //                                                          .get(0);
+    //                            protonsToInsert += (correlation.getEquivalence()
+    //                                    / (double) protonsCount)
+    //                                    * correlationList.get(matchIndex)
+    //                                                     .getAttachment()
+    //                                                     .get("H")
+    //                                                     .size();
+    //                        }
+    //                    }
+    //                }
+    //                indicesMap.put(i, new Integer[protonsToInsert]);
+    //                for (int j = 0; j
+    //                        < protonsToInsert; j++) {
+    //                    indicesMap.get(i)[j] = protonIndexInPyLSDFile;
+    //                    protonIndexInPyLSDFile++;
+    //                }
+    //            } else {
+    //                indicesMap.put(i, new Integer[correlation.getEquivalence()]);
+    //                for (int j = 0; j
+    //                        < correlation.getEquivalence(); j++) {
+    //                    indicesMap.get(i)[j] = heavyAtomIndexInPyLSDFile;
+    //                    heavyAtomIndexInPyLSDFile++;
+    //                }
+    //            }
+    //        }
+    //
+    //        return indicesMap;
+    //    }
+
+    private static List<Integer> getAttachedProtonIndices(final Correlation correlation) {
+        return correlation.getLink()
+                          .stream()
+                          .filter(link -> link.getExperimentType()
+                                              .equals("hsqc")
+                                  || link.getExperimentType()
+                                         .equals("hmqc"))
+                          .map(Link::getMatch)
+                          .reduce(new ArrayList<>(), ((l, curr) -> {
+                              l.addAll(curr);
+                              return l;
+                          }));
+    }
+
+    public static Map<Integer, Integer[]> buildIndicesMap(final List<Correlation> correlationList) {
         // index in correlation data -> [indices in PyLSD file...]
         final Map<Integer, Integer[]> indicesMap = new HashMap<>();
         // init element indices within correlations with same order as in correlation data input
         int heavyAtomIndexInPyLSDFile = 1;
         int protonIndexInPyLSDFile = 1;
-        int protonsToInsert, protonsCount;
+        int protonsToInsert;
         Correlation correlation;
+        List<Integer> attachedProtonIndices;
         for (int i = 0; i
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
             // set entry for each correlation with consideration of equivalences
-            if (correlation.getAtomType()
-                           .equals("H")) {
-                protonsToInsert = 0;
-                for (final Link link : correlation.getLink()) {
-                    if (link.getExperimentType()
-                            .equals("hsqc")
-                            || link.getExperimentType()
-                                   .equals("hmqc")) {
-                        for (final int matchIndex : link.getMatch()) {
-                            protonsCount = correlationList.get(matchIndex)
-                                                          .getProtonsCount()
-                                                          .get(0);
-                            protonsToInsert += (correlation.getEquivalence()
-                                    / (double) protonsCount)
-                                    * correlationList.get(matchIndex)
-                                                     .getAttachment()
-                                                     .get("H")
-                                                     .size();
-                        }
-                    }
-                }
-                indicesMap.put(i, new Integer[protonsToInsert]);
+            if (!correlation.getAtomType()
+                            .equals("H")) {
+                // insert for protons
+                attachedProtonIndices = getAttachedProtonIndices(correlation);
+                protonsToInsert = correlation.getEquivalence();
+                final Integer[] arrayToInsert = new Integer[protonsToInsert];
                 for (int j = 0; j
-                        < protonsToInsert; j++) {
-                    indicesMap.get(i)[j] = protonIndexInPyLSDFile;
+                        < arrayToInsert.length; j++) {
+                    arrayToInsert[j] = protonIndexInPyLSDFile;
                     protonIndexInPyLSDFile++;
                 }
-            } else {
+                for (final int attachedProtonIndex : attachedProtonIndices) {
+                    indicesMap.put(attachedProtonIndex, arrayToInsert);
+                }
+                // insert for heavy atom itself
                 indicesMap.put(i, new Integer[correlation.getEquivalence()]);
                 for (int j = 0; j
                         < correlation.getEquivalence(); j++) {
@@ -534,6 +509,15 @@ public class Utilities {
                 }
             }
         }
+
+        System.out.println("\n -> indicesMap:\n");
+        for (final int index : indicesMap.keySet()) {
+            System.out.println("i: "
+                                       + index
+                                       + " -> "
+                                       + Arrays.toString(indicesMap.get(index)));
+        }
+        System.out.println("\n");
 
         return indicesMap;
     }
@@ -635,6 +619,10 @@ public class Utilities {
         for (int correlationIndex = 0; correlationIndex
                 < correlationList.size(); correlationIndex++) {
             correlation = correlationList.get(correlationIndex);
+            // skip in case of non-linked proton which has no index in indices map
+            if (!indicesMap.containsKey(correlationIndex)) {
+                continue;
+            }
             for (int k = 0; k
                     < indicesMap.get(correlationIndex).length; k++) {
                 index = indicesMap.get(correlationIndex)[k];
@@ -651,12 +639,8 @@ public class Utilities {
                                            .equals("H")) {
                         for (final int matchIndex : link.getMatch()) {
                             protonIndex = indicesMap.get(matchIndex)[k];
-                            if (molecularConnectivity.getHsqc()
-                                    == null) {
-                                molecularConnectivity.setHsqc(new HashSet<>());
-                            }
-                            molecularConnectivity.getHsqc()
-                                                 .add(protonIndex);
+
+                            molecularConnectivity.setHsqc(protonIndex);
                         }
                     } else if (link.getExperimentType()
                                    .equals("hmbc")
@@ -787,17 +771,13 @@ public class Utilities {
                         != null) {
                     if (molecularConnectivityTemp.getHmbc()
                             != null) {
-                        for (final int hmbcIndexInPyLSD : molecularConnectivityTemp.getHsqc()) {
-                            molecularConnectivityTemp.getHmbc()
-                                                     .remove(hmbcIndexInPyLSD);
-                        }
+                        molecularConnectivityTemp.getHmbc()
+                                                 .remove(molecularConnectivityTemp.getHsqc());
                     }
                     if (molecularConnectivityTemp.getCosy()
                             != null) {
-                        for (final int cosyIndexInPyLSD : molecularConnectivityTemp.getHsqc()) {
-                            molecularConnectivityTemp.getCosy()
-                                                     .remove(cosyIndexInPyLSD);
-                        }
+                        molecularConnectivityTemp.getCosy()
+                                                 .remove(molecularConnectivityTemp.getHsqc());
                     }
                 }
             }
@@ -817,12 +797,139 @@ public class Utilities {
                 if (molecularConnectivityTemp.getHsqc()
                         != null
                         && molecularConnectivityTemp.getHsqc()
-                                                    .contains(protonIndex)) {
+                        == protonIndex) {
                     return molecularConnectivityTemp;
                 }
             }
         }
 
         return null;
+    }
+
+    //    private static void extendMolecularConnectivityMapCombinationList(
+    //            // correlation index -> equivalence index -> proton index in hsqc -> proton group member index
+    //            final Map<Integer, Map<Integer, Map<Integer, Integer>>> combinationsMap,
+    //            final Map<Integer, List<MolecularConnectivity>> originalMolecularConnectivityMap,
+    //            final int correlationIndex, final int equivalenceIndex) {
+    //
+    //        if (!originalMolecularConnectivityMap.containsKey(correlationIndex)
+    //                || equivalenceIndex
+    //                >= originalMolecularConnectivityMap.get(correlationIndex)
+    //                                                   .size()) {
+    //            return;
+    //        }
+    //
+    //        final MolecularConnectivity molecularConnectivity = originalMolecularConnectivityMap.get(correlationIndex)
+    //                                                                                            .get(equivalenceIndex);
+    //        System.out.println("\n--------\n"
+    //                                   + molecularConnectivity
+    //                                   + "\n");
+    //
+    //        if (!molecularConnectivity.getAtomType()
+    //                                  .equals("H")) {
+    //            MolecularConnectivity molecularConnectivityGroupMemberHeavyAtom, molecularConnectivityProton;
+    //            for (final int groupMemberHeavyAtom : molecularConnectivity.getGroupMembers()) {
+    //                molecularConnectivityGroupMemberHeavyAtom = findMolecularConnectivityByIndex(
+    //                        originalMolecularConnectivityMap, "H", true, groupMemberHeavyAtom);
+    //
+    //                if (molecularConnectivityGroupMemberHeavyAtom.getAttachedProtonIndex()
+    //                        != null) {
+    //                    int i = 0;
+    //                    for (final int protonIndexInPyLSD : molecularConnectivityGroupMemberHeavyAtom.getHsqc()) {
+    //                        molecularConnectivityProton = findMolecularConnectivityByIndex(originalMolecularConnectivityMap,
+    //                                                                                       "H", false, protonIndexInPyLSD);
+    //
+    //                        for (final int protonGroupMemberIndexInPyLSD : molecularConnectivityProton.getGroupMembers()) {
+    //                            System.out.println(" -> "
+    //                                                       + correlationIndex
+    //                                                       + " -> "
+    //                                                       + equivalenceIndex
+    //                                                       + " -> protonIndexInPyLSD: "
+    //                                                       + protonIndexInPyLSD
+    //                                                       + " -> "
+    //                                                       + molecularConnectivityProton.getGroupMembers()
+    //                                                       + " -> group member: "
+    //                                                       + protonGroupMemberIndexInPyLSD);
+    //
+    //                            combinationsMap.putIfAbsent(correlationIndex, new HashMap<>());
+    //                            combinationsMap.get(correlationIndex)
+    //                                           .putIfAbsent(equivalenceIndex, new HashMap<>());
+    //                            if (combinationsMap.get(correlationIndex)
+    //
+    //                                               .entrySet()
+    //                                               .stream()
+    //                                               .noneMatch(entryPerEquivalence -> entryPerEquivalence.getValue()
+    //                                                                                                    .entrySet()
+    //                                                                                                    .stream()
+    //                                                                                                    .anyMatch(
+    //                                                                                                            entryPerHSQCIndex -> entryPerHSQCIndex.getValue()
+    //                                                                                                                    == protonGroupMemberIndexInPyLSD))) {
+    //                                combinationsMap.get(correlationIndex)
+    //                                               .get(equivalenceIndex)
+    //                                               .putIfAbsent(i, protonGroupMemberIndexInPyLSD);
+    //                            }
+    //
+    //
+    //                            if (equivalenceIndex
+    //                                    + 1
+    //                                    < originalMolecularConnectivityMap.get(correlationIndex)
+    //                                                                      .size()) {
+    //                                System.out.println(" --> equivalenceIndex++");
+    //                                extendMolecularConnectivityMapCombinationList(combinationsMap,
+    //                                                                              originalMolecularConnectivityMap,
+    //                                                                              correlationIndex, equivalenceIndex
+    //                                                                                      + 1);
+    //                            } else {
+    //                                System.out.println(" --> correlationIndex++");
+    //                                extendMolecularConnectivityMapCombinationList(combinationsMap,
+    //                                                                              originalMolecularConnectivityMap,
+    //                                                                              correlationIndex
+    //                                                                                      + 1, 0);
+    //                            }
+    //                        }
+    //                        i++;
+    //                    }
+    //                } else {
+    //                    if (equivalenceIndex
+    //                            + 1
+    //                            < originalMolecularConnectivityMap.get(correlationIndex)
+    //                                                              .size()) {
+    //                        System.out.println(" --> equivalenceIndex++");
+    //                        extendMolecularConnectivityMapCombinationList(combinationsMap, originalMolecularConnectivityMap,
+    //                                                                      correlationIndex, equivalenceIndex
+    //                                                                              + 1);
+    //                    } else {
+    //                        System.out.println(" --> correlationIndex++");
+    //                        extendMolecularConnectivityMapCombinationList(combinationsMap, originalMolecularConnectivityMap,
+    //                                                                      correlationIndex
+    //                                                                              + 1, 0);
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    }
+
+    public static List<Map<Integer, List<MolecularConnectivity>>> buildMolecularConnectivityMapCombinationList(
+            final List<Correlation> correlationList, final Detections detections, final Grouping grouping,
+            final Map<String, Integer[]> defaultBondDistances) {
+        final List<Map<Integer, List<MolecularConnectivity>>> molecularConnectivityMapCombinationList = new ArrayList<>();
+
+        final Map<Integer, List<MolecularConnectivity>> originalMolecularConnectivityMap = buildMolecularConnectivityMap(
+                correlationList, detections, grouping, defaultBondDistances);
+
+        molecularConnectivityMapCombinationList.add(originalMolecularConnectivityMap);
+
+        System.out.println("\n -> originalMolecularConnectivityMap: \n");
+        System.out.println(originalMolecularConnectivityMap);
+
+        //        final Map<Integer, Map<Integer, Map<Integer, Integer>>> combinationsMap = new HashMap<>();
+        //        extendMolecularConnectivityMapCombinationList(combinationsMap, originalMolecularConnectivityMap, 0, 0);
+        //
+        //        System.out.println("\n\n"
+        //                                   + combinationsMap
+        //                                   + "\n\n");
+
+        return molecularConnectivityMapCombinationList;
+
     }
 }

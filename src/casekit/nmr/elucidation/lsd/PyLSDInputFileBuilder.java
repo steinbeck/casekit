@@ -1,4 +1,4 @@
-package casekit.nmr.lsd.inputfile;
+package casekit.nmr.elucidation.lsd;
 
 import casekit.nmr.elucidation.Constants;
 import casekit.nmr.elucidation.model.Detections;
@@ -167,17 +167,16 @@ public class PyLSDInputFileBuilder {
                     if (molecularConnectivity.getHsqc()
                             != null) {
                         stringBuilder = stringBuilderMap.get("HSQC");
-                        for (final int protonIndexPyLSD : molecularConnectivity.getHsqc()) {
-                            stringBuilder.append("HSQC ")
-                                         .append(molecularConnectivity.getIndex())
-                                         .append(" ")
-                                         .append(protonIndexPyLSD)
-                                         .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
-                                                                    Utilities.findMolecularConnectivityByIndex(
-                                                                            molecularConnectivityMap, "H", false,
-                                                                            protonIndexPyLSD)))
-                                         .append("\n");
-                        }
+                        stringBuilder.append("HSQC ")
+                                     .append(molecularConnectivity.getIndex())
+                                     .append(" ")
+                                     .append(molecularConnectivity.getHsqc())
+                                     .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
+                                                                casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
+                                                                        molecularConnectivityMap, "H", false,
+                                                                        molecularConnectivity.getHsqc())))
+                                     .append("\n");
+
                     }
                     if (molecularConnectivity.getHmbc()
                             != null) {
@@ -187,13 +186,13 @@ public class PyLSDInputFileBuilder {
                             // filter out group members which are directly bonded to that proton
                             groupMembers = new HashSet<>(molecularConnectivity.getGroupMembers());
                             for (final int groupMemberIndex : new HashSet<>(groupMembers)) {
-                                molecularConnectivityGroupMember = Utilities.findMolecularConnectivityByIndex(
+                                molecularConnectivityGroupMember = casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
                                         molecularConnectivityMap, molecularConnectivity.getAtomType(), false,
                                         groupMemberIndex);
                                 if (molecularConnectivityGroupMember.getHsqc()
                                         != null
                                         && molecularConnectivityGroupMember.getHsqc()
-                                                                           .contains(protonIndexInPyLSD)) {
+                                        == protonIndexInPyLSD) {
                                     groupMembers.remove(groupMemberIndex);
                                 }
                             }
@@ -209,7 +208,7 @@ public class PyLSDInputFileBuilder {
                                              .append(molecularConnectivity.getHmbc()
                                                                           .get(protonIndexInPyLSD)[1])
                                              .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
-                                                                        Utilities.findMolecularConnectivityByIndex(
+                                                                        casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
                                                                                 molecularConnectivityMap, "H", false,
                                                                                 protonIndexInPyLSD)))
                                              .append("\n");
@@ -225,7 +224,7 @@ public class PyLSDInputFileBuilder {
                                          .append(" ")
                                          .append(bondedIndexInPyLSD)
                                          .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
-                                                                    Utilities.findMolecularConnectivityByIndex(
+                                                                    casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
                                                                             molecularConnectivityMap, "H", true,
                                                                             bondedIndexInPyLSD)))
                                          .append("\n");
@@ -243,7 +242,7 @@ public class PyLSDInputFileBuilder {
                             // 1) use only one attached proton of a CH2 group (optional)
                             final Set<Integer> alreadyFoundHeavyAtomIndex = new HashSet<>();
                             for (final int groupMemberIndex : new HashSet<>(groupMembers)) {
-                                molecularConnectivityHeavyAtom = Utilities.getHeavyAtomMolecularConnectivity(
+                                molecularConnectivityHeavyAtom = casekit.nmr.elucidation.Utilities.getHeavyAtomMolecularConnectivity(
                                         molecularConnectivityMap, groupMemberIndex);
                                 if (alreadyFoundHeavyAtomIndex.contains(molecularConnectivityHeavyAtom.getIndex())) {
                                     groupMembers.remove(groupMemberIndex);
@@ -252,13 +251,13 @@ public class PyLSDInputFileBuilder {
                                 }
                             }
                             // 2) would direct to itself when using COSY correlation
-                            molecularConnectivityHeavyAtom = Utilities.getHeavyAtomMolecularConnectivity(
+                            molecularConnectivityHeavyAtom = casekit.nmr.elucidation.Utilities.getHeavyAtomMolecularConnectivity(
                                     molecularConnectivityMap, protonIndexInPyLSD);
                             if (molecularConnectivityHeavyAtom
                                     != null) {
                                 for (final int groupMemberIndex : new HashSet<>(groupMembers)) {
                                     if (molecularConnectivityHeavyAtom.getHsqc()
-                                                                      .contains(groupMemberIndex)) {
+                                            == groupMemberIndex) {
                                         groupMembers.remove(groupMemberIndex);
                                     }
                                 }
@@ -275,7 +274,7 @@ public class PyLSDInputFileBuilder {
                                                                               .get(protonIndexInPyLSD)[1])
                                                  .append(buildShiftsComment(molecularConnectivityMap,
                                                                             molecularConnectivity,
-                                                                            Utilities.findMolecularConnectivityByIndex(
+                                                                            casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
                                                                                     molecularConnectivityMap, "H",
                                                                                     false, protonIndexInPyLSD)))
                                                  .append("\n");
@@ -478,14 +477,30 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    public static String buildPyLSDInputFileContent(final Correlations correlations, final String mf,
-                                                    final Detections detections, final Grouping grouping,
-                                                    final ElucidationOptions elucidationOptions) {
+
+    public static List<String> buildPyLSDInputFileContentList(final Correlations correlations, final String mf,
+                                                              final Detections detections, final Grouping grouping,
+                                                              final ElucidationOptions elucidationOptions,
+                                                              final Map<String, Integer[]> defaultBondDistances) {
         if (mf
-                == null) {
-            return "";
+                == null
+                || mf.isEmpty()) {
+            return new ArrayList<>();
         }
-        final List<Correlation> correlationList = correlations.getValues();
+        final List<String> inputFilesContentList = new ArrayList<>();
+        final List<Map<Integer, List<MolecularConnectivity>>> molecularConnectivityMapCombinationList = casekit.nmr.elucidation.Utilities.buildMolecularConnectivityMapCombinationList(
+                correlations.getValues(), detections, grouping, defaultBondDistances);
+        for (final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap : molecularConnectivityMapCombinationList) {
+            inputFilesContentList.add(buildPyLSDInputFileContent(molecularConnectivityMap, mf, elucidationOptions));
+        }
+
+        return inputFilesContentList;
+    }
+
+    public static String buildPyLSDInputFileContent(
+            final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap, final String mf,
+            final ElucidationOptions elucidationOptions) {
+
         final Map<String, Integer> elementCounts = new LinkedHashMap<>(Utils.getMolecularFormulaElementCounts(mf));
         final StringBuilder stringBuilder = new StringBuilder();
         // create header
@@ -503,11 +518,6 @@ public class PyLSDInputFileBuilder {
                          .append("\n\n");
         }
 
-        final Map<String, Integer[]> defaultBondDistances = new HashMap<>();
-        defaultBondDistances.put("hmbc", new Integer[]{2, 3});
-        defaultBondDistances.put("cosy", new Integer[]{3, 4});
-        final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap = Utilities.buildMolecularConnectivityMap(
-                correlationList, detections, grouping, defaultBondDistances);
         final Map<String, StringBuilder> stringBuilderMap = buildStringBuilderMap(molecularConnectivityMap);
         stringBuilder.append(stringBuilderMap.get("MULT")
                                              .toString())

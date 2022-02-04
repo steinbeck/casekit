@@ -1,6 +1,6 @@
 package casekit.nmr.utils;
 
-import casekit.nmr.lsd.Constants;
+import casekit.nmr.elucidation.Constants;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;

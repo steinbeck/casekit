@@ -1,6 +1,6 @@
-package casekit.nmr.lsd.inputfile;
+package casekit.nmr.elucidation.lsd;
 
-import casekit.nmr.lsd.model.MolecularConnectivity;
+import casekit.nmr.elucidation.model.MolecularConnectivity;
 import casekit.nmr.model.Signal;
 import casekit.nmr.utils.Statistics;
 

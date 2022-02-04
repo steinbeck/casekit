@@ -1,12 +1,10 @@
 package casekit.nmr.lsd.inputfile;
 
-import casekit.nmr.lsd.Constants;
-import casekit.nmr.lsd.Utilities;
-import casekit.nmr.lsd.model.Detections;
-import casekit.nmr.lsd.model.ElucidationOptions;
-import casekit.nmr.lsd.model.Grouping;
-import casekit.nmr.lsd.model.MolecularConnectivity;
-import casekit.nmr.model.nmrium.Correlation;
+import casekit.nmr.elucidation.Constants;
+import casekit.nmr.elucidation.model.Detections;
+import casekit.nmr.elucidation.model.ElucidationOptions;
+import casekit.nmr.elucidation.model.Grouping;
+import casekit.nmr.elucidation.model.MolecularConnectivity;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;

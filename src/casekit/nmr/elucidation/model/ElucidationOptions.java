@@ -1,4 +1,4 @@
-package casekit.nmr.lsd.model;
+package casekit.nmr.elucidation.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

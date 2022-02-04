@@ -281,8 +281,6 @@ public class Similarity {
                                                                         shiftTolerance, checkMultiplicity,
                                                                         checkEquivalencesCount,
                                                                         allowLowerEquivalencesCount);
-        System.out.println("\n"
-                                   + distanceList);
         final Assignment matchAssignment = new Assignment();
         matchAssignment.setNuclei(spectrum1.getNuclei());
         matchAssignment.initAssignments(spectrum1.getSignalCount());
@@ -300,7 +298,6 @@ public class Similarity {
                 assignedSpectrum2.add(distance.getSignalIndexSpectrum2());
             }
         }
-        System.out.println(matchAssignment);
 
         return matchAssignment;
     }

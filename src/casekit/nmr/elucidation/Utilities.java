@@ -1,13 +1,11 @@
 package casekit.nmr.lsd;
 
-import casekit.io.FileSystem;
-import casekit.nmr.lsd.model.Detections;
-import casekit.nmr.lsd.model.Grouping;
-import casekit.nmr.lsd.model.MolecularConnectivity;
+import casekit.nmr.elucidation.model.Detections;
+import casekit.nmr.elucidation.model.Grouping;
+import casekit.nmr.elucidation.model.MolecularConnectivity;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Link;
-import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 
 import java.util.*;

@@ -1,4 +1,4 @@
-package casekit.nmr.lsd.model;
+package casekit.nmr.elucidation.model;
 
 import casekit.nmr.model.Signal;
 import lombok.*;

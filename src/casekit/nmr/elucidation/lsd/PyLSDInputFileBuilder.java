@@ -50,9 +50,8 @@ public class PyLSDInputFileBuilder {
                 + elimP2;
     }
 
-    private static String buildPossibilitiesString(final Set<Integer> possibilities) {
+    private static String buildPossibilitiesString(final Collection<Integer> possibilities) {
         final StringBuilder possibilitiesStringBuilder = new StringBuilder();
-
         if (possibilities.size()
                 > 1) {
             possibilitiesStringBuilder.append("(");
@@ -88,7 +87,7 @@ public class PyLSDInputFileBuilder {
         stringBuilderMap.put("SHIH", new StringBuilder());
         StringBuilder hybridizationStringBuilder, attachedProtonsCountStringBuilder;
         int counter, firstOfEquivalenceIndexPyLSD;
-        Set<Integer> groupMembers;
+        Set<Integer> groupMembers; // use as a Set to remove the actual value and not at a list index
         MolecularConnectivity molecularConnectivityGroupMember, molecularConnectivityHeavyAtom;
         for (final int correlationIndex : molecularConnectivityMap.keySet()) {
             firstOfEquivalenceIndexPyLSD = -1;
@@ -166,15 +165,16 @@ public class PyLSDInputFileBuilder {
                     stringBuilder.append("\n");
                     if (molecularConnectivity.getHsqc()
                             != null) {
+                        final List<Integer> hsqcList = new ArrayList<>(molecularConnectivity.getHsqc());
                         stringBuilder = stringBuilderMap.get("HSQC");
                         stringBuilder.append("HSQC ")
                                      .append(molecularConnectivity.getIndex())
                                      .append(" ")
-                                     .append(molecularConnectivity.getHsqc())
+                                     .append(hsqcList.get(0))
                                      .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
                                                                 casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
                                                                         molecularConnectivityMap, "H", false,
-                                                                        molecularConnectivity.getHsqc())))
+                                                                        hsqcList.get(0))))
                                      .append("\n");
 
                     }
@@ -185,14 +185,14 @@ public class PyLSDInputFileBuilder {
                                                                                  .keySet()) {
                             // filter out group members which are directly bonded to that proton
                             groupMembers = new HashSet<>(molecularConnectivity.getGroupMembers());
-                            for (final int groupMemberIndex : new HashSet<>(groupMembers)) {
+                            for (final int groupMemberIndex : new ArrayList<>(groupMembers)) {
                                 molecularConnectivityGroupMember = casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
                                         molecularConnectivityMap, molecularConnectivity.getAtomType(), false,
                                         groupMemberIndex);
                                 if (molecularConnectivityGroupMember.getHsqc()
                                         != null
                                         && molecularConnectivityGroupMember.getHsqc()
-                                        == protonIndexInPyLSD) {
+                                                                           .contains(protonIndexInPyLSD)) {
                                     groupMembers.remove(groupMemberIndex);
                                 }
                             }
@@ -237,27 +237,29 @@ public class PyLSDInputFileBuilder {
                         stringBuilder = stringBuilderMap.get("COSY");
                         for (final int protonIndexInPyLSD : molecularConnectivity.getCosy()
                                                                                  .keySet()) {
-                            // filter out group members which
                             groupMembers = new HashSet<>(molecularConnectivity.getGroupMembers());
                             // 1) use only one attached proton of a CH2 group (optional)
                             final Set<Integer> alreadyFoundHeavyAtomIndex = new HashSet<>();
-                            for (final int groupMemberIndex : new HashSet<>(groupMembers)) {
+                            for (final int groupMemberIndex : new ArrayList<>(groupMembers)) {
                                 molecularConnectivityHeavyAtom = casekit.nmr.elucidation.Utilities.getHeavyAtomMolecularConnectivity(
                                         molecularConnectivityMap, groupMemberIndex);
-                                if (alreadyFoundHeavyAtomIndex.contains(molecularConnectivityHeavyAtom.getIndex())) {
+                                if (molecularConnectivityHeavyAtom
+                                        == null
+                                        || alreadyFoundHeavyAtomIndex.contains(
+                                        molecularConnectivityHeavyAtom.getIndex())) {
                                     groupMembers.remove(groupMemberIndex);
                                 } else {
                                     alreadyFoundHeavyAtomIndex.add(molecularConnectivityHeavyAtom.getIndex());
                                 }
                             }
-                            // 2) would direct to itself when using COSY correlation
+                            // 2) filter out group members which would direct to itself when using COSY correlation
                             molecularConnectivityHeavyAtom = casekit.nmr.elucidation.Utilities.getHeavyAtomMolecularConnectivity(
                                     molecularConnectivityMap, protonIndexInPyLSD);
                             if (molecularConnectivityHeavyAtom
                                     != null) {
                                 for (final int groupMemberIndex : new HashSet<>(groupMembers)) {
                                     if (molecularConnectivityHeavyAtom.getHsqc()
-                                            == groupMemberIndex) {
+                                                                      .contains(groupMemberIndex)) {
                                         groupMembers.remove(groupMemberIndex);
                                     }
                                 }

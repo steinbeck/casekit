@@ -277,10 +277,10 @@ public class Utilities {
 
     }
 
-    private static Map<String, Map<Integer, Set<Integer>>> findGroups(final List<Correlation> correlationList,
-                                                                      final Map<String, Double> tolerances) {
+    private static Map<String, Map<Integer, List<Integer>>> findGroups(final List<Correlation> correlationList,
+                                                                       final Map<String, Double> tolerances) {
         // cluster group index -> list of correlation index pair
-        final Map<String, Map<Integer, Set<Integer>>> groups = new HashMap<>();
+        final Map<String, Map<Integer, List<Integer>>> groups = new HashMap<>();
         int groupIndex = 0;
         final Set<Integer> inserted = new HashSet<>();
         int foundGroupIndex;
@@ -295,8 +295,8 @@ public class Utilities {
             // if we have a match somewhere then add the correlation index into to group
             // if not then create a new group
             foundGroupIndex = -1;
-            for (final Map.Entry<Integer, Set<Integer>> groupEntry : groups.get(correlation.getAtomType())
-                                                                           .entrySet()) {
+            for (final Map.Entry<Integer, List<Integer>> groupEntry : groups.get(correlation.getAtomType())
+                                                                            .entrySet()) {
                 if (groupEntry.getValue()
                               .stream()
                               .anyMatch(correlationIndex -> hasMatch(correlation, correlationList.get(correlationIndex),
@@ -313,7 +313,7 @@ public class Utilities {
                 inserted.add(i);
             } else {
                 groups.get(correlation.getAtomType())
-                      .put(groupIndex, new HashSet<>());
+                      .put(groupIndex, new ArrayList<>());
                 groups.get(correlation.getAtomType())
                       .get(groupIndex)
                       .add(i);
@@ -326,12 +326,12 @@ public class Utilities {
     }
 
     private static Map<String, Map<Integer, Integer>> transformGroups(
-            final Map<String, Map<Integer, Set<Integer>>> groups) {
+            final Map<String, Map<Integer, List<Integer>>> groups) {
         final Map<String, Map<Integer, Integer>> transformedGroups = new HashMap<>();
-        for (final Map.Entry<String, Map<Integer, Set<Integer>>> atomTypeEntry : groups.entrySet()) {
+        for (final Map.Entry<String, Map<Integer, List<Integer>>> atomTypeEntry : groups.entrySet()) {
             transformedGroups.put(atomTypeEntry.getKey(), new HashMap<>());
-            for (final Map.Entry<Integer, Set<Integer>> groupEntry : atomTypeEntry.getValue()
-                                                                                  .entrySet()) {
+            for (final Map.Entry<Integer, List<Integer>> groupEntry : atomTypeEntry.getValue()
+                                                                                   .entrySet()) {
                 for (final int correlationIndex : groupEntry.getValue()) {
                     transformedGroups.get(atomTypeEntry.getKey())
                                      .put(correlationIndex, groupEntry.getKey());
@@ -343,45 +343,44 @@ public class Utilities {
     }
 
     public static Grouping buildGroups(final List<Correlation> correlationList, final Map<String, Double> tolerances) {
-        final Map<String, Map<Integer, Set<Integer>>> groups = findGroups(correlationList, tolerances);
+        final Map<String, Map<Integer, List<Integer>>> groups = findGroups(correlationList, tolerances);
 
         return new Grouping(tolerances, groups, transformGroups(groups));
     }
 
-    private static Set<Integer> getProtonCounts(final List<Correlation> correlationList, final int index) {
+    private static List<Integer> getProtonCounts(final List<Correlation> correlationList, final int index) {
         final Correlation correlation = correlationList.get(index);
         if (correlation.getProtonsCount()
                 != null
                 && !correlation.getProtonsCount()
                                .isEmpty()) {
             // if protonCounts is already given
-            return new HashSet<>(correlation.getProtonsCount());
+            return correlation.getProtonsCount();
         }
-        final Set<Integer> protonCounts = new HashSet<>();
-        for (int i = 0; i
-                < Constants.defaultProtonsCountPerValencyMap.get(
-                Constants.defaultAtomLabelMap.get(correlation.getAtomType())).length; i++) {
-            protonCounts.add(Constants.defaultProtonsCountPerValencyMap.get(
-                    Constants.defaultAtomLabelMap.get(correlation.getAtomType()))[i]);
+        final List<Integer> protonCounts = new ArrayList<>();
+        final int[] defaultProtonCounts = Constants.defaultProtonsCountPerValencyMap.get(
+                Constants.defaultAtomLabelMap.get(correlation.getAtomType()));
+        for (final int defaultProtonCount : defaultProtonCounts) {
+            protonCounts.add(defaultProtonCount);
         }
 
         return protonCounts;
     }
 
-    private static Set<Integer> getHybridizations(final List<Correlation> correlationList, final int index,
-                                                  final Map<Integer, List<Integer>> detectedHybridizations) {
+    private static List<Integer> getHybridizations(final List<Correlation> correlationList, final int index,
+                                                   final Map<Integer, List<Integer>> detectedHybridizations) {
         final Correlation correlation = correlationList.get(index);
-        Set<Integer> hybridizations = new HashSet<>();
+        List<Integer> hybridizations = new ArrayList<>();
         if (correlation.getHybridization()
                 != null
                 && !correlation.getHybridization()
                                .isEmpty()) {
             // if hybridization is already given
-            return new HashSet<>(correlation.getHybridization());
+            return correlation.getHybridization();
         } else {
             // if hybridization is not given then use the detected ones
             if (detectedHybridizations.containsKey(index)) {
-                hybridizations = new HashSet<>(detectedHybridizations.get(index));
+                hybridizations = new ArrayList<>(detectedHybridizations.get(index));
             }
             if (hybridizations.isEmpty()
                     && correlation.getAtomType()

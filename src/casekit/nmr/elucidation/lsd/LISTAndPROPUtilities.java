@@ -54,8 +54,8 @@ public class LISTAndPROPUtilities {
         }
     }
 
-    private static String buildListKey(final String atomType, final Set<Integer> hybridizations,
-                                       final Set<Integer> protonsCounts) {
+    private static String buildListKey(final String atomType, final List<Integer> hybridizations,
+                                       final List<Integer> protonsCounts) {
         return atomType
                 + "_"
                 + (!hybridizations.isEmpty()
@@ -84,7 +84,7 @@ public class LISTAndPROPUtilities {
                         != 1) {
                     continue;
                 }
-                listKey = buildListKey(molecularConnectivity.getAtomType(), new HashSet<>(),
+                listKey = buildListKey(molecularConnectivity.getAtomType(), new ArrayList<>(),
                                        // correlation.getHybridization(),
                                        molecularConnectivity.getProtonCounts());
                 atomIndicesMap.putIfAbsent(listKey, new HashSet<>());
@@ -197,9 +197,9 @@ public class LISTAndPROPUtilities {
                                                                            .get(neighborHybridization)) {
                                     listKey = buildListKey(neighborAtomType, neighborHybridization
                                                                                      == -1
-                                                                             ? new HashSet<>()
-                                                                             : Set.of(neighborHybridization),
-                                                           Set.of(protonsCount));
+                                                                             ? new ArrayList<>()
+                                                                             : List.of(neighborHybridization),
+                                                           List.of(protonsCount));
                                     if (checkSkipPROPInsertion(listMap, usedPropsCount, listKey, mode)) {
                                         continue;
                                     }

@@ -66,8 +66,8 @@ public class Spectrum {
                                                                                         new Double[]{
                                                                                                 signal1D.getDelta()},
                                                                                         signal1D.getMultiplicity(),
-                                                                                        signal1D.getKind(), null, 0,
-                                                                                        0));
+                                                                                        signal1D.getKind(), null, 0, 0,
+                                                                                        null));
                                                       }
                                                   }));
                 spectrum.addMetaInfo("solvent", (String) this.info.get("solvent"));
@@ -92,7 +92,8 @@ public class Spectrum {
                                                                                 .get("delta"), (Double) signal2D.getY()
                                                                                                                 .get("delta")},
                                                                                      signal2D.getMultiplicity(),
-                                                                                     signal2D.getKind(), null, 0, 0));
+                                                                                     signal2D.getKind(), null, 0, 0,
+                                                                                     signal2D.getPathLength()));
                                                    }
                                                }));
                 spectrum.addMetaInfo("solvent", (String) this.info.get("solvent"));

@@ -24,6 +24,7 @@
 
 package casekit.nmr.model.nmrium;
 
+import casekit.nmr.model.PathLength;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 

@@ -1,4 +1,4 @@
-package casekit.nmr.model.nmrium;
+package casekit.nmr.model;
 
 import lombok.*;
 

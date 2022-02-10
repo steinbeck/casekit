@@ -50,6 +50,7 @@ public class Signal {
     private Double intensity;
     private int equivalencesCount;
     private Integer phase;
+    private PathLength pathLength;
 
 
     public int getNDim() {
@@ -86,7 +87,9 @@ public class Signal {
     public Signal buildClone() {
         return new Signal(this.getNuclei()
                               .clone(), this.shifts.clone(), this.multiplicity, this.kind, this.intensity,
-                          this.equivalencesCount, this.phase);
+                          this.equivalencesCount, this.phase,
+                          new PathLength(this.pathLength.getMin(), this.pathLength.getMax(),
+                                         this.pathLength.getSource()));
     }
 
     @Override

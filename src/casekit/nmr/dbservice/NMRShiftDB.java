@@ -393,8 +393,8 @@ public class NMRShiftDB {
                                : spectrumStringArray[i][2].trim()
                                                           .toLowerCase();
                 spectrum.addSignal(
-                        new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 1,
-                                   0));
+                        new Signal(new String[]{nucleus}, new Double[]{shift}, multiplicity, "signal", intensity, 1, 0,
+                                   null));
             }
         } catch (final Exception e) {
             return null;

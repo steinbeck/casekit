@@ -633,17 +633,22 @@ public class Utils {
                                                                                            ? (Integer) signalMap.get(
                                                                                                    "sign")
                                                                                            : null);
+        // 1D signal
         if (signalMap.containsKey("delta")) {
             final Signal1D signal1D = new Signal1D(signal);
             signal1D.setDelta((double) signalMap.get("delta"));
 
             return new Signal(new String[]{Constants.nucleiMap.get(correlation.getAtomType())},
                               new Double[]{signal1D.getDelta()}, signal1D.getMultiplicity(), signal1D.getKind(), null,
-                              correlation.getEquivalence(), signal1D.getSign());
+                              correlation.getEquivalence(), signal1D.getSign(), null);
         } else if (signalMap.containsKey("x")) {
+            // 2D signal
             final Signal2D signal2D = new Signal2D(signal);
             signal2D.setX((Map<String, Object>) signalMap.get("x"));
             signal2D.setY((Map<String, Object>) signalMap.get("y"));
+            if (signalMap.containsKey("pathLength")) {
+                signal2D.setPathLength((PathLength) signalMap.get("pathLength"));
+            }
             final double shift = link.getAxis()
                                      .equals("x")
                                  ? (double) signal2D.getX()
@@ -653,7 +658,7 @@ public class Utils {
 
             return new Signal(new String[]{Constants.nucleiMap.get(correlation.getAtomType())}, new Double[]{shift},
                               signal2D.getMultiplicity(), signal2D.getKind(), null, correlation.getEquivalence(),
-                              signal2D.getSign());
+                              signal2D.getSign(), signal2D.getPathLength());
         }
 
         return null;

@@ -794,7 +794,10 @@ public class Utilities {
                         getHybridizations(correlationList, correlationIndex, detections.getDetectedHybridizations()));
             }
             if (grouping.getGroups()
-                        .containsKey(correlation.getAtomType())) {
+                        .containsKey(correlation.getAtomType())
+                    && grouping.getTransformedGroups()
+                               .get(correlation.getAtomType())
+                               .containsKey(correlationIndex)) {
                 groupIndex = grouping.getTransformedGroups()
                                      .get(correlation.getAtomType())
                                      .get(correlationIndex);

@@ -76,19 +76,21 @@ public class PyLSDInputFileBuilder {
 
     private static Map<String, StringBuilder> buildStringBuilderMap(
             final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap) {
-        StringBuilder stringBuilder;
         final Map<String, StringBuilder> stringBuilderMap = new HashMap<>();
-        stringBuilderMap.put("MULT", new StringBuilder());
-        stringBuilderMap.put("HSQC", new StringBuilder());
-        stringBuilderMap.put("HMBC", new StringBuilder());
-        stringBuilderMap.put("COSY", new StringBuilder());
-        stringBuilderMap.put("BOND", new StringBuilder());
-        stringBuilderMap.put("SHIX", new StringBuilder());
-        stringBuilderMap.put("SHIH", new StringBuilder());
-        StringBuilder hybridizationStringBuilder, attachedProtonsCountStringBuilder;
+        final Map<String, List<String>> stringListMap = new HashMap<>();
+        stringListMap.put("MULT", new ArrayList<>());
+        stringListMap.put("HSQC", new ArrayList<>());
+        stringListMap.put("HMBC", new ArrayList<>());
+        stringListMap.put("COSY", new ArrayList<>());
+        stringListMap.put("BOND", new ArrayList<>());
+        stringListMap.put("SHIX", new ArrayList<>());
+        stringListMap.put("SHIH", new ArrayList<>());
+        StringBuilder stringBuilder, hybridizationStringBuilder, attachedProtonsCountStringBuilder;
+        List<String> stringList;
         int counter, firstOfEquivalenceIndexPyLSD;
         Set<Integer> groupMembers; // use as a Set to remove the actual value and not at a list index
         MolecularConnectivity molecularConnectivityGroupMember, molecularConnectivityHeavyAtom;
+        final Set<Integer> addedKeysSHIH = new HashSet<>();
         for (final int correlationIndex : molecularConnectivityMap.keySet()) {
             firstOfEquivalenceIndexPyLSD = -1;
             for (final MolecularConnectivity molecularConnectivity : molecularConnectivityMap.get(correlationIndex)) {
@@ -143,7 +145,9 @@ public class PyLSDInputFileBuilder {
                             > 1) {
                         attachedProtonsCountStringBuilder.append(")");
                     }
-                    stringBuilder = stringBuilderMap.get("MULT");
+                    // MULT section
+                    stringList = stringListMap.get("MULT");
+                    stringBuilder = new StringBuilder();
                     stringBuilder.append("MULT ")
                                  .append(molecularConnectivity.getIndex())
                                  .append(" ")
@@ -163,24 +167,29 @@ public class PyLSDInputFileBuilder {
                                      .append(firstOfEquivalenceIndexPyLSD);
                     }
                     stringBuilder.append("\n");
+                    stringList.add(stringBuilder.toString());
+                    // HSQC section
                     if (molecularConnectivity.getHsqc()
                             != null) {
-                        final List<Integer> hsqcList = new ArrayList<>(molecularConnectivity.getHsqc());
-                        stringBuilder = stringBuilderMap.get("HSQC");
+                        stringList = stringListMap.get("HSQC");
+                        stringBuilder = new StringBuilder();
                         stringBuilder.append("HSQC ")
                                      .append(molecularConnectivity.getIndex())
                                      .append(" ")
-                                     .append(hsqcList.get(0))
+                                     .append(molecularConnectivity.getHsqc()
+                                                                  .get(0))
                                      .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
                                                                 casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
                                                                         molecularConnectivityMap, "H", false,
-                                                                        hsqcList.get(0))))
+                                                                        molecularConnectivity.getHsqc()
+                                                                                             .get(0))))
                                      .append("\n");
-
+                        stringList.add(stringBuilder.toString());
                     }
+                    // HMBC section
                     if (molecularConnectivity.getHmbc()
                             != null) {
-                        stringBuilder = stringBuilderMap.get("HMBC");
+                        stringList = stringListMap.get("HMBC");
                         for (final int protonIndexInPyLSD : molecularConnectivity.getHmbc()
                                                                                  .keySet()) {
                             // filter out group members which are directly bonded to that proton
@@ -197,6 +206,7 @@ public class PyLSDInputFileBuilder {
                                 }
                             }
                             if (!groupMembers.isEmpty()) {
+                                stringBuilder = new StringBuilder();
                                 stringBuilder.append("HMBC ")
                                              .append(buildPossibilitiesString(groupMembers))
                                              .append(" ")
@@ -212,13 +222,18 @@ public class PyLSDInputFileBuilder {
                                                                                 molecularConnectivityMap, "H", false,
                                                                                 protonIndexInPyLSD)))
                                              .append("\n");
+                                if (!stringList.contains(stringBuilder.toString())) {
+                                    stringList.add(stringBuilder.toString());
+                                }
                             }
                         }
                     }
+                    // BOND section
                     if (molecularConnectivity.getFixedNeighbors()
                             != null) {
-                        stringBuilder = stringBuilderMap.get("BOND");
+                        stringList = stringListMap.get("BOND");
                         for (final int bondedIndexInPyLSD : molecularConnectivity.getFixedNeighbors()) {
+                            stringBuilder = new StringBuilder();
                             stringBuilder.append("BOND ")
                                          .append(molecularConnectivity.getIndex())
                                          .append(" ")
@@ -228,13 +243,17 @@ public class PyLSDInputFileBuilder {
                                                                             molecularConnectivityMap, "H", true,
                                                                             bondedIndexInPyLSD)))
                                          .append("\n");
+                            if (!stringList.contains(stringBuilder.toString())) {
+                                stringList.add(stringBuilder.toString());
+                            }
                         }
                     }
                 } else if (molecularConnectivity.getAtomType()
                                                 .equals("H")) {
+                    // COSY section
                     if (molecularConnectivity.getCosy()
                             != null) {
-                        stringBuilder = stringBuilderMap.get("COSY");
+                        stringList = stringListMap.get("COSY");
                         for (final int protonIndexInPyLSD : molecularConnectivity.getCosy()
                                                                                  .keySet()) {
                             groupMembers = new HashSet<>(molecularConnectivity.getGroupMembers());
@@ -264,6 +283,7 @@ public class PyLSDInputFileBuilder {
                                     }
                                 }
                                 if (!groupMembers.isEmpty()) {
+                                    stringBuilder = new StringBuilder();
                                     stringBuilder.append("COSY ")
                                                  .append(buildPossibilitiesString(groupMembers))
                                                  .append(" ")
@@ -280,17 +300,22 @@ public class PyLSDInputFileBuilder {
                                                                                     molecularConnectivityMap, "H",
                                                                                     false, protonIndexInPyLSD)))
                                                  .append("\n");
+                                    if (!stringList.contains(stringBuilder.toString())) {
+                                        stringList.add(stringBuilder.toString());
+                                    }
                                 }
                             }
                         }
                     }
                 }
+                // SHIH/SHIX section
                 if (molecularConnectivity.getSignal()
                         != null) {
-                    stringBuilder = stringBuilderMap.get(molecularConnectivity.getAtomType()
-                                                                              .equals("H")
-                                                         ? "SHIH"
-                                                         : "SHIX");
+                    stringList = stringListMap.get(molecularConnectivity.getAtomType()
+                                                                        .equals("H")
+                                                   ? "SHIH"
+                                                   : "SHIX");
+                    stringBuilder = new StringBuilder();
                     stringBuilder.append(molecularConnectivity.getAtomType()
                                                               .equals("H")
                                          ? "SHIH"
@@ -301,9 +326,30 @@ public class PyLSDInputFileBuilder {
                                  .append(Statistics.roundDouble(molecularConnectivity.getSignal()
                                                                                      .getShift(0), 5))
                                  .append("\n");
+                    if (!stringList.contains(stringBuilder.toString())) {
+                        if (!molecularConnectivity.getAtomType()
+                                                  .equals("H")) {
+                            stringList.add(stringBuilder.toString());
+                        } else if (!addedKeysSHIH.contains(molecularConnectivity.getIndex())) {
+                            stringList.add(stringBuilder.toString());
+                            addedKeysSHIH.add(molecularConnectivity.getIndex());
+                        }
+                    }
                 }
             }
         }
+        // put sections into stringBuilderMap
+        System.out.println("\n -> stringListMap: "
+                                   + stringListMap);
+        for (final String sectionKey : stringListMap.keySet()) {
+            stringBuilder = new StringBuilder();
+            for (final String sectionLine : stringListMap.get(sectionKey)) {
+                stringBuilder.append(sectionLine);
+            }
+            stringBuilderMap.put(sectionKey, stringBuilder);
+        }
+        System.out.println("\n -> stringBuilderMap: "
+                                   + stringBuilderMap);
 
         return stringBuilderMap;
     }

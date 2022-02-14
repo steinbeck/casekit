@@ -339,8 +339,6 @@ public class PyLSDInputFileBuilder {
             }
         }
         // put sections into stringBuilderMap
-        System.out.println("\n -> stringListMap: "
-                                   + stringListMap);
         for (final String sectionKey : stringListMap.keySet()) {
             stringBuilder = new StringBuilder();
             for (final String sectionLine : stringListMap.get(sectionKey)) {
@@ -348,8 +346,6 @@ public class PyLSDInputFileBuilder {
             }
             stringBuilderMap.put(sectionKey, stringBuilder);
         }
-        System.out.println("\n -> stringBuilderMap: "
-                                   + stringBuilderMap);
 
         return stringBuilderMap;
     }

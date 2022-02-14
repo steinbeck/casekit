@@ -1,14 +1,12 @@
 package casekit.nmr.utils;
 
 import casekit.nmr.elucidation.Constants;
-import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Signal;
-import casekit.nmr.model.Spectrum;
-import casekit.nmr.model.StructureCompact;
+import casekit.nmr.model.*;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Link;
 import casekit.nmr.model.nmrium.Signal1D;
 import casekit.nmr.model.nmrium.Signal2D;
+import com.google.gson.Gson;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
 import org.openscience.cdk.aromaticity.Kekulization;
@@ -630,8 +628,10 @@ public class Utils {
                                                                                                    "kind"),
                                                                                            multiplicity,
                                                                                            signalMap.containsKey("sign")
-                                                                                           ? (Integer) signalMap.get(
-                                                                                                   "sign")
+                                                                                           ? (int) Double.parseDouble(
+                                                                                                   String.valueOf(
+                                                                                                           signalMap.get(
+                                                                                                                   "sign")))
                                                                                            : null);
         // 1D signal
         if (signalMap.containsKey("delta")) {
@@ -685,5 +685,11 @@ public class Utils {
         }
 
         return spectrum;
+    }
+
+    public static <T> T cloneObject(final T object, final Class<T> clazz) {
+        final Gson gson = new Gson();
+        final String jsonString = gson.toJson(object, clazz);
+        return gson.fromJson(jsonString, clazz);
     }
 }

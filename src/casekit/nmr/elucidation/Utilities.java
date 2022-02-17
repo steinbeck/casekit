@@ -469,32 +469,34 @@ public class Utilities {
 
     private static List<Integer> buildPossibilities(final Map<Integer, Integer[]> indicesMap,
                                                     final List<MolecularConnectivity> molecularConnectivityList,
-                                                    final int correlationIndex, final Grouping grouping) {
-        //        final MolecularConnectivity molecularConnectivity = molecularConnectivityList.get(correlationIndex);
-        //        // add possible indices from grouping
-        //        final int groupIndex;
+                                                    final int correlationIndex, final Grouping grouping,
+                                                    final boolean useGrouping) {
+        final MolecularConnectivity molecularConnectivity = molecularConnectivityList.get(correlationIndex);
+        // add possible indices from grouping
+        final int groupIndex;
         final Set<Integer> possibilities = new HashSet<>();
-        //        if (grouping.getTransformedGroups()
-        //                    .containsKey(molecularConnectivity.getAtomType())
-        //                && grouping.getTransformedGroups()
-        //                           .get(molecularConnectivity.getAtomType())
-        //                           .containsKey(correlationIndex)) {
-        //            groupIndex = grouping.getTransformedGroups()
-        //                                 .get(molecularConnectivity.getAtomType())
-        //                                 .get(correlationIndex);
-        //            for (final int groupMemberIndex : grouping.getGroups()
-        //                                                      .get(molecularConnectivity.getAtomType())
-        //                                                      .get(groupIndex)) {
-        //
-        //                if (indicesMap.containsKey(groupMemberIndex)) {
-        //                    // add equivalence indices of group members
-        //                    possibilities.addAll(Arrays.asList(indicesMap.get(groupMemberIndex)));
-        //                }
-        //            }
-        //        } else {
-        // add for equivalences only
-        possibilities.addAll(Arrays.asList(indicesMap.get(correlationIndex)));
-        //        }
+        if (useGrouping
+                && grouping.getTransformedGroups()
+                           .containsKey(molecularConnectivity.getAtomType())
+                && grouping.getTransformedGroups()
+                           .get(molecularConnectivity.getAtomType())
+                           .containsKey(correlationIndex)) {
+            groupIndex = grouping.getTransformedGroups()
+                                 .get(molecularConnectivity.getAtomType())
+                                 .get(correlationIndex);
+            for (final int groupMemberIndex : grouping.getGroups()
+                                                      .get(molecularConnectivity.getAtomType())
+                                                      .get(groupIndex)) {
+
+                if (indicesMap.containsKey(groupMemberIndex)) {
+                    // add equivalence indices of group members
+                    possibilities.addAll(Arrays.asList(indicesMap.get(groupMemberIndex)));
+                }
+            }
+        } else {
+            // add for equivalences only
+            possibilities.addAll(Arrays.asList(indicesMap.get(correlationIndex)));
+        }
 
         return new ArrayList<>(possibilities);
     }
@@ -531,7 +533,10 @@ public class Utilities {
                 if (!molecularConnectivity.getAtomType()
                                           .equals("H")
                         && molecularConnectivity.getHsqc()
-                        != null) {
+                        != null
+                        && k
+                        < indicesMap.get(molecularConnectivity.getHsqc()
+                                                              .get(0)).length) {
                     // using the first proton correlation index from HSQC list is enough because show will direct to same heavy atom index
                     protonIndex = indicesMap.get(molecularConnectivity.getHsqc()
                                                                       .get(0))[k];
@@ -611,7 +616,10 @@ public class Utilities {
                                                                         .get(correlationIndex));
                 }
                 molecularConnectivityTemp.setGroupMembers(
-                        buildPossibilities(indicesMap, molecularConnectivityList, correlationIndex, grouping));
+                        buildPossibilities(indicesMap, molecularConnectivityList, correlationIndex, grouping,
+                                           //                                           !molecularConnectivity.getAtomType()
+                                           //                                                                 .equals("H"))
+                                           true));
             }
             // fill in fixed neighbors
             if (molecularConnectivity.getEquivalence()
@@ -837,7 +845,7 @@ public class Utilities {
         return null;
     }
 
-    public static int getHeavyAtomMolecularConnectivityIndex(
+    public static int findBondedHeavyAtomMolecularConnectivityIndex(
             final List<MolecularConnectivity> molecularConnectivityList, final int protonIndex) {
         for (final MolecularConnectivity molecularConnectivityTemp : molecularConnectivityList.stream()
                                                                                               .filter(mc -> !mc.getAtomType()
@@ -855,113 +863,236 @@ public class Utilities {
         return -1;
     }
 
+    private static boolean checkDistance(final List<MolecularConnectivity> molecularConnectivityList, final int index1,
+                                         final int index2, final Grouping grouping) {
+        final Double distanceValue = casekit.nmr.similarity.Utilities.getDistanceValue(
+                molecularConnectivityList.get(index1)
+                                         .getSignal(), molecularConnectivityList.get(index2)
+                                                                                .getSignal(), 0, 0, false, false, false,
+                grouping.getTolerances()
+                        .get("H"));
+
+        return distanceValue
+                != null;
+    }
+
+    private static List<Object[]> swap(final MolecularConnectivity molecularConnectivity, final Grouping grouping,
+                                       final String experiment,
+                                       final List<MolecularConnectivity> molecularConnectivityList,
+                                       final int correlationIndex, final Set<String> swapped) {
+        final List<Object[]> newStatesList = new ArrayList<>();
+
+        List<MolecularConnectivity> clonedMolecularConnectivityList;
+        int protonGroupIndex, molecularConnectivityIndexBondedToGroupMember;
+        Set<String> swappedCopy;
+        MolecularConnectivity clonedMolecularConnectivity, clonedMolecularConnectivityBondedToGroupMember;
+        List<Integer> protonGroupMemberList, indicesToSwap;
+        String swapKey;
+        Integer[] pathLengthProton;
+        if (experiment.equals("hsqc")
+                && molecularConnectivity.getHsqc()
+                != null) {
+            // loop over all matching protons in HSQC
+            for (final Integer protonIndex : molecularConnectivity.getHsqc()) {
+                // only change if it has a group entry
+                if (grouping.getTransformedGroups()
+                            .containsKey("H")
+                        && grouping.getTransformedGroups()
+                                   .get("H")
+                                   .containsKey(protonIndex)) {
+                    protonGroupIndex = grouping.getTransformedGroups()
+                                               .get("H")
+                                               .get(protonIndex);
+                    protonGroupMemberList = grouping.getGroups()
+                                                    .get("H")
+                                                    .get(protonGroupIndex)
+                                                    .stream()
+                                                    .filter(protonGroupMemberIndex -> !Objects.equals(
+                                                            protonGroupMemberIndex, protonIndex)
+                                                            && !molecularConnectivity.getHsqc()
+                                                                                     .contains(protonGroupMemberIndex))
+                                                    .collect(Collectors.toList());
+                    for (final Integer protonGroupMemberIndex : protonGroupMemberList) {
+                        indicesToSwap = new ArrayList<>();
+                        indicesToSwap.add(protonIndex);
+                        indicesToSwap.add(protonGroupMemberIndex);
+                        indicesToSwap.sort(Integer::compare); // to always keep the same order
+                        swapKey = "hsqc_"
+                                + indicesToSwap.stream()
+                                               .map(String::valueOf)
+                                               .collect(Collectors.joining("_"));
+                        if (swapped.contains(swapKey)
+                                || !checkDistance(molecularConnectivityList, protonIndex, protonGroupMemberIndex,
+                                                  grouping)) {
+                            continue;
+                        }
+                        // clone current list element
+                        clonedMolecularConnectivity = Utils.cloneObject(molecularConnectivity,
+                                                                        MolecularConnectivity.class);
+                        // remove the current proton and add the group member proton
+                        clonedMolecularConnectivity.getHsqc()
+                                                   .remove(protonIndex);
+                        clonedMolecularConnectivity.getHsqc()
+                                                   .add(protonGroupMemberIndex);
+                        // copy current list
+                        clonedMolecularConnectivityList = new ArrayList<>(molecularConnectivityList);
+                        // set cloned and changed list element
+                        clonedMolecularConnectivityList.set(correlationIndex, clonedMolecularConnectivity);
+                        // check whether group member proton is attached to a heavy atom
+                        molecularConnectivityIndexBondedToGroupMember = findBondedHeavyAtomMolecularConnectivityIndex(
+                                molecularConnectivityList, protonGroupMemberIndex);
+                        if (molecularConnectivityIndexBondedToGroupMember
+                                >= 0) {
+                            // remove the group member proton from heavy atom and add the current proton
+                            clonedMolecularConnectivityBondedToGroupMember = Utils.cloneObject(
+                                    molecularConnectivityList.get(molecularConnectivityIndexBondedToGroupMember),
+                                    MolecularConnectivity.class);
+                            clonedMolecularConnectivityBondedToGroupMember.getHsqc()
+                                                                          .remove(protonGroupMemberIndex);
+                            clonedMolecularConnectivityBondedToGroupMember.getHsqc()
+                                                                          .add(protonIndex);
+                            clonedMolecularConnectivityList.set(molecularConnectivityIndexBondedToGroupMember,
+                                                                clonedMolecularConnectivityBondedToGroupMember);
+                        }
+
+                        //                        System.out.println(" --> swapped HSQC at i: "
+                        //                                                   + molecularConnectivity.getIndex()
+                        //                                                   + " -> "
+                        //                                                   + swapKey
+                        //                                                   + " -> "
+                        //                                                   + swapped);
+                        swappedCopy = new HashSet<>(swapped);
+                        swappedCopy.add(swapKey);
+
+                        newStatesList.add(new Object[]{clonedMolecularConnectivityList, correlationIndex
+                                + 1, swappedCopy});
+                    }
+                }
+            }
+        } else if (experiment.equals("hmbc")
+                && molecularConnectivity.getHmbc()
+                != null) {
+
+            // loop over all matching protons in HMBC
+            for (final Integer protonIndex : molecularConnectivity.getHmbc()
+                                                                  .keySet()) {
+                // only change if it has a group entry
+                if (grouping.getTransformedGroups()
+                            .containsKey("H")
+                        && grouping.getTransformedGroups()
+                                   .get("H")
+                                   .containsKey(protonIndex)) {
+                    protonGroupIndex = grouping.getTransformedGroups()
+                                               .get("H")
+                                               .get(protonIndex);
+                    protonGroupMemberList = grouping.getGroups()
+                                                    .get("H")
+                                                    .get(protonGroupIndex)
+                                                    .stream()
+                                                    .filter(protonGroupMemberIndex -> !Objects.equals(
+                                                            protonGroupMemberIndex, protonIndex)
+                                                            && (molecularConnectivity.getHsqc()
+                                                            == null
+                                                            || !molecularConnectivity.getHsqc()
+                                                                                     .contains(protonGroupMemberIndex))
+                                                            && !molecularConnectivity.getHmbc()
+                                                                                     .containsKey(
+                                                                                             protonGroupMemberIndex))
+                                                    .collect(Collectors.toList());
+                    for (final Integer protonGroupMemberIndex : protonGroupMemberList) {
+                        if (!checkDistance(molecularConnectivityList, protonIndex, protonGroupMemberIndex, grouping)) {
+                            continue;
+                        }
+
+                        // copy current list
+                        clonedMolecularConnectivityList = new ArrayList<>(molecularConnectivityList);
+                        // clone current list element
+                        clonedMolecularConnectivity = Utils.cloneObject(molecularConnectivity,
+                                                                        MolecularConnectivity.class);
+                        // remove the current proton and add the group member proton
+                        pathLengthProton = clonedMolecularConnectivity.getHmbc()
+                                                                      .get(protonIndex);
+                        clonedMolecularConnectivity.getHmbc()
+                                                   .remove(protonIndex);
+                        clonedMolecularConnectivity.getHmbc()
+                                                   .putIfAbsent(protonGroupMemberIndex, pathLengthProton);
+                        // set cloned and changed list element
+                        clonedMolecularConnectivityList.set(correlationIndex, clonedMolecularConnectivity);
+
+                        //                        System.out.println(" --> swapped HMBC at i: "
+                        //                                                   + molecularConnectivity.getIndex()
+                        //                                                   + " -> "
+                        //                                                   + swapped);
+                        swappedCopy = new HashSet<>(swapped);
+
+                        newStatesList.add(new Object[]{clonedMolecularConnectivityList, correlationIndex
+                                + 1, swappedCopy});
+                    }
+                }
+            }
+        }
+
+        return newStatesList;
+    }
+
     private static List<List<MolecularConnectivity>> buildCombinations(
             final List<MolecularConnectivity> initialMolecularConnectivityList, final Grouping grouping) {
 
         final List<List<MolecularConnectivity>> molecularConnectivityListList = new ArrayList<>();
-        final Stack<Object[]> stack = new Stack<>();
-        stack.push(new Object[]{initialMolecularConnectivityList, 0, new HashSet<>()});
+        molecularConnectivityListList.add(initialMolecularConnectivityList);
 
-        Object[] objects;
-        List<MolecularConnectivity> molecularConnectivityList, clonedMolecularConnectivityList;
-        int correlationIndex, protonGroupIndex, molecularConnectivityIndexBondedToGroupMember;
-        Set<String> swapped, swappedCopy;
-        MolecularConnectivity molecularConnectivity, clonedMolecularConnectivity, clonedMolecularConnectivityBondedToGroupMember;
-        List<Integer> protonGroupMemberList, indicesToSwap;
-        String swapKey;
-        while (!stack.isEmpty()) {
-            objects = stack.pop();
-            molecularConnectivityList = (List<MolecularConnectivity>) objects[0];
-            correlationIndex = (int) objects[1];
-            swapped = (Set<String>) objects[2];
-            if (correlationIndex
-                    >= molecularConnectivityList.size()) {
-                molecularConnectivityListList.add(molecularConnectivityList);
-                continue;
-            }
-            molecularConnectivity = molecularConnectivityList.get(correlationIndex);
-            if (!grouping.getGroups()
-                         .containsKey(molecularConnectivity.getAtomType())
-                    || molecularConnectivity.getAtomType()
-                                            .equals("H")) {
-                stack.push(new Object[]{molecularConnectivityList, correlationIndex
-                        + 1, swapped});
-                continue;
-            }
+        //        final Stack<Object[]> stack = new Stack<>();
+        //        stack.push(new Object[]{initialMolecularConnectivityList, 0, new HashSet<>()});
+        //
+        //        Object[] objects;
+        //        List<MolecularConnectivity> molecularConnectivityList;
+        //        int correlationIndex;
+        //        Set<String> swapped;
+        //        MolecularConnectivity molecularConnectivity;
+        //        List<Object[]> newStateList, newStateList2;
+        //        while (!stack.isEmpty()) {
+        //            objects = stack.pop();
+        //            molecularConnectivityList = (List<MolecularConnectivity>) objects[0];
+        //            correlationIndex = (int) objects[1];
+        //            swapped = (Set<String>) objects[2];
+        //            if (correlationIndex
+        //                    >= molecularConnectivityList.size()) {
+        //                molecularConnectivityListList.add(molecularConnectivityList);
+        //                continue;
+        //            }
+        //            molecularConnectivity = molecularConnectivityList.get(correlationIndex);
+        //            if (!grouping.getGroups()
+        //                         .containsKey(molecularConnectivity.getAtomType())
+        //                    || molecularConnectivity.getAtomType()
+        //                                            .equals("H")) {
+        //                stack.push(new Object[]{molecularConnectivityList, correlationIndex
+        //                        + 1, swapped});
+        //                continue;
+        //            }
+        //
+        //            // HSQC
+        //            newStateList = swap(molecularConnectivity, grouping, "hsqc", molecularConnectivityList, correlationIndex,
+        //                                swapped);
+        //            // HMBC
+        //            newStateList2 = new ArrayList<>(newStateList);
+        //            // push unchanged stack data that HMBC can swap from previous data too
+        //            newStateList2.add(new Object[]{molecularConnectivityList, correlationIndex, swapped});
+        //            for (final Object[] stateObjects : newStateList2) {
+        //                newStateList.addAll(
+        //                        swap(molecularConnectivity, grouping, "hmbc", (List<MolecularConnectivity>) stateObjects[0],
+        //                             correlationIndex, (Set<String>) stateObjects[2]));
+        //            }
+        //
+        //            // push unchanged stack data as well
+        //            newStateList.add(new Object[]{molecularConnectivityList, correlationIndex
+        //                    + 1, swapped});
+        //
+        //            // push all new states into the stack
+        //            for (final Object[] newStateObjects : newStateList) {
+        //                stack.push(newStateObjects);
+        //            }
+        //        }
 
-            // HSQC
-            if (molecularConnectivity.getHsqc()
-                    != null) {
-                // loop over all matching protons in HSQC
-                for (final int protonIndex : molecularConnectivity.getHsqc()) {
-                    // only change if it has a group entry
-                    if (grouping.getTransformedGroups()
-                                .get("H")
-                                .containsKey(protonIndex)) {
-                        protonGroupIndex = grouping.getTransformedGroups()
-                                                   .get("H")
-                                                   .get(protonIndex);
-                        protonGroupMemberList = grouping.getGroups()
-                                                        .get("H")
-                                                        .get(protonGroupIndex)
-                                                        .stream()
-                                                        .filter(protonGroupMemberIndex -> protonGroupMemberIndex
-                                                                != protonIndex)
-                                                        .collect(Collectors.toList());
-                        for (final int protonGroupMemberIndex : protonGroupMemberList) {
-                            indicesToSwap = new ArrayList<>();
-                            indicesToSwap.add(protonIndex);
-                            indicesToSwap.add(protonGroupMemberIndex);
-                            indicesToSwap.sort(Integer::compare); // to always keep the same order
-                            swapKey = "HSQC_"
-                                    + indicesToSwap.stream()
-                                                   .map(String::valueOf)
-                                                   .collect(Collectors.joining("_"));
-                            if (swapped.contains(swapKey)) {
-                                continue;
-                            }
-                            // clone current list element
-                            clonedMolecularConnectivity = Utils.cloneObject(molecularConnectivity,
-                                                                            MolecularConnectivity.class);
-                            // remove the current proton and add the group member proton
-                            clonedMolecularConnectivity.getHsqc()
-                                                       .remove((Integer) protonIndex);
-                            clonedMolecularConnectivity.getHsqc()
-                                                       .add(protonGroupMemberIndex);
-                            // copy current list
-                            clonedMolecularConnectivityList = new ArrayList<>(molecularConnectivityList);
-
-                            // set cloned and changed list element
-                            clonedMolecularConnectivityList.set(correlationIndex, clonedMolecularConnectivity);
-                            // check whether group member proton is attached to a heavy atom
-                            molecularConnectivityIndexBondedToGroupMember = getHeavyAtomMolecularConnectivityIndex(
-                                    molecularConnectivityList, protonGroupMemberIndex);
-                            if (molecularConnectivityIndexBondedToGroupMember
-                                    >= 0) {
-                                // remove the group member proton from heavy atom and add the current proton
-                                clonedMolecularConnectivityBondedToGroupMember = Utils.cloneObject(
-                                        molecularConnectivityList.get(molecularConnectivityIndexBondedToGroupMember),
-                                        MolecularConnectivity.class);
-                                clonedMolecularConnectivityBondedToGroupMember.getHsqc()
-                                                                              .remove((Integer) protonGroupMemberIndex);
-                                clonedMolecularConnectivityBondedToGroupMember.getHsqc()
-                                                                              .add(protonIndex);
-                                clonedMolecularConnectivityList.set(molecularConnectivityIndexBondedToGroupMember,
-                                                                    clonedMolecularConnectivityBondedToGroupMember);
-                            }
-
-                            swappedCopy = new HashSet<>(swapped);
-                            swappedCopy.add(swapKey);
-                            stack.push(new Object[]{clonedMolecularConnectivityList, correlationIndex
-                                    + 1, swappedCopy});
-                        }
-                    }
-                }
-            }
-            // push unchanged stack data as well
-            stack.push(new Object[]{molecularConnectivityList, correlationIndex
-                    + 1, swapped});
-        }
 
         return molecularConnectivityListList;
     }
@@ -972,8 +1103,6 @@ public class Utilities {
         final List<Map<Integer, List<MolecularConnectivity>>> molecularConnectivityMapCombinationList = new ArrayList<>();
         final List<MolecularConnectivity> initialMolecularConnectivityList = buildMolecularConnectivityList(
                 correlationList, detections, grouping, defaultBondDistances);
-        //        System.out.println("\n -> initialMolecularConnectivityList: \n");
-        //        System.out.println(initialMolecularConnectivityList);
         final List<List<MolecularConnectivity>> molecularConnectivityListList = buildCombinations(
                 initialMolecularConnectivityList, grouping);
         for (final List<MolecularConnectivity> molecularConnectivityList : molecularConnectivityListList) {

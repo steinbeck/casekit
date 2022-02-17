@@ -417,9 +417,7 @@ public class PyLSDInputFileBuilder {
         final boolean containsHeteroAtoms = elementCounts.keySet()
                                                          .stream()
                                                          .anyMatch(atomType -> !atomType.equals("C")
-                                                           && !atomType.equals("H"));
-        System.out.println("containsHeteroAtoms: "
-                                   + containsHeteroAtoms);
+                                                                 && !atomType.equals("H"));
         if (containsHeteroAtoms
                 && !allowHeteroHeteroBonds) {
             LISTAndPROPUtilities.insertNoHeteroHeteroBonds(stringBuilder, listMap);

@@ -413,8 +413,15 @@ public class PyLSDInputFileBuilder {
         // list key -> [list name, size]
         final Map<String, Object[]> listMap = new HashMap<>();
 
-        // LIST and PROP for hetero hetero bonds to disallow
-        if (!allowHeteroHeteroBonds) {
+        // LIST and PROP for hetero hetero bonds to disallow in case hetero atoms are present
+        final boolean containsHeteroAtoms = elementCounts.keySet()
+                                                         .stream()
+                                                         .anyMatch(atomType -> !atomType.equals("C")
+                                                           && !atomType.equals("H"));
+        System.out.println("containsHeteroAtoms: "
+                                   + containsHeteroAtoms);
+        if (containsHeteroAtoms
+                && !allowHeteroHeteroBonds) {
             LISTAndPROPUtilities.insertNoHeteroHeteroBonds(stringBuilder, listMap);
         }
         // insert LIST for each heavy atom type in MF

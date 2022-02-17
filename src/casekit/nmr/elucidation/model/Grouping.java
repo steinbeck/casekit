@@ -1,10 +1,10 @@
-package casekit.nmr.lsd.model;
+package casekit.nmr.elucidation.model;
 
 import lombok.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -14,6 +14,6 @@ import java.util.Set;
 public class Grouping {
 
     Map<String, Double> tolerances = new HashMap<>();
-    Map<String, Map<Integer, Set<Integer>>> groups;
+    Map<String, Map<Integer, List<Integer>>> groups;
     Map<String, Map<Integer, Integer>> transformedGroups;
 }

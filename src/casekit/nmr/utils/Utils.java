@@ -1,14 +1,12 @@
 package casekit.nmr.utils;
 
-import casekit.nmr.lsd.Constants;
-import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Signal;
-import casekit.nmr.model.Spectrum;
-import casekit.nmr.model.StructureCompact;
+import casekit.nmr.elucidation.Constants;
+import casekit.nmr.model.*;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Link;
 import casekit.nmr.model.nmrium.Signal1D;
 import casekit.nmr.model.nmrium.Signal2D;
+import com.google.gson.Gson;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
 import org.openscience.cdk.aromaticity.Kekulization;
@@ -630,20 +628,27 @@ public class Utils {
                                                                                                    "kind"),
                                                                                            multiplicity,
                                                                                            signalMap.containsKey("sign")
-                                                                                           ? (Integer) signalMap.get(
-                                                                                                   "sign")
+                                                                                           ? (int) Double.parseDouble(
+                                                                                                   String.valueOf(
+                                                                                                           signalMap.get(
+                                                                                                                   "sign")))
                                                                                            : null);
+        // 1D signal
         if (signalMap.containsKey("delta")) {
             final Signal1D signal1D = new Signal1D(signal);
             signal1D.setDelta((double) signalMap.get("delta"));
 
             return new Signal(new String[]{Constants.nucleiMap.get(correlation.getAtomType())},
                               new Double[]{signal1D.getDelta()}, signal1D.getMultiplicity(), signal1D.getKind(), null,
-                              correlation.getEquivalence(), signal1D.getSign());
+                              correlation.getEquivalence(), signal1D.getSign(), null);
         } else if (signalMap.containsKey("x")) {
+            // 2D signal
             final Signal2D signal2D = new Signal2D(signal);
             signal2D.setX((Map<String, Object>) signalMap.get("x"));
             signal2D.setY((Map<String, Object>) signalMap.get("y"));
+            if (signalMap.containsKey("pathLength")) {
+                signal2D.setPathLength((PathLength) signalMap.get("pathLength"));
+            }
             final double shift = link.getAxis()
                                      .equals("x")
                                  ? (double) signal2D.getX()
@@ -653,7 +658,7 @@ public class Utils {
 
             return new Signal(new String[]{Constants.nucleiMap.get(correlation.getAtomType())}, new Double[]{shift},
                               signal2D.getMultiplicity(), signal2D.getKind(), null, correlation.getEquivalence(),
-                              signal2D.getSign());
+                              signal2D.getSign(), signal2D.getPathLength());
         }
 
         return null;
@@ -680,5 +685,11 @@ public class Utils {
         }
 
         return spectrum;
+    }
+
+    public static <T> T cloneObject(final T object, final Class<T> clazz) {
+        final Gson gson = new Gson();
+        final String jsonString = gson.toJson(object, clazz);
+        return gson.fromJson(jsonString, clazz);
     }
 }

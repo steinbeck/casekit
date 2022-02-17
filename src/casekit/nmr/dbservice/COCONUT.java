@@ -36,12 +36,6 @@ public class COCONUT {
             for (final String nucleus : nuclei) {
                 final String atomType = casekit.nmr.utils.Utils.getAtomTypeFromNucleus(nucleus);
                 final List<Integer> atomIndices = Utils.getAtomTypeIndicesByElement(structure, atomType);
-                //                spectrumPropertyString = ((String) structure.getProperty("CNMR_CALC_SHIFTS")).replaceAll("[\\n\\r]",
-                //                                                                                                         "");
-                //                split = spectrumPropertyString.split("\\d+:");
-                //                spectrumPropertyString = structure.getProperty("Predicted "
-                //                                                                       + nucleus
-                //                                                                       + " shifts", String.class);
                 spectrumPropertyString = structure.getProperty("Predicted "
                                                                        + nucleus
                                                                        + " shifts", String.class);
@@ -64,20 +58,11 @@ public class COCONUT {
                 assignment = new Assignment();
                 assignment.setNuclei(spectrum.getNuclei());
                 assignment.initAssignments(spectrum.getSignalCount());
-                //                for (int i = 1; i
                 for (int i = 0; i
                         < split.length; i++) {
-                    //                    split2 = split[i].split(",");
                     split2 = split[i].split("\\s+");
-                    //                    calcShift = Double.parseDouble(split2[0].split("Exact = ")[1]);
-                    atomIndex = atomIndices.get(i); //Integer.parseInt(split2[0].split("\\[")[0])
-                    //- 1;
-                    //                    System.out.println("// COCONUT "
-                    //                                               + structure.getProperty("cdk:Title"));
-                    //                    System.out.println(atomIndex);
+                    atomIndex = atomIndices.get(i);
                     calcShift = Double.parseDouble(split2[1]);
-                    //                    System.out.println(calcShift);
-                    //                    System.out.println(structure.getAtomCount());
                     multiplicity = Utils.getMultiplicityFromProtonsCount(structure.getAtom(atomIndex)
                                                                                   .getImplicitHydrogenCount())
                                         .toLowerCase();
@@ -93,27 +78,9 @@ public class COCONUT {
                     // add signal
                     spectrum.addSignal(
                             new Signal(new String[]{nucleus}, new Double[]{calcShift}, multiplicity, "signal", null, 1,
-                                       0));
+                                       0, null));
                 }
 
-                //                System.out.println("// COCONUT "
-                //                                           + structure.getTitle());
-                //                System.out.println("// ???");
-                //                System.out.println("// "
-                //                                           + casekit.nmr.HOSECodeUtilities.molecularFormularToString(mf));
-                //                for (int i = 0; i
-                //                        < spectrum.getSignalCount(); i++) {
-                //                    System.out.println(nucleus
-                //                                               + ", "
-                //                                               + spectrum.getSignal(i)
-                //                                                         .getShift(0)
-                //                                               + ", "
-                //                                               + spectrum.getSignal(i)
-                //                                                         .getMultiplicity()
-                //                                               + ", 0.0, "
-                //                                               + spectrum.getSignal(i)
-                //                                                         .getEquivalencesCount());
-                //                }
                 // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
                 if (Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(spectrum,
                                                                             Utils.getMolecularFormulaFromString(

@@ -1,4 +1,4 @@
-package casekit.nmr.lsd;
+package casekit.nmr.elucidation;
 
 import java.util.Collections;
 import java.util.HashMap;

@@ -129,7 +129,7 @@ public class Prediction {
             return null;
         }
 
-        return new DataSet(structure, spectrum, assignment, new HashMap<>());
+        return new DataSet(structure, spectrum, assignment, new HashMap<>(), new HashMap<>());
     }
 
     /**
@@ -249,7 +249,7 @@ public class Prediction {
             }
         }
 
-        return new DataSet(structure, predictedSpectrum2D, assignment2D, new HashMap<>());
+        return new DataSet(structure, predictedSpectrum2D, assignment2D, new HashMap<>(), new HashMap<>());
     }
 
     public static DataSet predictHSQC(final IAtomContainer structure, final Spectrum spectrumDim1,

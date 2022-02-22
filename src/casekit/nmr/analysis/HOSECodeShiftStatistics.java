@@ -17,6 +17,9 @@ import com.google.gson.reflect.TypeToken;
 import org.bson.Document;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.layout.StructureDiagramGenerator;
+import org.openscience.nmrshiftdb.util.AtomUtils;
+import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
 
 import java.io.*;
 import java.util.*;
@@ -26,11 +29,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class HOSECodeShiftStatistics {
 
     private final static Gson GSON = new GsonBuilder().setLenient()
-                                                      .create(); //.setPrettyPrinting()
+                                                      .create();
 
     public static Map<String, Map<String, ConcurrentLinkedQueue<Double>>> collectHOSECodeShifts(
-            final List<DataSet> dataSetList, final Integer maxSphere, final boolean withExplicitH) {
-        return collectHOSECodeShifts(dataSetList, maxSphere, withExplicitH, new ConcurrentHashMap<>());
+            final List<DataSet> dataSetList, final Integer maxSphere, final boolean use3D,
+            final boolean withExplicitH) {
+        return collectHOSECodeShifts(dataSetList, maxSphere, use3D, withExplicitH, new ConcurrentHashMap<>());
     }
 
     /**
@@ -43,17 +47,20 @@ public class HOSECodeShiftStatistics {
      * @return
      */
     public static Map<String, Map<String, ConcurrentLinkedQueue<Double>>> collectHOSECodeShifts(
-            final List<DataSet> dataSetList, final Integer maxSphere, final boolean withExplicitH,
+            final List<DataSet> dataSetList, final Integer maxSphere, final boolean use3D, final boolean withExplicitH,
             final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
         for (final DataSet dataSet : dataSetList) {
-            insert(dataSet, maxSphere, withExplicitH, hoseCodeShifts);
+            insert(dataSet, maxSphere, use3D, withExplicitH, hoseCodeShifts);
         }
 
         return hoseCodeShifts;
     }
 
-    public static boolean insert(final DataSet dataSet, final Integer maxSphere, final boolean withExplicitH,
+    public static boolean insert(final DataSet dataSet, final Integer maxSphere, final boolean use3D,
+                                 final boolean withExplicitH,
                                  final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
+        final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
+        final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
         final IAtomContainer structure;
         Signal signal;
         String hoseCode;
@@ -73,7 +80,8 @@ public class HOSECodeShiftStatistics {
         }
         // create atom index map to know which indices the explicit hydrogens will have
         atomIndexMap = new HashMap<>();
-        if (withExplicitH) {
+        if (use3D
+                || withExplicitH) {
             try {
                 int nextAtomIndexExplicitH = structure.getAtomCount();
                 for (int i = 0; i
@@ -90,7 +98,21 @@ public class HOSECodeShiftStatistics {
                     }
                 }
 
-                Utils.convertImplicitToExplicitHydrogens(structure);
+                if (use3D) {
+                    try {
+                        // set 2D coordinates
+                        structureDiagramGenerator.setMolecule(structure);
+                        structureDiagramGenerator.generateCoordinates(structure);
+                        /* !!! No explicit H in mol !!! */
+                        Utils.convertExplicitToImplicitHydrogens(structure);
+                        /* add explicit H atoms */
+                        AtomUtils.addAndPlaceHydrogens(structure);
+                    } catch (final CDKException | IOException | ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    Utils.convertImplicitToExplicitHydrogens(structure);
+                }
                 Utils.setAromaticityAndKekulize(structure);
             } catch (final CDKException e) {
                 e.printStackTrace();
@@ -141,7 +163,17 @@ public class HOSECodeShiftStatistics {
                         }
                         for (int sphere = 1; sphere
                                 <= maxSphereTemp; sphere++) {
-                            hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
+                            if (use3D) {
+                                try {
+                                    hoseCode = extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i),
+                                                                                     sphere);
+                                } catch (final Exception e) {
+                                    //                                    e.printStackTrace();
+                                    continue;
+                                }
+                            } else {
+                                hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
+                            }
                             hoseCodeShifts.putIfAbsent(hoseCode, new ConcurrentHashMap<>());
                             hoseCodeShifts.get(hoseCode)
                                           .putIfAbsent(solvent, new ConcurrentLinkedQueue<>());
@@ -185,19 +217,18 @@ public class HOSECodeShiftStatistics {
                                                                                   final String[] pathsToCOCONUTs,
                                                                                   final String[] nuclei,
                                                                                   final Integer maxSphere,
+                                                                                  final boolean use3D,
                                                                                   final boolean withExplicitH) {
         try {
             final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new HashMap<>();
-            for (int i = 0; i
-                    < pathsToNMRShiftDBs.length; i++) {
+            for (final String pathsToNMRShiftDB : pathsToNMRShiftDBs) {
                 HOSECodeShiftStatistics.collectHOSECodeShifts(
-                        NMRShiftDB.getDataSetsFromNMRShiftDB(pathsToNMRShiftDBs[i], nuclei), maxSphere, withExplicitH,
-                        hoseCodeShifts);
+                        NMRShiftDB.getDataSetsFromNMRShiftDB(pathsToNMRShiftDB, nuclei), maxSphere, use3D,
+                        withExplicitH, hoseCodeShifts);
             }
-            for (int i = 0; i
-                    < pathsToCOCONUTs.length; i++) {
+            for (final String pathsToCOCONUT : pathsToCOCONUTs) {
                 HOSECodeShiftStatistics.collectHOSECodeShifts(
-                        COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(pathsToCOCONUTs[i], nuclei), maxSphere,
+                        COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(pathsToCOCONUT, nuclei), maxSphere, use3D,
                         withExplicitH, hoseCodeShifts);
             }
             return HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(hoseCodeShifts);
@@ -210,9 +241,10 @@ public class HOSECodeShiftStatistics {
 
     public static Map<String, Map<String, Double[]>> buildHOSECodeShiftStatistics(final List<DataSet> dataSetList,
                                                                                   final Integer maxSphere,
+                                                                                  final boolean use3D,
                                                                                   final boolean withExplicitH) {
         return HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
-                collectHOSECodeShifts(dataSetList, maxSphere, withExplicitH));
+                collectHOSECodeShifts(dataSetList, maxSphere, use3D, withExplicitH));
     }
 
     public static boolean writeHOSECodeShiftStatistics(final Map<String, Map<String, Double[]>> hoseCodeShifts,
@@ -278,8 +310,8 @@ public class HOSECodeShiftStatistics {
                       hoseCodeShiftsStatisticInJSON.append(line);
                   }
                   final JsonObject jsonObject = JsonParser.parseString(hoseCodeShiftsStatisticInJSON.substring(
-                          hoseCodeShiftsStatisticInJSON.toString()
-                                                       .indexOf("{")))
+                                                                  hoseCodeShiftsStatisticInJSON.toString()
+                                                                                               .indexOf("{")))
                                                           .getAsJsonObject();
                   hoseCodeShiftStatistics.put(jsonObject.get("HOSECode")
                                                         .getAsString(), GSON.fromJson(jsonObject.get("values")

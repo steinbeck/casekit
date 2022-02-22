@@ -557,15 +557,43 @@ public class Utils {
         return bondsOrderSum;
     }
 
+    /**
+     * @param structure molecule to build the DataSet from and
+     *                  1) all atom types and configuration will be perceived,
+     *                  2) explicit hydrogens will be converted to implicit ones,
+     *                  3) setting of aromaticity and Kekulization
+     *
+     * @return
+     *
+     * @throws CDKException
+     */
     public static DataSet atomContainerToDataSet(final IAtomContainer structure) throws CDKException {
-        final CDKHydrogenAdder hydrogenAdder = CDKHydrogenAdder.getInstance(SilentChemObjectBuilder.getInstance());
-        AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
-        if (Utils.containsExplicitHydrogens(structure)) {
-            // remove explicit hydrogens
-            Utils.removeAtoms(structure, "H");
+        return atomContainerToDataSet(structure, true);
+    }
+
+    /**
+     * @param structure  molecule to build the DataSet from
+     * @param manipulate if set to true then
+     *                   1) all atom types and configuration will be perceived,
+     *                   2) explicit hydrogens will be converted to implicit ones,
+     *                   3) setting of aromaticity and Kekulization
+     *
+     * @return
+     *
+     * @throws CDKException
+     */
+    public static DataSet atomContainerToDataSet(final IAtomContainer structure,
+                                                 final boolean manipulate) throws CDKException {
+        if (manipulate) {
+            final CDKHydrogenAdder hydrogenAdder = CDKHydrogenAdder.getInstance(SilentChemObjectBuilder.getInstance());
+            AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
+            if (Utils.containsExplicitHydrogens(structure)) {
+                // remove explicit hydrogens
+                Utils.removeAtoms(structure, "H");
+            }
+            hydrogenAdder.addImplicitHydrogens(structure);
+            setAromaticityAndKekulize(structure);
         }
-        hydrogenAdder.addImplicitHydrogens(structure);
-        setAromaticityAndKekulize(structure);
         final Map<String, String> meta = new HashMap<>();
         //        meta.put("title", structure.getTitle());
         final String source = structure.getProperty("nmrshiftdb2 ID", String.class)
@@ -605,6 +633,7 @@ public class Utils {
         final DataSet dataSet = new DataSet();
         dataSet.setStructure(new StructureCompact(structure));
         dataSet.setMeta(meta);
+        dataSet.setAttachment(new HashMap<>());
 
         return dataSet;
     }

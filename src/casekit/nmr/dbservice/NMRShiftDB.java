@@ -328,47 +328,6 @@ public class NMRShiftDB {
         return values;
     }
 
-    @Deprecated
-    public static String NMRShiftDBSpectrumToBasicTextSpectrum(final String NMRShiftDBSpectrum, final String nucleus,
-                                                               final String description) {
-        if ((NMRShiftDBSpectrum
-                == null)
-                || NMRShiftDBSpectrum.trim()
-                                     .isEmpty()) {
-            return null;
-        }
-        final StringBuilder basicSpectrum = new StringBuilder();
-        // append description
-        if (!description.trim()
-                        .startsWith("//")) {
-            basicSpectrum.append("// ");
-        }
-        basicSpectrum.append(description)
-                     .append("\n");
-        final String[][] spectrumStringArray = NMRShiftDB.parseNMRShiftDBSpectrum(NMRShiftDBSpectrum);
-        try {
-            for (int i = 0; i
-                    < spectrumStringArray.length; i++) {
-                // append nucleus
-                basicSpectrum.append(nucleus)
-                             .append(", ");
-                // append chemical shift
-                basicSpectrum.append(Double.parseDouble(spectrumStringArray[i][0]))
-                             .append(", ");
-                // append multiplicity
-                basicSpectrum.append(spectrumStringArray[i][2])
-                             .append(", ");
-                // append intensity
-                basicSpectrum.append(Double.parseDouble(spectrumStringArray[i][1]))
-                             .append("\n");
-            }
-        } catch (final Exception e) {
-            return null;
-        }
-
-        return basicSpectrum.toString();
-    }
-
     public static Spectrum NMRShiftDBSpectrumToSpectrum(final String NMRShiftDBSpectrum, final String nucleus) {
         if ((NMRShiftDBSpectrum
                 == null)

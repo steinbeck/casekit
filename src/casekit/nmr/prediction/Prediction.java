@@ -24,25 +24,33 @@
 package casekit.nmr.prediction;
 
 
+import casekit.nmr.analysis.MultiplicitySectionsBuilder;
+import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.fragments.model.ConnectionTree;
 import casekit.nmr.fragments.model.ConnectionTreeNode;
 import casekit.nmr.hose.HOSECodeBuilder;
-import casekit.nmr.model.Assignment;
-import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Signal;
-import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.*;
+import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
+import casekit.threading.MultiThreading;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.layout.StructureDiagramGenerator;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
+import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.tools.CDKHydrogenAdder;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
+import org.openscience.nmrshiftdb.util.AtomUtils;
+import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 
 /**
  * @author Michael Wenk [https://github.com/michaelwenk]
@@ -267,7 +275,7 @@ public class Prediction {
 
         final String atomTypeDim2 = Utils.getAtomTypeFromSpectrum(spectrumDim2, 0);
         IAtom atom;
-        Integer explicitHydrogensCount;
+        int explicitHydrogensCount;
         for (int i = 0; i
                 < spectrum.getSignalCount(); i++) {
             atom = structure.getAtom(dataSet.getAssignment()
@@ -291,5 +299,168 @@ public class Prediction {
         }
 
         return dataSet;
+    }
+
+    public static List<DataSet> predict1DByStereoHOSECodeAndFilter(final Spectrum querySpectrum,
+                                                                   final double shiftTolerance,
+                                                                   final double maximumAverageDeviation,
+                                                                   final int maxSphere,
+                                                                   final List<IAtomContainer> structureList,
+                                                                   final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
+                                                                   final Map<String, int[]> multiplicitySectionsSettings) {
+        final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
+        multiplicitySectionsBuilder.setMinLimit(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
+        multiplicitySectionsBuilder.setMaxLimit(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
+        multiplicitySectionsBuilder.setStepSize(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
+
+        List<DataSet> dataSetList = new ArrayList<>();
+        try {
+            final ConcurrentLinkedQueue<DataSet> dataSetConcurrentLinkedQueue = new ConcurrentLinkedQueue<>();
+            final List<Callable<DataSet>> callables = new ArrayList<>();
+            for (final IAtomContainer structure : structureList) {
+                callables.add(
+                        () -> predict1DByStereoHOSECodeAndFilter(structure, querySpectrum, maxSphere, shiftTolerance,
+                                                                 maximumAverageDeviation, true, true,
+                                                                 hoseCodeDBEntriesMap, multiplicitySectionsBuilder));
+            }
+            final Consumer<DataSet> consumer = (dataSet) -> {
+                if (dataSet
+                        != null) {
+                    dataSetConcurrentLinkedQueue.add(dataSet);
+                }
+            };
+            MultiThreading.processTasks(callables, consumer, 2, 5);
+            dataSetList = new ArrayList<>(dataSetConcurrentLinkedQueue);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+
+        return dataSetList;
+    }
+
+    private static DataSet predict1DByStereoHOSECodeAndFilter(final IAtomContainer structure,
+                                                              final Spectrum querySpectrum, final int maxSphere,
+                                                              final double shiftTolerance,
+                                                              final double maxAverageDeviation,
+                                                              final boolean checkMultiplicity,
+                                                              final boolean checkEquivalencesCount,
+                                                              final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
+                                                              final MultiplicitySectionsBuilder multiplicitySectionsBuilder) {
+        final String nucleus = querySpectrum.getNuclei()[0];
+        final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
+        final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
+        final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
+
+        final Assignment assignment;
+        Signal signal;
+        Map<String, Double[]> hoseCodeObjectValues;
+        double predictedShift;
+        String hoseCode;
+        Double[] statistics;
+        int signalIndex, sphere;
+        List<Double> medians;
+
+        try {
+            // set 2D coordinates
+            structureDiagramGenerator.setMolecule(structure);
+            structureDiagramGenerator.generateCoordinates(structure);
+            /* !!! No explicit H in mol !!! */
+            Utils.convertExplicitToImplicitHydrogens(structure);
+            /* add explicit H atoms */
+            AtomUtils.addAndPlaceHydrogens(structure);
+            /* detect aromaticity */
+            Utils.setAromaticityAndKekulize(structure);
+
+            final DataSet dataSet = Utils.atomContainerToDataSet(structure, false);
+
+            final Spectrum predictedSpectrum = new Spectrum();
+            predictedSpectrum.setNuclei(querySpectrum.getNuclei());
+            predictedSpectrum.setSignals(new ArrayList<>());
+
+            final Map<Integer, List<Integer>> assignmentMap = new HashMap<>();
+            for (int i = 0; i
+                    < structure.getAtomCount(); i++) {
+                if (!structure.getAtom(i)
+                              .getSymbol()
+                              .equals(atomType)) {
+                    continue;
+                }
+                medians = new ArrayList<>();
+                sphere = maxSphere;
+                while (sphere
+                        >= 1) {
+                    try {
+                        hoseCode = extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i), sphere);
+                        hoseCodeObjectValues = hoseCodeDBEntriesMap.get(hoseCode);
+                        if (hoseCodeObjectValues
+                                != null) {
+                            for (final Map.Entry<String, Double[]> solventEntry : hoseCodeObjectValues.entrySet()) {
+                                statistics = hoseCodeObjectValues.get(solventEntry.getKey());
+                                medians.add(statistics[3]);
+                            }
+                            break;
+                        }
+                    } catch (final Exception ignored) {
+                    }
+                    sphere--;
+                }
+                if (medians.isEmpty()) {
+                    continue;
+                }
+                predictedShift = Statistics.getMean(medians);
+                signal = new Signal();
+                signal.setNuclei(querySpectrum.getNuclei());
+                signal.setShifts(new Double[]{predictedShift});
+                signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(
+                        AtomUtils.getHcount(structure, structure.getAtom(i)))); // counts explicit H
+                signal.setEquivalencesCount(1);
+
+                signalIndex = predictedSpectrum.addSignal(signal);
+
+                assignmentMap.putIfAbsent(signalIndex, new ArrayList<>());
+                assignmentMap.get(signalIndex)
+                             .add(i);
+            }
+
+            // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
+            try {
+                if (Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(predictedSpectrum,
+                                                                            Utils.getMolecularFormulaFromString(
+                                                                                    dataSet.getMeta()
+                                                                                           .get("mf")), 0)
+                        != 0) {
+                    return null;
+                }
+            } catch (final CDKException e) {
+                e.printStackTrace();
+                return null;
+            }
+
+
+            Utils.convertExplicitToImplicitHydrogens(structure);
+            dataSet.setStructure(new StructureCompact(structure));
+            dataSet.addMetaInfo("smiles", SmilesGenerator.generic()
+                                                         .create(structure));
+
+            dataSet.setSpectrum(new SpectrumCompact(predictedSpectrum));
+            assignment = new Assignment();
+            assignment.setNuclei(predictedSpectrum.getNuclei());
+            assignment.initAssignments(predictedSpectrum.getSignalCount());
+
+            for (final Map.Entry<Integer, List<Integer>> entry : assignmentMap.entrySet()) {
+                for (final int atomIndex : assignmentMap.get(entry.getKey())) {
+                    assignment.addAssignmentEquivalence(0, entry.getKey(), atomIndex);
+                }
+            }
+            dataSet.setAssignment(assignment);
+
+            return FilterAndRank.checkDataSet(dataSet, querySpectrum, shiftTolerance, maxAverageDeviation,
+                                              checkMultiplicity, checkEquivalencesCount, multiplicitySectionsBuilder,
+                                              true);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 }

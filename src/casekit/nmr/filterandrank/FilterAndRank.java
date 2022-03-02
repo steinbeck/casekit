@@ -138,14 +138,14 @@ public class FilterAndRank {
         Double valueDataSet1 = null;
         Double valueDataSet2 = null;
         try {
-            valueDataSet1 = (Double) dataSet1.getAttachment()
-                                             .get(attachmentKey);
+            valueDataSet1 = Double.parseDouble(String.valueOf(dataSet1.getAttachment()
+                                                                      .get(attachmentKey)));
         } catch (final NullPointerException | NumberFormatException e) {
             //                e.printStackTrace();
         }
         try {
-            valueDataSet2 = (Double) dataSet2.getAttachment()
-                                             .get(attachmentKey);
+            valueDataSet2 = Double.parseDouble(String.valueOf(dataSet2.getAttachment()
+                                                                      .get(attachmentKey)));
         } catch (final NullPointerException | NumberFormatException e) {
             //                e.printStackTrace();
         }

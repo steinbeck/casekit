@@ -102,23 +102,6 @@ public class FilterAndRank {
 
     public static List<DataSet> rank(final List<DataSet> dataSetList) {
         dataSetList.sort((dataSet1, dataSet2) -> {
-            final int avgDevComparison = compareNumericDataSetAttachmentKey(dataSet1, dataSet2, "averageDeviation");
-            if (avgDevComparison
-                    != 0) {
-                return avgDevComparison;
-            }
-
-            final boolean isCompleteSpectralMatchDataSet1 = Boolean.parseBoolean(dataSet1.getMeta()
-                                                                                         .get("isCompleteSpectralMatch"));
-            final boolean isCompleteSpectralMatchDataSet2 = Boolean.parseBoolean(dataSet2.getMeta()
-                                                                                         .get("isCompleteSpectralMatch"));
-            if (isCompleteSpectralMatchDataSet1
-                    && !isCompleteSpectralMatchDataSet2) {
-                return -1;
-            } else if (!isCompleteSpectralMatchDataSet1
-                    && isCompleteSpectralMatchDataSet2) {
-                return 1;
-            }
             final int setAssignmentsCountComparison = compareNumericDataSetAttachmentKey(dataSet1, dataSet2,
                                                                                          "setAssignmentsCount");
             if (setAssignmentsCountComparison
@@ -126,8 +109,8 @@ public class FilterAndRank {
                 return -1
                         * setAssignmentsCountComparison;
             }
-
-            return 0;
+            final int avgDevComparison = compareNumericDataSetAttachmentKey(dataSet1, dataSet2, "averageDeviation");
+            return avgDevComparison;
         });
 
         return dataSetList;

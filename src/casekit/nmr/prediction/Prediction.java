@@ -307,7 +307,8 @@ public class Prediction {
                                                                    final int maxSphere,
                                                                    final List<IAtomContainer> structureList,
                                                                    final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
-                                                                   final Map<String, int[]> multiplicitySectionsSettings) {
+                                                                   final Map<String, int[]> multiplicitySectionsSettings,
+                                                                   final int nThreads) {
         final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
         multiplicitySectionsBuilder.setMinLimit(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
         multiplicitySectionsBuilder.setMaxLimit(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
@@ -329,7 +330,7 @@ public class Prediction {
                     dataSetConcurrentLinkedQueue.add(dataSet);
                 }
             };
-            MultiThreading.processTasks(callables, consumer, 2, 5);
+            MultiThreading.processTasks(callables, consumer, nThreads, 5);
             dataSetList = new ArrayList<>(dataSetConcurrentLinkedQueue);
         } catch (final Exception e) {
             e.printStackTrace();

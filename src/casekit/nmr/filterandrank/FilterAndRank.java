@@ -109,8 +109,8 @@ public class FilterAndRank {
                 return -1
                         * setAssignmentsCountComparison;
             }
-            final int avgDevComparison = compareNumericDataSetAttachmentKey(dataSet1, dataSet2, "averageDeviation");
-            return avgDevComparison;
+            
+            return compareNumericDataSetAttachmentKey(dataSet1, dataSet2, "averageDeviation");
         });
 
         return dataSetList;

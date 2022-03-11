@@ -1,11 +1,10 @@
 package casekit.nmr.utils;
 
 import casekit.nmr.elucidation.Constants;
+import casekit.nmr.model.Signal;
+import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.*;
-import casekit.nmr.model.nmrium.Correlation;
-import casekit.nmr.model.nmrium.Link;
-import casekit.nmr.model.nmrium.Signal1D;
-import casekit.nmr.model.nmrium.Signal2D;
+import casekit.nmr.model.nmrium.*;
 import com.google.gson.Gson;
 import org.openscience.cdk.aromaticity.Aromaticity;
 import org.openscience.cdk.aromaticity.ElectronDonation;
@@ -572,19 +571,19 @@ public class Utils {
     }
 
     /**
-     * @param structure  molecule to build the DataSet from
-     * @param manipulate if set to true then
-     *                   1) all atom types and configuration will be perceived,
-     *                   2) explicit hydrogens will be converted to implicit ones,
-     *                   3) setting of aromaticity and Kekulization
+     * @param structure molecule to build the DataSet from
+     * @param configure if set to true then
+     *                  1) all atom types and configuration will be perceived,
+     *                  2) explicit hydrogens will be converted to implicit ones,
+     *                  3) setting of aromaticity and Kekulization
      *
      * @return
      *
      * @throws CDKException
      */
     public static DataSet atomContainerToDataSet(final IAtomContainer structure,
-                                                 final boolean manipulate) throws CDKException {
-        if (manipulate) {
+                                                 final boolean configure) throws CDKException {
+        if (configure) {
             final CDKHydrogenAdder hydrogenAdder = CDKHydrogenAdder.getInstance(SilentChemObjectBuilder.getInstance());
             AtomContainerManipulator.percieveAtomTypesAndConfigureAtoms(structure);
             if (Utils.containsExplicitHydrogens(structure)) {
@@ -638,7 +637,7 @@ public class Utils {
         return dataSet;
     }
 
-    public static Signal extractSignalFromCorrelation(final Correlation correlation) {
+    public static Signal extractFirstSignalFromCorrelation(final Correlation correlation) {
         if (correlation.isPseudo()) {
             return null;
         }
@@ -675,8 +674,10 @@ public class Utils {
             final Signal2D signal2D = new Signal2D(signal);
             signal2D.setX((Map<String, Object>) signalMap.get("x"));
             signal2D.setY((Map<String, Object>) signalMap.get("y"));
-            if (signalMap.containsKey("pathLength")) {
-                signal2D.setPathLength((PathLength) signalMap.get("pathLength"));
+            if (signalMap.containsKey("j")) {
+                final Map<String, Object> jMap = (Map<String, Object>) signalMap.get("j");
+                final Map<String, Object> pathLengthMap = (Map<String, Object>) jMap.get("pathLength");
+                signal2D.setJ(new J(new PathLength((int) pathLengthMap.get("from"), (int) pathLengthMap.get("to"))));
             }
             final double shift = link.getAxis()
                                      .equals("x")
@@ -687,7 +688,7 @@ public class Utils {
 
             return new Signal(new String[]{Constants.nucleiMap.get(correlation.getAtomType())}, new Double[]{shift},
                               signal2D.getMultiplicity(), signal2D.getKind(), null, correlation.getEquivalence(),
-                              signal2D.getSign(), signal2D.getPathLength());
+                              signal2D.getSign(), signal2D.getJ());
         }
 
         return null;
@@ -706,7 +707,7 @@ public class Utils {
 
         Signal signal;
         for (final Correlation correlation : correlationListAtomType) {
-            signal = extractSignalFromCorrelation(correlation);
+            signal = extractFirstSignalFromCorrelation(correlation);
             if (signal
                     != null) {
                 spectrum.addSignalWithoutEquivalenceSearch(signal);

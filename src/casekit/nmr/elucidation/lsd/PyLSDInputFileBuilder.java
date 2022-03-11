@@ -537,8 +537,10 @@ public class PyLSDInputFileBuilder {
             return new ArrayList<>();
         }
         final List<String> inputFilesContentList = new ArrayList<>();
+        // build different combinations
         final List<Map<Integer, List<MolecularConnectivity>>> molecularConnectivityMapCombinationList = casekit.nmr.elucidation.Utilities.buildMolecularConnectivityMapCombinationList(
                 correlations.getValues(), detections, grouping, defaultBondDistances);
+        // for each combination insert an input file for PyLSD
         for (final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap : molecularConnectivityMapCombinationList) {
             inputFilesContentList.add(buildPyLSDInputFileContent(molecularConnectivityMap, mf, elucidationOptions));
         }

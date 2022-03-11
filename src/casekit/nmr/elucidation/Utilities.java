@@ -3,7 +3,6 @@ package casekit.nmr.elucidation;
 import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.elucidation.model.MolecularConnectivity;
-import casekit.nmr.model.PathLength;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Link;
@@ -235,8 +234,8 @@ public class Utilities {
 
     private static boolean hasMatch(final Correlation correlation1, final Correlation correlation2,
                                     final double tolerance) {
-        final Signal signal1 = Utils.extractSignalFromCorrelation(correlation1);
-        final Signal signal2 = Utils.extractSignalFromCorrelation(correlation2);
+        final Signal signal1 = Utils.extractFirstSignalFromCorrelation(correlation1);
+        final Signal signal2 = Utils.extractFirstSignalFromCorrelation(correlation2);
         if (signal1
                 == null
                 || signal2
@@ -511,7 +510,6 @@ public class Utilities {
         MolecularConnectivity newMolecularConnectivity;
 
         int index, correlationIndex, protonCorrelationIndex, protonIndex;
-        PathLength pathLength;
         for (final MolecularConnectivity molecularConnectivity : molecularConnectivityList) {
             correlationIndex = molecularConnectivity.getIndex();
             // skip in case of non-linked proton which has no index in indices map
@@ -548,11 +546,9 @@ public class Utilities {
                                           .equals("H")
                         && molecularConnectivity.getHmbc()
                         != null) {
-                    pathLength = molecularConnectivity.getSignal()
-                                                      .getPathLength();
-                    for (final Map.Entry<Integer, Integer[]> entry : molecularConnectivity.getHmbc()
-                                                                                          .entrySet()) {
-                        protonCorrelationIndex = entry.getKey();
+                    for (final Map.Entry<Integer, Integer[]> entryHMBC : molecularConnectivity.getHmbc()
+                                                                                              .entrySet()) {
+                        protonCorrelationIndex = entryHMBC.getKey();
                         if (indicesMap.containsKey(protonCorrelationIndex)) {
                             for (int l = 0; l
                                     < indicesMap.get(protonCorrelationIndex).length; l++) {
@@ -562,11 +558,7 @@ public class Utilities {
                                     newMolecularConnectivity.setHmbc(new HashMap<>());
                                 }
                                 newMolecularConnectivity.getHmbc()
-                                                        .put(protonIndex, pathLength
-                                                                                  == null
-                                                                          ? defaultBondDistances.get("hmbc")
-                                                                          : new Integer[]{pathLength.getMin(),
-                                                                                          pathLength.getMax()});
+                                                        .put(protonIndex, entryHMBC.getValue());
                             }
                         }
                     }
@@ -575,11 +567,9 @@ public class Utilities {
                                          .equals("H")
                         && molecularConnectivity.getCosy()
                         != null) {
-                    pathLength = molecularConnectivity.getSignal()
-                                                      .getPathLength();
-                    for (final Map.Entry<Integer, Integer[]> entry : molecularConnectivity.getCosy()
-                                                                                          .entrySet()) {
-                        protonCorrelationIndex = entry.getKey();
+                    for (final Map.Entry<Integer, Integer[]> entryCOSY : molecularConnectivity.getCosy()
+                                                                                              .entrySet()) {
+                        protonCorrelationIndex = entryCOSY.getKey();
                         if (indicesMap.containsKey(protonCorrelationIndex)
                                 && k
                                 < indicesMap.get(protonCorrelationIndex).length) {
@@ -589,11 +579,7 @@ public class Utilities {
                                 newMolecularConnectivity.setCosy(new HashMap<>());
                             }
                             newMolecularConnectivity.getCosy()
-                                                    .put(protonIndex, pathLength
-                                                                              == null
-                                                                      ? defaultBondDistances.get("cosy")
-                                                                      : new Integer[]{pathLength.getMin(),
-                                                                                      pathLength.getMax()});
+                                                    .put(protonIndex, entryCOSY.getValue());
                         }
                     }
                 }
@@ -680,6 +666,7 @@ public class Utilities {
         Correlation correlation;
         int groupIndex;
         Map<String, Object> signal2DMap;
+        Map<String, Object> jMap;
         Map<String, Object> pathLengthMap;
         MolecularConnectivity molecularConnectivity;
         for (int correlationIndex = 0; correlationIndex
@@ -688,7 +675,7 @@ public class Utilities {
             molecularConnectivity = new MolecularConnectivity();
             molecularConnectivity.setIndex(correlationIndex);
             molecularConnectivity.setAtomType(correlation.getAtomType());
-            molecularConnectivity.setSignal(Utils.extractSignalFromCorrelation(correlation));
+            molecularConnectivity.setSignal(Utils.extractFirstSignalFromCorrelation(correlation));
             molecularConnectivity.setEquivalence(correlation.getEquivalence());
             molecularConnectivity.setPseudo(correlation.isPseudo());
 
@@ -754,11 +741,19 @@ public class Utilities {
                     signal2DMap = (Map<String, Object>) link.getSignal();
                     if (signal2DMap
                             != null
-                            && signal2DMap.containsKey("pathLength")) {
-                        pathLengthMap = (Map<String, Object>) signal2DMap.get("pathLength");
+                            && signal2DMap.containsKey("j")) {
+                        jMap = (Map<String, Object>) signal2DMap.get("j");
+                    } else {
+                        jMap = null;
+                    }
+                    if (jMap
+                            != null
+                            && jMap.containsKey("pathLength")) {
+                        pathLengthMap = (Map<String, Object>) jMap.get("pathLength");
                     } else {
                         pathLengthMap = null;
                     }
+
                     for (final int matchIndex : link.getMatch()) {
                         // ignore linked H atoms without any attachment to a heavy atom
                         if (correlationList.get(matchIndex)
@@ -780,8 +775,8 @@ public class Utilities {
                                                  .put(matchIndex, pathLengthMap
                                                                           == null
                                                                   ? defaultBondDistances.get("hmbc")
-                                                                  : new Integer[]{(int) pathLengthMap.get("min"),
-                                                                                  (int) pathLengthMap.get("max")});
+                                                                  : new Integer[]{(int) pathLengthMap.get("from"),
+                                                                                  (int) pathLengthMap.get("to")});
                         } else {
                             if (molecularConnectivity.getCosy()
                                     == null) {
@@ -791,8 +786,8 @@ public class Utilities {
                                                  .put(matchIndex, pathLengthMap
                                                                           == null
                                                                   ? defaultBondDistances.get("cosy")
-                                                                  : new Integer[]{(int) pathLengthMap.get("min"),
-                                                                                  (int) pathLengthMap.get("max")});
+                                                                  : new Integer[]{(int) pathLengthMap.get("from"),
+                                                                                  (int) pathLengthMap.get("to")});
                         }
                     }
                 }
@@ -1101,10 +1096,13 @@ public class Utilities {
             final List<Correlation> correlationList, final Detections detections, final Grouping grouping,
             final Map<String, Integer[]> defaultBondDistances) {
         final List<Map<Integer, List<MolecularConnectivity>>> molecularConnectivityMapCombinationList = new ArrayList<>();
+        // build original molecular connectivity list which comes from correlation data directly
         final List<MolecularConnectivity> initialMolecularConnectivityList = buildMolecularConnectivityList(
                 correlationList, detections, grouping, defaultBondDistances);
+        // build combinations out pf original molecular connectivity list by using grouping information
         final List<List<MolecularConnectivity>> molecularConnectivityListList = buildCombinations(
                 initialMolecularConnectivityList, grouping);
+        // for each combination build a molecular connectivity map which is used for PyLSD input file creation
         for (final List<MolecularConnectivity> molecularConnectivityList : molecularConnectivityListList) {
             molecularConnectivityMapCombinationList.add(
                     buildMolecularConnectivityMap(molecularConnectivityList, detections, grouping,

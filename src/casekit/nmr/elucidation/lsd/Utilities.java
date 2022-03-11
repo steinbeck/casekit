@@ -84,7 +84,7 @@ public class Utilities {
                 < correlationList.size(); i++) {
             if (neighbors.containsKey(i)) {
                 correlation = correlationList.get(i);
-                signal = Utils.extractSignalFromCorrelation(correlation);
+                signal = Utils.extractFirstSignalFromCorrelation(correlation);
                 atomType = correlation.getAtomType();
                 neighborsTemp = neighbors.get(i);
 

@@ -9,7 +9,6 @@ import lombok.*;
 @ToString
 public class PathLength {
 
-    private int min;
-    private int max;
-    private String source;
+    private int from;
+    private int to;
 }

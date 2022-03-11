@@ -27,6 +27,7 @@
  */
 package casekit.nmr.model;
 
+import casekit.nmr.model.nmrium.J;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -50,7 +51,7 @@ public class Signal {
     private Double intensity;
     private int equivalencesCount;
     private Integer phase;
-    private PathLength pathLength;
+    private J j;
 
 
     public int getNDim() {
@@ -85,11 +86,21 @@ public class Signal {
     }
 
     public Signal buildClone() {
+        final J clonedJ = this.j
+                                  != null
+                          ? new J()
+                          : null;
+        if (this.j
+                != null
+                && this.j.getPathLength()
+                != null) {
+            clonedJ.setPathLength(new PathLength(this.j.getPathLength()
+                                                       .getFrom(), this.j.getPathLength()
+                                                                         .getTo()));
+        }
         return new Signal(this.getNuclei()
                               .clone(), this.shifts.clone(), this.multiplicity, this.kind, this.intensity,
-                          this.equivalencesCount, this.phase,
-                          new PathLength(this.pathLength.getMin(), this.pathLength.getMax(),
-                                         this.pathLength.getSource()));
+                          this.equivalencesCount, this.phase, clonedJ);
     }
 
     @Override

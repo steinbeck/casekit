@@ -24,7 +24,6 @@
 
 package casekit.nmr.model.nmrium;
 
-import casekit.nmr.model.PathLength;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
@@ -39,9 +38,10 @@ import java.util.Map;
 public class Signal2D
         extends Signal {
 
+
     private Map<String, Object> x;
     private Map<String, Object> y;
-    private PathLength pathLength;
+    private J j;
 
     public Signal2D(final Signal signal) {
         super(signal.getId(), signal.getKind(), signal.getMultiplicity(), signal.getSign());

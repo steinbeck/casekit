@@ -93,7 +93,7 @@ public class Spectrum {
                                                                                                                 .get("delta")},
                                                                                      signal2D.getMultiplicity(),
                                                                                      signal2D.getKind(), null, 0, 0,
-                                                                                     signal2D.getPathLength()));
+                                                                                     signal2D.getJ()));
                                                    }
                                                }));
                 spectrum.addMetaInfo("solvent", (String) this.info.get("solvent"));

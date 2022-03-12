@@ -439,9 +439,8 @@ public class ConnectionTree {
      * @param childKey2
      *
      * @return
-     *
-     * @deprecated
      */
+    @Deprecated
     public boolean swapChildNodes(final int parentKey, final int childKey1, final int childKey2) {
         if (!this.containsKey(parentKey)
                 || !this.containsKey(childKey1)

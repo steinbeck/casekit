@@ -304,6 +304,8 @@ public class Prediction {
     public static List<DataSet> predict1DByStereoHOSECodeAndFilter(final Spectrum querySpectrum,
                                                                    final double shiftTolerance,
                                                                    final double maximumAverageDeviation,
+                                                                   final boolean checkMultiplicity,
+                                                                   final boolean checkEquivalencesCount,
                                                                    final int maxSphere,
                                                                    final List<IAtomContainer> structureList,
                                                                    final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
@@ -321,8 +323,9 @@ public class Prediction {
             for (final IAtomContainer structure : structureList) {
                 callables.add(
                         () -> predict1DByStereoHOSECodeAndFilter(structure, querySpectrum, maxSphere, shiftTolerance,
-                                                                 maximumAverageDeviation, true, true,
-                                                                 hoseCodeDBEntriesMap, multiplicitySectionsBuilder));
+                                                                 maximumAverageDeviation, checkMultiplicity,
+                                                                 checkEquivalencesCount, hoseCodeDBEntriesMap,
+                                                                 multiplicitySectionsBuilder));
             }
             final Consumer<DataSet> consumer = (dataSet) -> {
                 if (dataSet

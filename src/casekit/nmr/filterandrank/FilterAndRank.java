@@ -18,15 +18,18 @@ public class FilterAndRank {
     public static List<DataSet> filterAndRank(final List<DataSet> dataSetList, final Spectrum querySpectrum,
                                               final double shiftTolerance, final double maxAverageDeviation,
                                               final boolean checkMultiplicity, final boolean checkEquivalencesCount,
+                                              final boolean allowLowerEquivalencesCount,
                                               final MultiplicitySectionsBuilder multiplicitySectionsBuilder,
                                               final boolean allowIncompleteMatch) {
         return rank(filter(dataSetList, querySpectrum, shiftTolerance, maxAverageDeviation, checkMultiplicity,
-                           checkEquivalencesCount, multiplicitySectionsBuilder, allowIncompleteMatch));
+                           checkEquivalencesCount, allowLowerEquivalencesCount, multiplicitySectionsBuilder,
+                           allowIncompleteMatch));
     }
 
     public static List<DataSet> filter(final List<DataSet> dataSetList, final Spectrum querySpectrum,
                                        final double shiftTolerance, final double maxAverageDeviation,
                                        final boolean checkMultiplicity, final boolean checkEquivalencesCount,
+                                       final boolean allowLowerEquivalencesCount,
                                        final MultiplicitySectionsBuilder multiplicitySectionsBuilder,
                                        final boolean allowIncompleteMatch) {
         if (querySpectrum.getNDim()
@@ -35,8 +38,8 @@ public class FilterAndRank {
             return dataSetList.stream()
                               .filter(dataSet -> checkDataSet(dataSet, querySpectrum, shiftTolerance,
                                                               maxAverageDeviation, checkMultiplicity,
-                                                              checkEquivalencesCount, multiplicitySectionsBuilder,
-                                                              allowIncompleteMatch)
+                                                              checkEquivalencesCount, allowLowerEquivalencesCount,
+                                                              multiplicitySectionsBuilder, allowIncompleteMatch)
                                       != null)
                               .collect(Collectors.toList());
         }
@@ -46,25 +49,23 @@ public class FilterAndRank {
 
     public static DataSet checkDataSet(final DataSet dataSet, final Spectrum querySpectrum, final double shiftTolerance,
                                        final double maxAverageDeviation, final boolean checkMultiplicity,
-                                       final boolean checkEquivalencesCount,
+                                       final boolean checkEquivalencesCount, final boolean allowLowerEquivalencesCount,
                                        final MultiplicitySectionsBuilder multiplicitySectionsBuilder,
                                        final boolean allowIncompleteMatch) {
-        final BitSetFingerprint bitSetFingerprintQuerySpectrum = Similarity.getBitSetFingerprint(querySpectrum, 0,
-                                                                                                 multiplicitySectionsBuilder);
         final Spectrum spectrum = dataSet.getSpectrum()
                                          .toSpectrum();
-        final Assignment spectralMatchAssignment = Similarity.matchSpectra(spectrum, querySpectrum, 0, 0,
+        final Assignment spectralMatchAssignment = Similarity.matchSpectra(querySpectrum, spectrum, 0, 0,
                                                                            shiftTolerance, checkMultiplicity,
-                                                                           checkEquivalencesCount, false);
-
+                                                                           checkEquivalencesCount,
+                                                                           allowLowerEquivalencesCount);
         dataSet.addAttachment("querySpectrumSignalCount", querySpectrum.getSignalCount());
         dataSet.addAttachment("querySpectrumSignalCountWithEquivalences",
                               querySpectrum.getSignalCountWithEquivalences());
         dataSet.addAttachment("setAssignmentsCountWithEquivalences",
                               spectralMatchAssignment.getSetAssignmentsCountWithEquivalences(0));
-        final boolean isCompleteSpectralMatch = querySpectrum.getSignalCount()
+        final boolean isCompleteSpectralMatch = spectrum.getSignalCount()
                 == spectralMatchAssignment.getSetAssignmentsCount(0);
-        final boolean isCompleteSpectralMatchWithEquivalences = querySpectrum.getSignalCountWithEquivalences()
+        final boolean isCompleteSpectralMatchWithEquivalences = spectrum.getSignalCountWithEquivalences()
                 == spectralMatchAssignment.getSetAssignmentsCountWithEquivalences(0);
         dataSet.addAttachment("setAssignmentsCount", spectralMatchAssignment.getSetAssignmentsCount(0));
         dataSet.addAttachment("setAssignmentsCountWithEquivalences",
@@ -73,7 +74,7 @@ public class FilterAndRank {
         dataSet.addAttachment("isCompleteSpectralMatchWithEquivalences", isCompleteSpectralMatchWithEquivalences);
         dataSet.addAttachment("spectralMatchAssignment", spectralMatchAssignment);
 
-        Double[] deviations = Similarity.getDeviations(spectrum, querySpectrum, 0, 0, spectralMatchAssignment);
+        Double[] deviations = Similarity.getDeviations(querySpectrum, spectrum, 0, 0, spectralMatchAssignment);
         if (allowIncompleteMatch) {
             deviations = Arrays.stream(deviations)
                                .filter(Objects::nonNull)
@@ -88,6 +89,8 @@ public class FilterAndRank {
             final Double rmsd = Statistics.calculateRMSD(deviations);
             dataSet.addAttachment("rmsd", rmsd);
 
+            final BitSetFingerprint bitSetFingerprintQuerySpectrum = Similarity.getBitSetFingerprint(querySpectrum, 0,
+                                                                                                     multiplicitySectionsBuilder);
             final BitSetFingerprint bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(spectrum, 0,
                                                                                                multiplicitySectionsBuilder);
             final Double tanimotoCoefficient = Similarity.calculateTanimotoCoefficient(bitSetFingerprintQuerySpectrum,
@@ -109,7 +112,7 @@ public class FilterAndRank {
                 return -1
                         * setAssignmentsCountComparison;
             }
-            
+
             return compareNumericDataSetAttachmentKey(dataSet1, dataSet2, "averageDeviation");
         });
 

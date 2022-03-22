@@ -306,9 +306,10 @@ public class Prediction {
                                                                    final double maximumAverageDeviation,
                                                                    final boolean checkMultiplicity,
                                                                    final boolean checkEquivalencesCount,
+                                                                   final boolean allowLowerEquivalencesCount,
                                                                    final int maxSphere,
                                                                    final List<IAtomContainer> structureList,
-                                                                   final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
+                                                                   final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
                                                                    final Map<String, int[]> multiplicitySectionsSettings,
                                                                    final int nThreads) {
         final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
@@ -324,8 +325,8 @@ public class Prediction {
                 callables.add(
                         () -> predict1DByStereoHOSECodeAndFilter(structure, querySpectrum, maxSphere, shiftTolerance,
                                                                  maximumAverageDeviation, checkMultiplicity,
-                                                                 checkEquivalencesCount, hoseCodeDBEntriesMap,
-                                                                 multiplicitySectionsBuilder));
+                                                                 checkEquivalencesCount, allowLowerEquivalencesCount,
+                                                                 hoseCodeShiftStatistics, multiplicitySectionsBuilder));
             }
             final Consumer<DataSet> consumer = (dataSet) -> {
                 if (dataSet
@@ -348,9 +349,25 @@ public class Prediction {
                                                               final double maxAverageDeviation,
                                                               final boolean checkMultiplicity,
                                                               final boolean checkEquivalencesCount,
-                                                              final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
+                                                              final boolean allowLowerEquivalencesCount,
+                                                              final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
                                                               final MultiplicitySectionsBuilder multiplicitySectionsBuilder) {
         final String nucleus = querySpectrum.getNuclei()[0];
+        final DataSet dataSet = predict1DByStereoHOSECode(structure, nucleus, maxSphere, hoseCodeShiftStatistics);
+        if (dataSet
+                != null) {
+            return FilterAndRank.checkDataSet(dataSet, querySpectrum, shiftTolerance, maxAverageDeviation,
+                                              checkMultiplicity, checkEquivalencesCount, allowLowerEquivalencesCount,
+                                              multiplicitySectionsBuilder, true);
+        }
+
+        return null;
+    }
+
+    public static DataSet predict1DByStereoHOSECode(final IAtomContainer structure, final String nucleus,
+                                                    final int maxSphere,
+                                                    final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics) {
+
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
         final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
         final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
@@ -378,7 +395,7 @@ public class Prediction {
             final DataSet dataSet = Utils.atomContainerToDataSet(structure, false);
 
             final Spectrum predictedSpectrum = new Spectrum();
-            predictedSpectrum.setNuclei(querySpectrum.getNuclei());
+            predictedSpectrum.setNuclei(new String[]{nucleus});
             predictedSpectrum.setSignals(new ArrayList<>());
 
             final Map<Integer, List<Integer>> assignmentMap = new HashMap<>();
@@ -395,7 +412,7 @@ public class Prediction {
                         >= 1) {
                     try {
                         hoseCode = extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i), sphere);
-                        hoseCodeObjectValues = hoseCodeDBEntriesMap.get(hoseCode);
+                        hoseCodeObjectValues = hoseCodeShiftStatistics.get(hoseCode);
                         if (hoseCodeObjectValues
                                 != null) {
                             for (final Map.Entry<String, Double[]> solventEntry : hoseCodeObjectValues.entrySet()) {
@@ -413,7 +430,7 @@ public class Prediction {
                 }
                 predictedShift = Statistics.getMean(medians);
                 signal = new Signal();
-                signal.setNuclei(querySpectrum.getNuclei());
+                signal.setNuclei(new String[]{nucleus});
                 signal.setShifts(new Double[]{predictedShift});
                 signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(
                         AtomUtils.getHcount(structure, structure.getAtom(i)))); // counts explicit H
@@ -458,9 +475,7 @@ public class Prediction {
             }
             dataSet.setAssignment(assignment);
 
-            return FilterAndRank.checkDataSet(dataSet, querySpectrum, shiftTolerance, maxAverageDeviation,
-                                              checkMultiplicity, checkEquivalencesCount, multiplicitySectionsBuilder,
-                                              true);
+            return dataSet;
         } catch (final Exception e) {
             e.printStackTrace();
         }

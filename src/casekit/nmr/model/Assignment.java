@@ -123,7 +123,7 @@ public class Assignment {
         return this.assignments[dim][index][equivalenceIndex];
     }
 
-    public void addAssignmentEquivalence(final int dim, final int index, final int equivalenceIndex) {
+    public void addAssignmentEquivalence(final int dim, final int index, final int assignment) {
         final int[] temp = this.getAssignment(dim, index);
         final int[] equivalenceIndices = new int[temp.length
                 + 1];
@@ -132,7 +132,7 @@ public class Assignment {
             equivalenceIndices[j] = temp[j];
         }
         equivalenceIndices[equivalenceIndices.length
-                - 1] = equivalenceIndex;
+                - 1] = assignment;
 
         this.setAssignment(dim, index, equivalenceIndices);
     }

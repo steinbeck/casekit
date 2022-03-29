@@ -378,7 +378,8 @@ public class Prediction {
         double predictedShift;
         String hoseCode;
         Double[] statistics;
-        int signalIndex, sphere;
+        int signalIndex, sphere, count;
+        Double min, max;
         List<Double> medians;
 
         try {
@@ -399,6 +400,7 @@ public class Prediction {
             predictedSpectrum.setSignals(new ArrayList<>());
 
             final Map<Integer, List<Integer>> assignmentMap = new HashMap<>();
+            final Map<Integer, Double[]> predictionMeta = new HashMap<>();
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
                 if (!structure.getAtom(i)
@@ -408,6 +410,9 @@ public class Prediction {
                 }
                 medians = new ArrayList<>();
                 sphere = maxSphere;
+                count = 0;
+                min = null;
+                max = null;
                 while (sphere
                         >= 1) {
                     try {
@@ -418,6 +423,15 @@ public class Prediction {
                             for (final Map.Entry<String, Double[]> solventEntry : hoseCodeObjectValues.entrySet()) {
                                 statistics = hoseCodeObjectValues.get(solventEntry.getKey());
                                 medians.add(statistics[3]);
+                                count += statistics[0].intValue();
+                                min = min
+                                              == null
+                                      ? statistics[1]
+                                      : Double.min(min, statistics[1]);
+                                max = max
+                                              == null
+                                      ? statistics[4]
+                                      : Double.max(max, statistics[4]);
                             }
                             break;
                         }
@@ -441,6 +455,10 @@ public class Prediction {
                 assignmentMap.putIfAbsent(signalIndex, new ArrayList<>());
                 assignmentMap.get(signalIndex)
                              .add(i);
+
+                if (!predictionMeta.containsKey(signalIndex)) {
+                    predictionMeta.put(signalIndex, new Double[]{(double) sphere, (double) count, min, max});
+                }
             }
 
             // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
@@ -469,11 +487,13 @@ public class Prediction {
             assignment.initAssignments(predictedSpectrum.getSignalCount());
 
             for (final Map.Entry<Integer, List<Integer>> entry : assignmentMap.entrySet()) {
-                for (final int atomIndex : assignmentMap.get(entry.getKey())) {
+                for (final int atomIndex : entry.getValue()) {
                     assignment.addAssignmentEquivalence(0, entry.getKey(), atomIndex);
                 }
             }
             dataSet.setAssignment(assignment);
+
+            dataSet.addAttachment("predictionMeta", predictionMeta);
 
             return dataSet;
         } catch (final Exception e) {

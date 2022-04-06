@@ -13,12 +13,14 @@
 package casekit.nmr.similarity;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
+import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.model.Distance;
 import casekit.nmr.utils.Statistics;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
+import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.similarity.Tanimoto;
 
 import java.util.HashSet;
@@ -274,32 +276,8 @@ public class Similarity {
                                           final int dim2, final double shiftTolerance, final boolean checkMultiplicity,
                                           final boolean checkEquivalencesCount,
                                           final boolean allowLowerEquivalencesCount) {
-        if (!Similarity.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
-            return null;
-        }
-        final List<Distance> distanceList = Utilities.buildDistanceList(spectrum1, spectrum2, dim1, dim2,
-                                                                        shiftTolerance, checkMultiplicity,
-                                                                        checkEquivalencesCount,
-                                                                        allowLowerEquivalencesCount);
-        final Assignment matchAssignment = new Assignment();
-        matchAssignment.setNuclei(spectrum1.getNuclei());
-        matchAssignment.initAssignments(spectrum1.getSignalCount());
-        final Set<Integer> assignedSpectrum1 = new HashSet<>();
-        final Set<Integer> assignedSpectrum2 = new HashSet<>();
-        for (final Distance distance : distanceList) {
-            if (!assignedSpectrum1.contains(distance.getSignalIndexSpectrum1())
-                    && !assignedSpectrum2.contains(distance.getSignalIndexSpectrum2())) {
-                for (int equiv = 0; equiv
-                        < spectrum2.getEquivalencesCount(distance.getSignalIndexSpectrum2()); equiv++) {
-                    matchAssignment.addAssignmentEquivalence(0, distance.getSignalIndexSpectrum1(),
-                                                             distance.getSignalIndexSpectrum2());
-                }
-                assignedSpectrum1.add(distance.getSignalIndexSpectrum1());
-                assignedSpectrum2.add(distance.getSignalIndexSpectrum2());
-            }
-        }
-
-        return matchAssignment;
+        return matchSpectra(spectrum1, spectrum2, dim1, dim2, shiftTolerance, checkMultiplicity, checkEquivalencesCount,
+                            allowLowerEquivalencesCount, null, null, null);
     }
 
 
@@ -346,4 +324,69 @@ public class Similarity {
         return matchAssignment;
     }
 
+    /**
+     * Returns the closest shift matches between two spectra in selected dimensions
+     * as an Assignment object with one set dimension only. <br>
+     *
+     * @param spectrum1                   first spectrum (possible subspectrum)
+     * @param spectrum2                   second spectrum
+     * @param dim1                        dimension in first spectrum to take the shifts from
+     * @param dim2                        dimension in second spectrum to take the shifts from
+     * @param shiftTolerance              Tolerance value [ppm] used during spectra shift
+     *                                    comparison
+     * @param checkMultiplicity           indicates whether to compare the multiplicity of matched signals
+     * @param checkEquivalencesCount      indicates whether to compare the equivalences counts of matched signals
+     * @param allowLowerEquivalencesCount indicates to allow a lower equivalences counts spectrum 2
+     * @param structure                   structure belonging to second spectrum
+     * @param assignment                  assignments between structure and second spectrum
+     * @param detections                  detections object which contains structural constraints
+     *
+     * @return Assignments with signal indices of spectrum and matched indices
+     * in query spectrum; null if one of the spectra does not
+     * contain the selected dimension
+     */
+    public static Assignment matchSpectra(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                          final int dim2, final double shiftTolerance, final boolean checkMultiplicity,
+                                          final boolean checkEquivalencesCount,
+                                          final boolean allowLowerEquivalencesCount, final IAtomContainer structure,
+                                          final Assignment assignment, final Detections detections) {
+        if (!Similarity.checkDimensions(spectrum1, spectrum2, dim1, dim2)) {
+            return null;
+        }
+        final List<Distance> distanceList = detections
+                                                    != null
+                                                    && structure
+                != null
+                                                    && assignment
+                != null
+                                            ? Utilities.buildDistanceList(spectrum1, spectrum2, dim1, dim2,
+                                                                          shiftTolerance, checkMultiplicity,
+                                                                          checkEquivalencesCount,
+                                                                          allowLowerEquivalencesCount, structure,
+                                                                          assignment, detections)
+                                            : Utilities.buildDistanceList(spectrum1, spectrum2, dim1, dim2,
+                                                                          shiftTolerance, checkMultiplicity,
+                                                                          checkEquivalencesCount,
+                                                                          allowLowerEquivalencesCount);
+
+        final Assignment matchAssignment = new Assignment();
+        matchAssignment.setNuclei(spectrum1.getNuclei());
+        matchAssignment.initAssignments(spectrum1.getSignalCount());
+        final Set<Integer> assignedSpectrum1 = new HashSet<>();
+        final Set<Integer> assignedSpectrum2 = new HashSet<>();
+        for (final Distance distance : distanceList) {
+            if (!assignedSpectrum1.contains(distance.getSignalIndexSpectrum1())
+                    && !assignedSpectrum2.contains(distance.getSignalIndexSpectrum2())) {
+                for (int equiv = 0; equiv
+                        < spectrum2.getEquivalencesCount(distance.getSignalIndexSpectrum2()); equiv++) {
+                    matchAssignment.addAssignmentEquivalence(0, distance.getSignalIndexSpectrum1(),
+                                                             distance.getSignalIndexSpectrum2());
+                }
+                assignedSpectrum1.add(distance.getSignalIndexSpectrum1());
+                assignedSpectrum2.add(distance.getSignalIndexSpectrum2());
+            }
+        }
+
+        return matchAssignment;
+    }
 }

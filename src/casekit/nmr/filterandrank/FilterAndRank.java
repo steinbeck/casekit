@@ -1,6 +1,7 @@
 package casekit.nmr.filterandrank;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
+import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
@@ -21,9 +22,20 @@ public class FilterAndRank {
                                               final boolean allowLowerEquivalencesCount,
                                               final MultiplicitySectionsBuilder multiplicitySectionsBuilder,
                                               final boolean allowIncompleteMatch) {
+        return filterAndRank(dataSetList, querySpectrum, shiftTolerance, maxAverageDeviation, checkMultiplicity,
+                             checkEquivalencesCount, allowLowerEquivalencesCount, multiplicitySectionsBuilder,
+                             allowIncompleteMatch, null);
+    }
+
+    public static List<DataSet> filterAndRank(final List<DataSet> dataSetList, final Spectrum querySpectrum,
+                                              final double shiftTolerance, final double maxAverageDeviation,
+                                              final boolean checkMultiplicity, final boolean checkEquivalencesCount,
+                                              final boolean allowLowerEquivalencesCount,
+                                              final MultiplicitySectionsBuilder multiplicitySectionsBuilder,
+                                              final boolean allowIncompleteMatch, final Detections detections) {
         return rank(filter(dataSetList, querySpectrum, shiftTolerance, maxAverageDeviation, checkMultiplicity,
                            checkEquivalencesCount, allowLowerEquivalencesCount, multiplicitySectionsBuilder,
-                           allowIncompleteMatch));
+                           allowIncompleteMatch, detections));
     }
 
     public static List<DataSet> filter(final List<DataSet> dataSetList, final Spectrum querySpectrum,
@@ -32,6 +44,18 @@ public class FilterAndRank {
                                        final boolean allowLowerEquivalencesCount,
                                        final MultiplicitySectionsBuilder multiplicitySectionsBuilder,
                                        final boolean allowIncompleteMatch) {
+
+        return filter(dataSetList, querySpectrum, shiftTolerance, maxAverageDeviation, checkMultiplicity,
+                      checkEquivalencesCount, allowLowerEquivalencesCount, multiplicitySectionsBuilder,
+                      allowIncompleteMatch, null);
+    }
+
+    public static List<DataSet> filter(final List<DataSet> dataSetList, final Spectrum querySpectrum,
+                                       final double shiftTolerance, final double maxAverageDeviation,
+                                       final boolean checkMultiplicity, final boolean checkEquivalencesCount,
+                                       final boolean allowLowerEquivalencesCount,
+                                       final MultiplicitySectionsBuilder multiplicitySectionsBuilder,
+                                       final boolean allowIncompleteMatch, final Detections detections) {
         if (querySpectrum.getNDim()
                 == 1
                 && querySpectrum.getNuclei()[0].equals("13C")) {
@@ -39,7 +63,8 @@ public class FilterAndRank {
                               .filter(dataSet -> checkDataSet(dataSet, querySpectrum, shiftTolerance,
                                                               maxAverageDeviation, checkMultiplicity,
                                                               checkEquivalencesCount, allowLowerEquivalencesCount,
-                                                              multiplicitySectionsBuilder, allowIncompleteMatch)
+                                                              multiplicitySectionsBuilder, allowIncompleteMatch,
+                                                              detections)
                                       != null)
                               .collect(Collectors.toList());
         }
@@ -52,12 +77,33 @@ public class FilterAndRank {
                                        final boolean checkEquivalencesCount, final boolean allowLowerEquivalencesCount,
                                        final MultiplicitySectionsBuilder multiplicitySectionsBuilder,
                                        final boolean allowIncompleteMatch) {
+        return checkDataSet(dataSet, querySpectrum, shiftTolerance, maxAverageDeviation, checkMultiplicity,
+                            checkEquivalencesCount, allowLowerEquivalencesCount, multiplicitySectionsBuilder,
+                            allowIncompleteMatch, null);
+    }
+
+    public static DataSet checkDataSet(final DataSet dataSet, final Spectrum querySpectrum, final double shiftTolerance,
+                                       final double maxAverageDeviation, final boolean checkMultiplicity,
+                                       final boolean checkEquivalencesCount, final boolean allowLowerEquivalencesCount,
+                                       final MultiplicitySectionsBuilder multiplicitySectionsBuilder,
+                                       final boolean allowIncompleteMatch, final Detections detections) {
         final Spectrum spectrum = dataSet.getSpectrum()
                                          .toSpectrum();
-        final Assignment spectralMatchAssignment = Similarity.matchSpectra(querySpectrum, spectrum, 0, 0,
-                                                                           shiftTolerance, checkMultiplicity,
-                                                                           checkEquivalencesCount,
-                                                                           allowLowerEquivalencesCount);
+
+
+        final Assignment spectralMatchAssignment = detections
+                                                           != null
+                                                   ? Similarity.matchSpectra(querySpectrum, spectrum, 0, 0,
+                                                                             shiftTolerance, checkMultiplicity,
+                                                                             checkEquivalencesCount,
+                                                                             allowLowerEquivalencesCount,
+                                                                             dataSet.getStructure()
+                                                                                    .toAtomContainer(),
+                                                                             dataSet.getAssignment(), detections)
+                                                   : Similarity.matchSpectra(querySpectrum, spectrum, 0, 0,
+                                                                             shiftTolerance, checkMultiplicity,
+                                                                             checkEquivalencesCount,
+                                                                             allowLowerEquivalencesCount);
         dataSet.addAttachment("querySpectrumSignalCount", querySpectrum.getSignalCount());
         dataSet.addAttachment("querySpectrumSignalCountWithEquivalences",
                               querySpectrum.getSignalCountWithEquivalences());

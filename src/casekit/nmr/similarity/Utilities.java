@@ -1,12 +1,15 @@
 package casekit.nmr.similarity;
 
+import casekit.nmr.elucidation.Constants;
+import casekit.nmr.elucidation.model.Detections;
+import casekit.nmr.model.Assignment;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.model.Distance;
+import org.openscience.cdk.interfaces.IAtom;
+import org.openscience.cdk.interfaces.IAtomContainer;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class Utilities {
 
@@ -70,5 +73,82 @@ public class Utilities {
                        > shiftTolerance
                ? null
                : distanceValue;
+    }
+    
+    public static List<Distance> buildDistanceList(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
+                                                   final int dim2, final double shiftTolerance,
+                                                   final boolean checkMultiplicity,
+                                                   final boolean checkEquivalencesCount,
+                                                   final boolean allowLowerEquivalencesCount,
+                                                   final IAtomContainer structure, final Assignment assignment,
+                                                   final Detections detections) {
+        final List<Distance> distanceList = new ArrayList<>();
+        Double distanceValue;
+        List<Integer> hybridizations;
+        Set<String> forbiddenNeighbors, setNeighbors, setNeighborsTemp;
+        IAtom atom;
+        boolean skip;
+        for (int i = 0; i
+                < spectrum1.getSignalCount(); i++) {
+            forbiddenNeighbors = detections.getForbiddenNeighbors()
+                                           .get(i)
+                                           .keySet();
+            setNeighbors = detections.getSetNeighbors()
+                                     .get(i)
+                                     .keySet();
+            hybridizations = detections.getDetectedHybridizations()
+                                       .get(i);
+
+            for (int j = 0; j
+                    < spectrum2.getSignalCount(); j++) {
+                // check spectral constraints
+                distanceValue = getDistanceValue(spectrum1.getSignal(i), spectrum2.getSignal(j), dim1, dim2,
+                                                 checkMultiplicity, checkEquivalencesCount, allowLowerEquivalencesCount,
+                                                 shiftTolerance);
+                if (distanceValue
+                        == null) {
+                    continue;
+                }
+                skip = false;
+                // check structural constraints
+                for (int k = 0; k
+                        < assignment.getAssignment(0, j).length; k++) {
+                    atom = structure.getAtom(assignment.getAssignment(0, j, k));
+                    // if certain hybridizations are given and the atom's hybridization is known
+                    if (!hybridizations.isEmpty()
+                            && Constants.hybridizationConversionMap.containsKey(atom.getHybridization()
+                                                                                    .name())) {
+                        skip = !hybridizations.contains(Constants.hybridizationConversionMap.get(atom.getHybridization()
+                                                                                                     .name()));
+                        if (skip) {
+                            break;
+                        }
+                    }
+                    setNeighborsTemp = new HashSet<>(setNeighbors);
+                    for (final IAtom neighborAtom : structure.getConnectedAtomsList(atom)) {
+                        skip = forbiddenNeighbors.contains(neighborAtom.getSymbol());
+                        if (skip) {
+                            break;
+                        }
+                        setNeighborsTemp.remove(neighborAtom.getSymbol());
+                    }
+                    if (!setNeighborsTemp.isEmpty()) {
+                        skip = true;
+                    }
+                    if (skip) {
+                        break;
+                    }
+                }
+                if (skip) {
+                    continue;
+                }
+
+                // if passed all check then add to distance list
+                distanceList.add(new Distance(i, j, distanceValue));
+            }
+        }
+        distanceList.sort(Comparator.comparingDouble(Distance::getValue));
+
+        return distanceList;
     }
 }

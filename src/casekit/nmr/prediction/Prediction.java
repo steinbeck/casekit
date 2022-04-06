@@ -25,6 +25,7 @@ package casekit.nmr.prediction;
 
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
+import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.fragments.model.ConnectionTree;
 import casekit.nmr.fragments.model.ConnectionTreeNode;
@@ -312,6 +313,25 @@ public class Prediction {
                                                                    final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
                                                                    final Map<String, int[]> multiplicitySectionsSettings,
                                                                    final int nThreads) {
+
+
+        return predict1DByStereoHOSECodeAndFilter(querySpectrum, shiftTolerance, maximumAverageDeviation,
+                                                  checkMultiplicity, checkEquivalencesCount,
+                                                  allowLowerEquivalencesCount, null, maxSphere, structureList,
+                                                  hoseCodeShiftStatistics, multiplicitySectionsSettings, nThreads);
+    }
+
+    public static List<DataSet> predict1DByStereoHOSECodeAndFilter(final Spectrum querySpectrum,
+                                                                   final double shiftTolerance,
+                                                                   final double maximumAverageDeviation,
+                                                                   final boolean checkMultiplicity,
+                                                                   final boolean checkEquivalencesCount,
+                                                                   final boolean allowLowerEquivalencesCount,
+                                                                   final Detections detections, final int maxSphere,
+                                                                   final List<IAtomContainer> structureList,
+                                                                   final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
+                                                                   final Map<String, int[]> multiplicitySectionsSettings,
+                                                                   final int nThreads) {
         final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
         multiplicitySectionsBuilder.setMinLimit(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
         multiplicitySectionsBuilder.setMaxLimit(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
@@ -326,7 +346,8 @@ public class Prediction {
                         () -> predict1DByStereoHOSECodeAndFilter(structure, querySpectrum, maxSphere, shiftTolerance,
                                                                  maximumAverageDeviation, checkMultiplicity,
                                                                  checkEquivalencesCount, allowLowerEquivalencesCount,
-                                                                 hoseCodeShiftStatistics, multiplicitySectionsBuilder));
+                                                                 detections, hoseCodeShiftStatistics,
+                                                                 multiplicitySectionsBuilder));
             }
             final Consumer<DataSet> consumer = (dataSet) -> {
                 if (dataSet
@@ -350,6 +371,7 @@ public class Prediction {
                                                               final boolean checkMultiplicity,
                                                               final boolean checkEquivalencesCount,
                                                               final boolean allowLowerEquivalencesCount,
+                                                              final Detections detections,
                                                               final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics,
                                                               final MultiplicitySectionsBuilder multiplicitySectionsBuilder) {
         final String nucleus = querySpectrum.getNuclei()[0];
@@ -358,7 +380,7 @@ public class Prediction {
                 != null) {
             return FilterAndRank.checkDataSet(dataSet, querySpectrum, shiftTolerance, maxAverageDeviation,
                                               checkMultiplicity, checkEquivalencesCount, allowLowerEquivalencesCount,
-                                              multiplicitySectionsBuilder, true);
+                                              multiplicitySectionsBuilder, true, detections);
         }
 
         return null;
@@ -460,21 +482,6 @@ public class Prediction {
                     predictionMeta.put(signalIndex, new Double[]{(double) sphere, (double) count, min, max});
                 }
             }
-
-            // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
-            try {
-                if (Utils.getDifferenceSpectrumSizeAndMolecularFormulaCount(predictedSpectrum,
-                                                                            Utils.getMolecularFormulaFromString(
-                                                                                    dataSet.getMeta()
-                                                                                           .get("mf")), 0)
-                        != 0) {
-                    return null;
-                }
-            } catch (final CDKException e) {
-                e.printStackTrace();
-                return null;
-            }
-
 
             Utils.convertExplicitToImplicitHydrogens(structure);
             dataSet.setStructure(new StructureCompact(structure));

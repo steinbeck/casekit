@@ -668,7 +668,7 @@ public class Utils {
 
             return new Signal(new String[]{Constants.nucleiMap.get(correlation.getAtomType())},
                               new Double[]{signal1D.getDelta()}, signal1D.getMultiplicity(), signal1D.getKind(), null,
-                              correlation.getEquivalence(), signal1D.getSign(), null);
+                              correlation.getEquivalence(), signal1D.getSign(), null, signal1D.getId());
         } else if (signalMap.containsKey("x")) {
             // 2D signal
             final Signal2D signal2D = new Signal2D(signal);
@@ -688,7 +688,7 @@ public class Utils {
 
             return new Signal(new String[]{Constants.nucleiMap.get(correlation.getAtomType())}, new Double[]{shift},
                               signal2D.getMultiplicity(), signal2D.getKind(), null, correlation.getEquivalence(),
-                              signal2D.getSign(), signal2D.getJ());
+                              signal2D.getSign(), signal2D.getJ(), signal2D.getId());
         }
 
         return null;
@@ -710,6 +710,7 @@ public class Utils {
             signal = extractFirstSignalFromCorrelation(correlation);
             if (signal
                     != null) {
+                signal.setId(correlation.getId());
                 spectrum.addSignalWithoutEquivalenceSearch(signal);
             }
         }

@@ -52,6 +52,7 @@ public class Signal {
     private int equivalencesCount;
     private Integer phase;
     private J j;
+    private String id;
 
 
     public int getNDim() {
@@ -100,7 +101,7 @@ public class Signal {
         }
         return new Signal(this.getNuclei()
                               .clone(), this.shifts.clone(), this.multiplicity, this.kind, this.intensity,
-                          this.equivalencesCount, this.phase, clonedJ);
+                          this.equivalencesCount, this.phase, clonedJ, this.id);
     }
 
     @Override

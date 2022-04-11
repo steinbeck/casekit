@@ -22,7 +22,7 @@ public class SignalCompact {
 
     public SignalCompact(final Signal signal) {
         this.strings = new String[signal.getNDim()
-                + 2];
+                + 3];
         this.doubles = new Double[signal.getNDim()
                 + 1];
         for (int dim = 0; dim
@@ -33,6 +33,8 @@ public class SignalCompact {
         this.strings[signal.getNDim()] = signal.getMultiplicity();
         this.strings[signal.getNDim()
                 + 1] = signal.getKind();
+        this.strings[signal.getNDim()
+                + 2] = signal.getId();
         this.doubles[signal.getNDim()] = signal.getIntensity();
         this.integers = new Integer[]{signal.getNDim(), signal.getEquivalencesCount(), signal.getPhase()};
     }
@@ -57,6 +59,13 @@ public class SignalCompact {
         signal.setMultiplicity(this.strings[this.dimensions()]);
         signal.setKind(this.strings[this.dimensions()
                 + 1]);
+        // @TODO remove following condition if not needed anymore (sherlock dataset storage is currently without signal ID)
+        signal.setId(this.strings.length
+                             - this.dimensions()
+                             >= 3
+                     ? this.strings[this.dimensions()
+                + 2]
+                     : null);
         signal.setShifts(new Double[this.dimensions()]);
         for (int dim = 0; dim
                 < this.dimensions(); dim++) {

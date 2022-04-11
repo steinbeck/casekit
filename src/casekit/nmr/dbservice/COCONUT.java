@@ -78,7 +78,7 @@ public class COCONUT {
                     // add signal
                     spectrum.addSignal(
                             new Signal(new String[]{nucleus}, new Double[]{calcShift}, multiplicity, "signal", null, 1,
-                                       0, null));
+                                       0, null, null));
                 }
 
                 // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule

@@ -38,7 +38,7 @@ import java.util.List;
 @ToString
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Data {
+public class NMRiumData {
 
     private List<Spectrum> spectra;
     private Correlations correlations;

@@ -39,5 +39,12 @@ public class Range {
 
     private String id;
     private String kind;
-    private List<Signal1D> signal;
+    private List<Signal1D> signals;
+    private Double absolute;
+    private Double from;
+    private Double to;
+    private Double integration;
+    private Double originFrom;
+    private Double originTo;
+
 }

@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
 import java.util.List;
+import java.util.Map;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -39,5 +40,7 @@ public class Zone {
 
     private String id;
     private String kind;
-    private List<Signal2D> signal;
+    private List<Signal2D> signals;
+    private Map<String, Object> x;
+    private Map<String, Object> y;
 }

@@ -32,6 +32,7 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @NoArgsConstructor
@@ -42,9 +43,22 @@ import java.util.Map;
 public class Spectrum {
 
     private String id;
-    private Default<Range> ranges;
-    private Default<Zone> zones;
     private Map<String, Object> info;
+    private Map<String, Object> data;
+    private Map<String, Object> display;
+    private List<Object> filters;
+    private Map<String, Object> meta;
+    private Map<String, Object> originalData;
+    private Map<String, Object> originalInfo;
+    private Map<String, Object> source;
+    // depending on spectrum type
+    // 1D
+    private Default<Range> ranges;
+    private Map<String, Object> integrals;
+    private Map<String, Object> peaks;
+    // 2D
+    private Map<String, Object> processingController;
+    private Default<Zone> zones;
 
     public casekit.nmr.model.Spectrum toSpectrum(final boolean considerSignalKind) {
         final int dimension = (int) this.info.get("dimension");
@@ -57,7 +71,7 @@ public class Spectrum {
                 final casekit.nmr.model.Spectrum spectrum = new casekit.nmr.model.Spectrum();
                 spectrum.setNuclei(new String[]{nucleus});
                 this.ranges.getValues()
-                           .forEach(range -> range.getSignal()
+                           .forEach(range -> range.getSignals()
                                                   .forEach(signal1D -> {
                                                       if (considerSignalKind
                                                               && signal1D.getKind()
@@ -82,7 +96,7 @@ public class Spectrum {
                 spectrum.setNuclei(nuclei);
 
                 this.zones.getValues()
-                          .forEach(zone -> zone.getSignal()
+                          .forEach(zone -> zone.getSignals()
                                                .forEach(signal2D -> {
                                                    if (considerSignalKind
                                                            && signal2D.getKind()

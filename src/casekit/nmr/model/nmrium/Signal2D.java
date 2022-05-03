@@ -27,6 +27,7 @@ package casekit.nmr.model.nmrium;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
+import java.util.List;
 import java.util.Map;
 
 @NoArgsConstructor
@@ -42,6 +43,7 @@ public class Signal2D
     private Map<String, Object> x;
     private Map<String, Object> y;
     private J j;
+    private List<Map<String, Object>> peaks;
 
     public Signal2D(final Signal signal) {
         super(signal.getId(), signal.getKind(), signal.getMultiplicity(), signal.getSign());

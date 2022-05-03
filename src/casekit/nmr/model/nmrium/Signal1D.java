@@ -27,6 +27,9 @@ package casekit.nmr.model.nmrium;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
+import java.util.List;
+import java.util.Map;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -37,9 +40,12 @@ public class Signal1D
         extends Signal {
 
     private double delta;
+    private Double integration;
+    private List<Map<String, Object>> js;
+    private Double originDelta;
+    private List<Map<String, Object>> peaks;
 
     public Signal1D(final Signal signal) {
         super(signal.getId(), signal.getKind(), signal.getMultiplicity(), signal.getSign());
     }
-
 }

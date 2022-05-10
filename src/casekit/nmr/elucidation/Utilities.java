@@ -370,29 +370,29 @@ public class Utilities {
     private static List<Integer> getHybridizations(final List<Correlation> correlationList, final int index,
                                                    final Map<Integer, List<Integer>> detectedHybridizations) {
         final Correlation correlation = correlationList.get(index);
-        List<Integer> hybridizations = new ArrayList<>();
-        if (correlation.getHybridization()
-                != null
-                && !correlation.getHybridization()
-                               .isEmpty()) {
-            // if hybridization is already given
-            return correlation.getHybridization();
-        } else {
-            // if hybridization is not given then use the detected ones
-            if (detectedHybridizations.containsKey(index)) {
-                hybridizations = new ArrayList<>(detectedHybridizations.get(index));
-            }
-            if (hybridizations.isEmpty()
-                    && correlation.getAtomType()
-                                  .equals("C")
-                    && correlation.getProtonsCount()
-                                  .size()
-                    == 1
-                    && correlation.getProtonsCount()
-                                  .get(0)
-                    >= 2) {
-                // a carbon with at least two protons can only be SP2 or SP3
+        final Set<Integer> hybridizations = new HashSet<>(correlation.getHybridization()
+                                                                  != null
+                                                          ? correlation.getHybridization()
+                                                          : new ArrayList<>());
+        if (detectedHybridizations.containsKey(index)) {
+            hybridizations.addAll(detectedHybridizations.get(index));
+        }
+        if (hybridizations.isEmpty()
+                && correlation.getAtomType()
+                              .equals("C")
+                && correlation.getProtonsCount()
+                              .size()
+                == 1) {
+            if (correlation.getProtonsCount()
+                           .get(0)
+                    == 2) {
+                // a carbon with two protons can only be SP2 or SP3
                 hybridizations.add(2);
+                hybridizations.add(3);
+            } else if (correlation.getProtonsCount()
+                                  .get(0)
+                    == 3) {
+                // a carbon with three protons can only be SP3
                 hybridizations.add(3);
             }
         }
@@ -403,7 +403,7 @@ public class Utilities {
             }
         }
 
-        return hybridizations;
+        return new ArrayList<>(hybridizations);
     }
 
     public static Map<Integer, Integer[]> buildIndicesMap(final List<MolecularConnectivity> molecularConnectivityList) {

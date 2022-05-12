@@ -479,7 +479,7 @@ public class PyLSDInputFileBuilder {
                         < fexpMap.keySet()
                                  .size()
                         - 1) {
-                    stringBuilder.append(" and ");
+                    stringBuilder.append(" AND ");
                 }
                 counter++;
             }

@@ -23,18 +23,17 @@ import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class HOSECodeShiftStatistics {
 
     private final static Gson GSON = new GsonBuilder().setLenient()
                                                       .create();
 
-    public static Map<String, Map<String, ConcurrentLinkedQueue<Double>>> collectHOSECodeShifts(
-            final List<DataSet> dataSetList, final Integer maxSphere, final boolean use3D,
-            final boolean withExplicitH) {
-        return collectHOSECodeShifts(dataSetList, maxSphere, use3D, withExplicitH, new ConcurrentHashMap<>());
+    public static Map<String, Map<String, List<Double>>> collectHOSECodeShifts(final List<DataSet> dataSetList,
+                                                                               final Integer maxSphere,
+                                                                               final boolean use3D,
+                                                                               final boolean withExplicitH) {
+        return collectHOSECodeShifts(dataSetList, maxSphere, use3D, withExplicitH, new HashMap<>());
     }
 
     /**
@@ -46,9 +45,11 @@ public class HOSECodeShiftStatistics {
      *
      * @return
      */
-    public static Map<String, Map<String, ConcurrentLinkedQueue<Double>>> collectHOSECodeShifts(
-            final List<DataSet> dataSetList, final Integer maxSphere, final boolean use3D, final boolean withExplicitH,
-            final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
+    public static Map<String, Map<String, List<Double>>> collectHOSECodeShifts(final List<DataSet> dataSetList,
+                                                                               final Integer maxSphere,
+                                                                               final boolean use3D,
+                                                                               final boolean withExplicitH,
+                                                                               final Map<String, Map<String, List<Double>>> hoseCodeShifts) {
         for (final DataSet dataSet : dataSetList) {
             insert(dataSet, maxSphere, use3D, withExplicitH, hoseCodeShifts);
         }
@@ -58,7 +59,7 @@ public class HOSECodeShiftStatistics {
 
     public static boolean insert(final DataSet dataSet, final Integer maxSphere, final boolean use3D,
                                  final boolean withExplicitH,
-                                 final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
+                                 final Map<String, Map<String, List<Double>>> hoseCodeShifts) {
         final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
         final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
         final IAtomContainer structure;
@@ -174,9 +175,9 @@ public class HOSECodeShiftStatistics {
                             } else {
                                 hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
                             }
-                            hoseCodeShifts.putIfAbsent(hoseCode, new ConcurrentHashMap<>());
+                            hoseCodeShifts.putIfAbsent(hoseCode, new HashMap<>());
                             hoseCodeShifts.get(hoseCode)
-                                          .putIfAbsent(solvent, new ConcurrentLinkedQueue<>());
+                                          .putIfAbsent(solvent, new ArrayList<>());
                             hoseCodeShifts.get(hoseCode)
                                           .get(solvent)
                                           .add(signal.getShift(0));
@@ -192,14 +193,14 @@ public class HOSECodeShiftStatistics {
     }
 
     public static Map<String, Map<String, Double[]>> buildHOSECodeShiftStatistics(
-            final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
+            final Map<String, Map<String, List<Double>>> hoseCodeShifts) {
 
         final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = new HashMap<>();
         List<Double> values;
-        for (final Map.Entry<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodes : hoseCodeShifts.entrySet()) {
+        for (final Map.Entry<String, Map<String, List<Double>>> hoseCodes : hoseCodeShifts.entrySet()) {
             hoseCodeShiftStatistics.put(hoseCodes.getKey(), new HashMap<>());
-            for (final Map.Entry<String, ConcurrentLinkedQueue<Double>> solvents : hoseCodes.getValue()
-                                                                                            .entrySet()) {
+            for (final Map.Entry<String, List<Double>> solvents : hoseCodes.getValue()
+                                                                           .entrySet()) {
                 values = new ArrayList<>(solvents.getValue());
                 Statistics.removeOutliers(values, 1.5);
                 hoseCodeShiftStatistics.get(hoseCodes.getKey())
@@ -220,7 +221,7 @@ public class HOSECodeShiftStatistics {
                                                                                   final boolean use3D,
                                                                                   final boolean withExplicitH) {
         try {
-            final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new HashMap<>();
+            final Map<String, Map<String, List<Double>>> hoseCodeShifts = new HashMap<>();
             for (final String pathsToNMRShiftDB : pathsToNMRShiftDBs) {
                 HOSECodeShiftStatistics.collectHOSECodeShifts(
                         NMRShiftDB.getDataSetsFromNMRShiftDB(pathsToNMRShiftDB, nuclei), maxSphere, use3D,

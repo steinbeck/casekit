@@ -2,10 +2,14 @@ package casekit.nmr.elucidation.lsd;
 
 import casekit.io.FileSystem;
 import casekit.nmr.elucidation.Constants;
+import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
+import org.openscience.cdk.interfaces.IAtom;
+import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.interfaces.IBond;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -145,5 +149,56 @@ public class Utilities {
         return !stringBuilder.toString()
                              .isEmpty()
                 && FileSystem.writeFile(pathToNeighborsFile, stringBuilder.toString());
+    }
+
+    public static boolean writeFragmentsFile(final String pathToFragmentsFile, final List<DataSet> fragments) {
+        final StringBuilder stringBuilder = new StringBuilder();
+
+        IAtomContainer fragment;
+        IAtom atom;
+        IBond bond;
+        final Map<IAtom, Integer> sstrMap = new HashMap<>();
+        for (final DataSet fragmentDataSet : fragments) {
+            if (fragmentDataSet.getAttachment()
+                    == null
+                    || !((boolean) fragmentDataSet.getAttachment()
+                                                  .get("include"))) {
+                continue;
+            }
+            fragment = fragmentDataSet.getStructure()
+                                      .toAtomContainer();
+            for (int i = 0; i
+                    < fragment.getAtomCount(); i++) {
+                atom = fragment.getAtom(i);
+                sstrMap.put(atom, sstrMap.size()
+                        + 1);
+                stringBuilder.append("SSTR S")
+                             .append(sstrMap.size())
+                             .append(" ")
+                             .append(atom.getSymbol())
+                             .append(" ")
+                             .append(Constants.hybridizationConversionMap.get(atom.getHybridization()
+                                                                                  .name()))
+                             .append(" ")
+                             .append(atom.getImplicitHydrogenCount())
+                             .append("\n");
+            }
+            for (int i = 0; i
+                    < fragment.getBondCount(); i++) {
+                bond = fragment.getBond(i);
+                stringBuilder.append("LINK S")
+                             .append(sstrMap.get(bond.getBegin()))
+                             .append(" S")
+                             .append(sstrMap.get(bond.getEnd()))
+                             .append("\n");
+            }
+            stringBuilder.append("\n\n");
+        }
+        System.out.println(stringBuilder);
+
+
+        return !stringBuilder.toString()
+                             .isEmpty()
+                && FileSystem.writeFile(pathToFragmentsFile, stringBuilder.toString());
     }
 }

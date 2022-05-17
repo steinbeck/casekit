@@ -14,6 +14,7 @@ public class ElucidationOptions {
     // PyLSD options
     private String[] filterPaths;
     private String[] pathsToNeighborsFiles;
+    private String[] pathToFragmentFiles;
     private boolean allowHeteroHeteroBonds;
     private boolean useElim;
     private int elimP1;

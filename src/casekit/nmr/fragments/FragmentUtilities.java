@@ -1,5 +1,6 @@
 package casekit.nmr.fragments;
 
+import casekit.nmr.elucidation.Constants;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
@@ -82,7 +83,7 @@ public class FragmentUtilities {
                                                                    final double shiftTol,
                                                                    final double maxAverageDeviation,
                                                                    final boolean checkMultiplicity,
-                                                                   final List<List<String>> queryHybridizationList) {
+                                                                   final List<List<Integer>> queryHybridizationList) {
         final List<DataSet> matches = new ArrayList<>();
         final List<DataSet> nonMatches = new ArrayList<>();
         Assignment matchAssignment;
@@ -103,9 +104,9 @@ public class FragmentUtilities {
         return lists;
     }
 
-    private static boolean isMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
-                                   final Assignment matchAssignment, final double maxAverageDeviation,
-                                   final List<List<String>> queryHybridizationList) {
+    public static boolean isMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
+                                  final Assignment matchAssignment, final double maxAverageDeviation,
+                                  final List<List<Integer>> queryHybridizationList) {
         // check for nuclei
         if (!dataSet.getSpectrum()
                     .getNuclei()[0].equals(querySpectrum.getNuclei()[0])) {
@@ -139,8 +140,8 @@ public class FragmentUtilities {
         return true;
     }
 
-    private static boolean isNonMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
-                                      final Assignment matchAssigment) {
+    public static boolean isNonMatch(final DataSet dataSet, final Spectrum querySpectrum, final String mf,
+                                     final Assignment matchAssigment) {
         if (!isStructuralMatch(dataSet, mf)) {
             return false;
         }
@@ -169,7 +170,7 @@ public class FragmentUtilities {
     }
 
     private static boolean checkHybridizations(final DataSet dataSet, final Assignment matchAssignment,
-                                               final List<List<String>> queryHybridizationList) {
+                                               final List<List<Integer>> queryHybridizationList) {
         if (queryHybridizationList.isEmpty()) {
             return true;
         }
@@ -189,9 +190,9 @@ public class FragmentUtilities {
                                                       .get(0);
                 signalIndexInQuerySpectrum = matchAssignment.getAssignment(0, signalIndexInDataSetSpectrum, 0);
                 if (!queryHybridizationList.get(signalIndexInQuerySpectrum)
-                                           .contains(fragment.getAtom(i)
-                                                             .getHybridization()
-                                                             .name())) {
+                                           .contains(Constants.hybridizationConversionMap.get(fragment.getAtom(i)
+                                                                                                      .getHybridization()
+                                                                                                      .name()))) {
                     return false;
                 }
             }

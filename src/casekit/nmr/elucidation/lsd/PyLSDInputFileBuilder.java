@@ -489,7 +489,7 @@ public class PyLSDInputFileBuilder {
         return stringBuilder.toString();
     }
 
-    private static String buildDEFFsAndFEXP(final ElucidationOptions elucidationOptions) {
+    private static String buildDEFFsAndFEXP(final ElucidationOptions elucidationOptions, final Detections detections) {
         final StringBuilder stringBuilder = new StringBuilder();
         final Map<String, Boolean> fexpMap = new HashMap<>();
         for (int i = 0; i
@@ -514,10 +514,22 @@ public class PyLSDInputFileBuilder {
         //                    + 1), true);
         //            pathsToNeighborsFilesToUse.add(elucidationOptions.getPathsToNeighborsFiles()[1]);
         //        }
+
+        // build and write fragments files
+        final List<String> pathsToFragmentFilesToUse = new ArrayList<>();
+        if (Utilities.writeFragmentsFile(elucidationOptions.getPathToFragmentFiles()[0],
+                                         detections.getFunctionalGroups())) {
+            fexpMap.put("F"
+                                + (fexpMap.size()
+                    + 1), true);
+            pathsToFragmentFilesToUse.add(elucidationOptions.getPathToFragmentFiles()[0]);
+        }
+
         // build DEFFs
         stringBuilder.append(
                              //                             buildDEFFs(elucidationOptions.getFilterPaths(), pathsToNeighborsFilesToUse.toArray(String[]::new)))
-                             buildDEFFs(elucidationOptions.getFilterPaths(), new String[]{}))
+                             //                             buildDEFFs(elucidationOptions.getFilterPaths(), new String[]{})
+                             buildDEFFs(elucidationOptions.getFilterPaths(), pathsToFragmentFilesToUse.toArray(String[]::new)))
                      .append("\n");
         // build FEXP
         stringBuilder.append(buildFEXP(fexpMap))
@@ -542,7 +554,8 @@ public class PyLSDInputFileBuilder {
                 correlations.getValues(), detections, grouping, defaultBondDistances);
         // for each combination insert an input file for PyLSD
         for (final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap : molecularConnectivityMapCombinationList) {
-            inputFilesContentList.add(buildPyLSDInputFileContent(molecularConnectivityMap, mf, elucidationOptions));
+            inputFilesContentList.add(
+                    buildPyLSDInputFileContent(molecularConnectivityMap, mf, elucidationOptions, detections));
         }
 
         return inputFilesContentList;
@@ -550,7 +563,7 @@ public class PyLSDInputFileBuilder {
 
     public static String buildPyLSDInputFileContent(
             final Map<Integer, List<MolecularConnectivity>> molecularConnectivityMap, final String mf,
-            final ElucidationOptions elucidationOptions) {
+            final ElucidationOptions elucidationOptions, final Detections detections) {
 
         final Map<String, Integer> elementCounts = new LinkedHashMap<>(Utils.getMolecularFormulaElementCounts(mf));
         final StringBuilder stringBuilder = new StringBuilder();
@@ -598,7 +611,7 @@ public class PyLSDInputFileBuilder {
                                                 elucidationOptions.isAllowHeteroHeteroBonds()))
                      .append("\n");
         // DEFF and FEXP as filters (good/bad lists)
-        stringBuilder.append(buildDEFFsAndFEXP(elucidationOptions))
+        stringBuilder.append(buildDEFFsAndFEXP(elucidationOptions, detections))
                      .append("\n");
 
         return stringBuilder.toString();

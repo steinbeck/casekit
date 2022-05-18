@@ -517,8 +517,7 @@ public class PyLSDInputFileBuilder {
 
         // build and write fragments files
         final List<String> pathsToFragmentFilesToUse = new ArrayList<>();
-        if (Utilities.writeFragmentsFile(elucidationOptions.getPathToFragmentFiles()[0],
-                                         detections.getFunctionalGroups())) {
+        if (Utilities.writeFragmentsFile(elucidationOptions.getPathToFragmentFiles()[0], detections.getFragments())) {
             fexpMap.put("F"
                                 + (fexpMap.size()
                     + 1), true);

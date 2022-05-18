@@ -19,5 +19,5 @@ public class Detections {
     private Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors;
     private Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors;
     private Map<Integer, Set<Integer>> fixedNeighbors;
-    private List<DataSet> functionalGroups;
+    private List<DataSet> fragments;
 }

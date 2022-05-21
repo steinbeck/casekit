@@ -23,6 +23,7 @@ public class Fragmentation {
      * @param dataSet         dataset with structure to build the fragments from
      * @param maxSphere       maximum spherical limit for single atom fragment creation
      * @param maxSphereRing   maximum spherical limit for ring atom fragment creation
+     * @param maxRingSize     maximum ring size when detecting rings
      * @param withPseudoAtoms whether to place pseudo atoms in "outer" sphere
      *
      * @return

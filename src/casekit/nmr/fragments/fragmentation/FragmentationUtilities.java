@@ -195,20 +195,53 @@ public class FragmentationUtilities {
     }
 
     public static void attachPseudoAtoms(final ConnectionTree connectionTree, final IAtomContainer structure) {
-        int atomIndexInStructure;
+        int connectedAtomIndexInStructure;
+        // first check for atoms which we would add as pseudo atom but are then ring closures actually
+        // means we check for possible duplicated insertion
+        final Set<IAtom> connectedAtoms = new HashSet<>();
+        final List<IAtom> ringClosureAtomToAdd = new ArrayList<>();
         for (final ConnectionTreeNode node : connectionTree.getNodes(false)) {
             for (final IAtom connectedAtom : structure.getConnectedAtomsList(node.getAtom())) {
-                atomIndexInStructure = structure.indexOf(connectedAtom);
-                if (connectionTree.getBond(node.getKey(), atomIndexInStructure)
+                connectedAtomIndexInStructure = structure.indexOf(connectedAtom);
+                if (connectionTree.getBond(node.getKey(), connectedAtomIndexInStructure)
                         == null
-                        && connectionTree.getBond(atomIndexInStructure, node.getKey())
+                        && connectionTree.getBond(connectedAtomIndexInStructure, node.getKey())
                         == null) {
-                    addPseudoNode(connectionTree, structure.getAtomCount()
-                                          + connectionTree.getNodesCount(false), node.getKey(),
-                                  structure.getBond(node.getAtom(), connectedAtom));
+                    if (connectedAtoms.contains(connectedAtom)) {
+                        ringClosureAtomToAdd.add(connectedAtom);
+                    }
+                    connectedAtoms.add(connectedAtom);
                 }
             }
         }
+        ConnectionTreeNode connectedNode;
+        for (final ConnectionTreeNode node : connectionTree.getNodes(false)) {
+            for (final IAtom connectedAtom : structure.getConnectedAtomsList(node.getAtom())) {
+                connectedAtomIndexInStructure = structure.indexOf(connectedAtom);
+                if (connectionTree.getBond(node.getKey(), connectedAtomIndexInStructure)
+                        == null
+                        && connectionTree.getBond(connectedAtomIndexInStructure, node.getKey())
+                        == null) {
+                    if (!ringClosureAtomToAdd.contains(connectedAtom)) {
+                        addPseudoNode(connectionTree, structure.getAtomCount()
+                                              + connectionTree.getNodesCount(false), node.getKey(),
+                                      structure.getBond(node.getAtom(), connectedAtom));
+                    } else {
+                        // add missing node for ring closure
+                        if (!connectionTree.containsKey(connectedAtom.getIndex())) {
+                            connectionTree.addNode(connectedAtom, connectedAtomIndexInStructure, node.getKey(),
+                                                   structure.getBond(node.getAtom(), connectedAtom));
+                        } else {
+                            // set the ring closure
+                            connectedNode = connectionTree.getNode(connectedAtomIndexInStructure);
+                            node.setRingClosureParent(connectedNode);
+                            connectedNode.setRingClosureParent(node);
+                        }
+                    }
+                }
+            }
+        }
+        closeRings(connectionTree, structure);
     }
 
     private static boolean addPseudoNode(final ConnectionTree connectionTree, final int pseudoNodeKey,

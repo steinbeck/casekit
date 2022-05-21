@@ -5,6 +5,7 @@ import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.elucidation.model.ElucidationOptions;
 import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.elucidation.model.MolecularConnectivity;
+import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
@@ -517,17 +518,33 @@ public class PyLSDInputFileBuilder {
 
         // build and write fragments files
         final List<String> pathsToFragmentFilesToUse = new ArrayList<>();
-        if (Utilities.writeFragmentsFile(elucidationOptions.getPathToFragmentFiles()[0], detections.getFragments())) {
-            fexpMap.put("F"
-                                + (fexpMap.size()
-                    + 1), true);
-            pathsToFragmentFilesToUse.add(elucidationOptions.getPathToFragmentFiles()[0]);
+        String pathToFragmentFile;
+        DataSet fragmentDataSet;
+        for (int i = 0; i
+                < detections.getFragments()
+                            .size(); i++) {
+            fragmentDataSet = detections.getFragments()
+                                        .get(i);
+            if (fragmentDataSet.getAttachment()
+                    == null
+                    || !((boolean) fragmentDataSet.getAttachment()
+                                                  .get("include"))) {
+                continue;
+            }
+            pathToFragmentFile = elucidationOptions.getPathToFragmentFiles()
+                    + "_"
+                    + i
+                    + ".deff";
+            if (Utilities.writeFragmentFile(pathToFragmentFile, fragmentDataSet)) {
+                fexpMap.put("F"
+                                    + (fexpMap.size()
+                        + 1), true);
+                pathsToFragmentFilesToUse.add(pathToFragmentFile);
+            }
         }
 
         // build DEFFs
         stringBuilder.append(
-                             //                             buildDEFFs(elucidationOptions.getFilterPaths(), pathsToNeighborsFilesToUse.toArray(String[]::new)))
-                             //                             buildDEFFs(elucidationOptions.getFilterPaths(), new String[]{})
                              buildDEFFs(elucidationOptions.getFilterPaths(), pathsToFragmentFilesToUse.toArray(String[]::new)))
                      .append("\n");
         // build FEXP

@@ -131,10 +131,10 @@ public class FragmentUtilities {
         if (!checkHybridizations(dataSet, matchAssignment, queryHybridizationList)) {
             return false;
         }
-        dataSet.addMetaInfo("matchAssignment", gson.toJson(matchAssignment, Assignment.class));
+        dataSet.addAttachment("spectralMatchAssignment", gson.toJson(matchAssignment, Assignment.class));
         final Double rmsd = Similarity.calculateRMSD(spectrum, querySpectrum, 0, 0, matchAssignment);
-        dataSet.addMetaInfo("averageDeviation", Double.toString(averageDeviation));
-        dataSet.addMetaInfo("rmsd", Double.toString(rmsd));
+        dataSet.addAttachment("averageDeviation", averageDeviation);
+        dataSet.addAttachment("rmsd", rmsd);
 
 
         return true;
@@ -165,8 +165,7 @@ public class FragmentUtilities {
         // check molecular formula with atom types in group
         // do not allow unsaturated fragments
         return Utils.compareWithMolecularFormulaLessOrEqual(fragment, mf)
-                && !Utils.getUnsaturatedAtomIndices(fragment)
-                         .isEmpty();
+                && !Utils.isSaturated(fragment);
     }
 
     private static boolean checkHybridizations(final DataSet dataSet, final Assignment matchAssignment,

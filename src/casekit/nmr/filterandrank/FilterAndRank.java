@@ -105,19 +105,10 @@ public class FilterAndRank {
                                                                              checkEquivalencesCount,
                                                                              allowLowerEquivalencesCount);
         dataSet.addAttachment("querySpectrumSignalCount", querySpectrum.getSignalCount());
-        dataSet.addAttachment("querySpectrumSignalCountWithEquivalences",
-                              querySpectrum.getSignalCountWithEquivalences());
-        dataSet.addAttachment("setAssignmentsCountWithEquivalences",
-                              spectralMatchAssignment.getSetAssignmentsCountWithEquivalences(0));
         final boolean isCompleteSpectralMatch = spectrum.getSignalCount()
                 == spectralMatchAssignment.getSetAssignmentsCount(0);
-        final boolean isCompleteSpectralMatchWithEquivalences = spectrum.getSignalCountWithEquivalences()
-                == spectralMatchAssignment.getSetAssignmentsCountWithEquivalences(0);
         dataSet.addAttachment("setAssignmentsCount", spectralMatchAssignment.getSetAssignmentsCount(0));
-        dataSet.addAttachment("setAssignmentsCountWithEquivalences",
-                              spectralMatchAssignment.getSetAssignmentsCountWithEquivalences(0));
         dataSet.addAttachment("isCompleteSpectralMatch", isCompleteSpectralMatch);
-        dataSet.addAttachment("isCompleteSpectralMatchWithEquivalences", isCompleteSpectralMatchWithEquivalences);
         dataSet.addAttachment("spectralMatchAssignment", spectralMatchAssignment);
 
         Double[] deviations = Similarity.getDeviations(querySpectrum, spectrum, 0, 0, spectralMatchAssignment);

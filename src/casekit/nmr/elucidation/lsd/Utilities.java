@@ -151,51 +151,51 @@ public class Utilities {
                 && FileSystem.writeFile(pathToNeighborsFile, stringBuilder.toString());
     }
 
-    public static boolean writeFragmentsFile(final String pathToFragmentsFile, final List<DataSet> fragments) {
-        final StringBuilder stringBuilder = new StringBuilder();
 
-        IAtomContainer fragment;
+    public static boolean writeFragmentFile(final String pathToFragmentsFile, final DataSet fragmentDataSet) {
+        final StringBuilder stringBuilder = new StringBuilder();
+        final IAtomContainer fragment = fragmentDataSet.getStructure()
+                                                       .toAtomContainer();
         IAtom atom;
         IBond bond;
         final Map<IAtom, Integer> sstrMap = new HashMap<>();
-        for (final DataSet fragmentDataSet : fragments) {
-            if (fragmentDataSet.getAttachment()
-                    == null
-                    || !((boolean) fragmentDataSet.getAttachment()
-                                                  .get("include"))) {
-                continue;
-            }
-            fragment = fragmentDataSet.getStructure()
-                                      .toAtomContainer();
-            for (int i = 0; i
-                    < fragment.getAtomCount(); i++) {
-                atom = fragment.getAtom(i);
-                sstrMap.put(atom, sstrMap.size()
-                        + 1);
+        for (int i = 0; i
+                < fragment.getAtomCount(); i++) {
+            atom = fragment.getAtom(i);
+            sstrMap.put(atom, sstrMap.size()
+                    + 1);
+            if (atom.getSymbol()
+                    .equals("R")) {
+                stringBuilder.append("SSTR S")
+                             .append(sstrMap.size())
+                             .append(" A (1 2 3) (0 1 2 3) ")
+                             .append("\n");
+            } else {
                 stringBuilder.append("SSTR S")
                              .append(sstrMap.size())
                              .append(" ")
                              .append(atom.getSymbol())
                              .append(" ")
-                             .append(Constants.hybridizationConversionMap.get(atom.getHybridization()
-                                                                                  .name()))
+                             .append(atom.getSymbol()
+                                         .equals("C")
+                                     ? Constants.hybridizationConversionMap.get(atom.getHybridization()
+                                                                                    .name())
+                                     : "(1 2 3)")
                              .append(" ")
                              .append(atom.getImplicitHydrogenCount())
                              .append("\n");
             }
-            for (int i = 0; i
-                    < fragment.getBondCount(); i++) {
-                bond = fragment.getBond(i);
-                stringBuilder.append("LINK S")
-                             .append(sstrMap.get(bond.getBegin()))
-                             .append(" S")
-                             .append(sstrMap.get(bond.getEnd()))
-                             .append("\n");
-            }
-            stringBuilder.append("\n\n");
+        }
+        for (int i = 0; i
+                < fragment.getBondCount(); i++) {
+            bond = fragment.getBond(i);
+            stringBuilder.append("LINK S")
+                         .append(sstrMap.get(bond.getBegin()))
+                         .append(" S")
+                         .append(sstrMap.get(bond.getEnd()))
+                         .append("\n");
         }
         System.out.println(stringBuilder);
-
 
         return !stringBuilder.toString()
                              .isEmpty()

@@ -137,38 +137,39 @@ public class Utils {
 
     public static boolean compareWithMolecularFormulaLessOrEqual(final IAtomContainer structure, final String mf) {
         if (mf
-                != null
-                && !mf.trim()
-                      .isEmpty()) {
-            for (final String atomType : getAtomTypesInAtomContainer(structure)) {
-                if (getAtomTypeCount(structure, atomType)
-                        > getAtomTypeCount(mf, atomType)) {
-                    return false;
-                }
-            }
-            return AtomContainerManipulator.getImplicitHydrogenCount(structure)
-                    <= getAtomTypeCount(mf, "H");
+                == null
+                || mf.trim()
+                     .isEmpty()) {
+            return false;
         }
+        for (final String atomType : getAtomTypesInAtomContainer(structure)) {
+            if (!atomType.equals("R")
+                    && getAtomTypeCount(structure, atomType)
+                    > getAtomTypeCount(mf, atomType)) {
+                return false;
+            }
+        }
+        return AtomContainerManipulator.getImplicitHydrogenCount(structure)
+                <= getAtomTypeCount(mf, "H");
 
-        return true;
+
     }
 
     public static boolean compareWithMolecularFormulaEqual(final IAtomContainer structure, final String mf) {
         if (mf
-                != null
-                && !mf.trim()
-                      .isEmpty()) {
-            for (final String atomType : getAtomTypesInAtomContainer(structure)) {
-                if (getAtomTypeCount(structure, atomType)
-                        != getAtomTypeCount(mf, atomType)) {
-                    return false;
-                }
-            }
-            return AtomContainerManipulator.getImplicitHydrogenCount(structure)
-                    == Utils.getAtomTypeCount(mf, "H");
+                == null
+                || mf.trim()
+                     .isEmpty()) {
+            return false;
         }
-
-        return true;
+        for (final String atomType : getAtomTypesInAtomContainer(structure)) {
+            if (getAtomTypeCount(structure, atomType)
+                    != getAtomTypeCount(mf, atomType)) {
+                return false;
+            }
+        }
+        return AtomContainerManipulator.getImplicitHydrogenCount(structure)
+                == Utils.getAtomTypeCount(mf, "H");
     }
 
     /**
@@ -317,16 +318,27 @@ public class Utils {
                 <= atom.getValency();
     }
 
-    public static Boolean isSaturated(final IAtomContainer ac, final int atomIndex) {
-        if (!checkIndexInAtomContainer(ac, atomIndex)) {
-            return null;
+    public static boolean isSaturated(final IAtomContainer ac, final int atomIndex) {
+        final IAtom atom = ac.getAtom(atomIndex);
+        if (atom.getSymbol()
+                .equals("R")) {
+            return false;
         }
-        return ac.getAtom(atomIndex)
-                 .getValency()
+        return atom.getValency()
                 != null
                 && getBondOrderSum(ac, atomIndex, true).intValue()
-                >= ac.getAtom(atomIndex)
-                     .getValency();
+                >= atom.getValency();
+    }
+
+    public static boolean isSaturated(final IAtomContainer ac) {
+        for (int i = 0; i
+                < ac.getAtomCount(); i++) {
+            if (!isSaturated(ac, i)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static List<Integer> getUnsaturatedAtomIndices(final IAtomContainer ac) {

@@ -6,15 +6,12 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Utils;
-import com.google.gson.Gson;
 import org.openscience.cdk.interfaces.IAtomContainer;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class FragmentUtilities {
-
-    private final static Gson gson = new Gson();
 
     public static LinkedHashMap<String, List<DataSet>> sortByFrequencies(
             final Map<String, List<DataSet>> functionalGroupDataSetsMap) {
@@ -131,7 +128,7 @@ public class FragmentUtilities {
         if (!checkHybridizations(dataSet, matchAssignment, queryHybridizationList)) {
             return false;
         }
-        dataSet.addAttachment("spectralMatchAssignment", gson.toJson(matchAssignment, Assignment.class));
+        dataSet.addAttachment("spectralMatchAssignment", matchAssignment);
         final Double rmsd = Similarity.calculateRMSD(spectrum, querySpectrum, 0, 0, matchAssignment);
         dataSet.addAttachment("averageDeviation", averageDeviation);
         dataSet.addAttachment("rmsd", rmsd);

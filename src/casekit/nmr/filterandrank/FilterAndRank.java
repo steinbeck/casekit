@@ -93,14 +93,14 @@ public class FilterAndRank {
 
         final Assignment spectralMatchAssignment = detections
                                                            != null
-                                                   ? Similarity.matchSpectra(querySpectrum, spectrum, 0, 0,
+                                                   ? Similarity.matchSpectra(spectrum, querySpectrum, 0, 0,
                                                                              shiftTolerance, checkMultiplicity,
                                                                              checkEquivalencesCount,
                                                                              allowLowerEquivalencesCount,
                                                                              dataSet.getStructure()
                                                                                     .toAtomContainer(),
                                                                              dataSet.getAssignment(), detections)
-                                                   : Similarity.matchSpectra(querySpectrum, spectrum, 0, 0,
+                                                   : Similarity.matchSpectra(spectrum, querySpectrum, 0, 0,
                                                                              shiftTolerance, checkMultiplicity,
                                                                              checkEquivalencesCount,
                                                                              allowLowerEquivalencesCount);
@@ -111,7 +111,7 @@ public class FilterAndRank {
         dataSet.addAttachment("isCompleteSpectralMatch", isCompleteSpectralMatch);
         dataSet.addAttachment("spectralMatchAssignment", spectralMatchAssignment);
 
-        Double[] deviations = Similarity.getDeviations(querySpectrum, spectrum, 0, 0, spectralMatchAssignment);
+        Double[] deviations = Similarity.getDeviations(spectrum, querySpectrum, 0, 0, spectralMatchAssignment);
         if (allowIncompleteMatch) {
             deviations = Arrays.stream(deviations)
                                .filter(Objects::nonNull)

@@ -13,6 +13,19 @@ import java.util.*;
 
 public class Utilities {
 
+
+    /**
+     * @param spectrum1                   first spectrum (possible subspectrum)
+     * @param spectrum2                   second spectrum
+     * @param dim1                        dim in first spectrum
+     * @param dim2                        dim in second spectrum
+     * @param shiftTolerance              shift tolerance
+     * @param checkMultiplicity           whether to check multiplicity
+     * @param checkEquivalencesCount      whether to check equivalences
+     * @param allowLowerEquivalencesCount whether to allow lower equivalences
+     *
+     * @return
+     */
     public static List<Distance> buildDistanceList(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                                    final int dim2, final double shiftTolerance,
                                                    final boolean checkMultiplicity,
@@ -74,7 +87,22 @@ public class Utilities {
                ? null
                : distanceValue;
     }
-    
+
+    /**
+     * @param spectrum1                   first spectrum (possible subspectrum)
+     * @param spectrum2                   second spectrum
+     * @param dim1                        dim in first spectrum
+     * @param dim2                        dim in second spectrum
+     * @param shiftTolerance              shift tolerance
+     * @param checkMultiplicity           whether to check multiplicity
+     * @param checkEquivalencesCount      whether to check equivalences
+     * @param allowLowerEquivalencesCount whether to allow lower equivalences
+     * @param structure                   structure belonging to first spectrum
+     * @param assignment                  assignments between structure and first spectrum
+     * @param detections                  detections to use as structural filter within given structure
+     *
+     * @return
+     */
     public static List<Distance> buildDistanceList(final Spectrum spectrum1, final Spectrum spectrum2, final int dim1,
                                                    final int dim2, final double shiftTolerance,
                                                    final boolean checkMultiplicity,
@@ -90,15 +118,6 @@ public class Utilities {
         boolean skip;
         for (int i = 0; i
                 < spectrum1.getSignalCount(); i++) {
-            forbiddenNeighbors = detections.getForbiddenNeighbors()
-                                           .get(i)
-                                           .keySet();
-            setNeighbors = detections.getSetNeighbors()
-                                     .get(i)
-                                     .keySet();
-            hybridizations = detections.getDetectedHybridizations()
-                                       .get(i);
-
             for (int j = 0; j
                     < spectrum2.getSignalCount(); j++) {
                 // check spectral constraints
@@ -111,9 +130,17 @@ public class Utilities {
                 }
                 skip = false;
                 // check structural constraints
-                for (int k = 0; k
-                        < assignment.getAssignment(0, j).length; k++) {
-                    atom = structure.getAtom(assignment.getAssignment(0, j, k));
+                forbiddenNeighbors = detections.getForbiddenNeighbors()
+                                               .get(j)
+                                               .keySet();
+                setNeighbors = detections.getSetNeighbors()
+                                         .get(j)
+                                         .keySet();
+                hybridizations = detections.getDetectedHybridizations()
+                                           .get(j);
+                for (int equiv = 0; equiv
+                        < assignment.getAssignment(0, i).length; equiv++) {
+                    atom = structure.getAtom(assignment.getAssignment(0, i, equiv));
                     // if certain hybridizations are given and the atom's hybridization is known
                     if (!hybridizations.isEmpty()
                             && Constants.hybridizationConversionMap.containsKey(atom.getHybridization()

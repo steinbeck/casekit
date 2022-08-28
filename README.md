@@ -1,5 +1,5 @@
-#        
-
+[![DOI](https://zenodo.org/badge/124278536.svg)](https://zenodo.org/badge/latestdoi/124278536) [![GitHub contributors](https://img.shields.io/github/contributors/michaelwenk/casekit.svg)](https://github.com/michaelwenk/casekit/graphs/contributors/) [![GitHub issues](https://img.shields.io/github/issues/michaelwenk/casekit.svg)](https://github.com/michaelwenk/casekit/issues/) [![GitHub release](https://img.shields.io/github/release/michaelwenk/casekit.svg)](https://github.com/michaelwenk/casekit/releases/)
+ 
 # The Computer-Assisted-Structure-Elucidation Kit (CASEkit)
 
 ## Introduction

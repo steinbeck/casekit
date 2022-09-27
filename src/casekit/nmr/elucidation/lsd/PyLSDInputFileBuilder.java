@@ -91,6 +91,7 @@ public class PyLSDInputFileBuilder {
         int counter, firstOfEquivalenceIndexPyLSD;
         Set<Integer> groupMembers; // use as a Set to remove the actual value and not at a list index
         MolecularConnectivity molecularConnectivityGroupMember, molecularConnectivityHeavyAtom;
+        final Map<Integer, Set<Integer>> addedBONDPairs = new HashMap<>();
         final Set<Integer> addedKeysSHIH = new HashSet<>();
         for (final int correlationIndex : molecularConnectivityMap.keySet()) {
             firstOfEquivalenceIndexPyLSD = -1;
@@ -234,18 +235,29 @@ public class PyLSDInputFileBuilder {
                             != null) {
                         stringList = stringListMap.get("BOND");
                         for (final int bondedIndexInPyLSD : molecularConnectivity.getFixedNeighbors()) {
-                            stringBuilder = new StringBuilder();
-                            stringBuilder.append("BOND ")
-                                         .append(molecularConnectivity.getIndex())
-                                         .append(" ")
-                                         .append(bondedIndexInPyLSD)
-                                         .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
-                                                                    casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
-                                                                            molecularConnectivityMap, "H", true,
-                                                                            bondedIndexInPyLSD)))
-                                         .append("\n");
-                            if (!stringList.contains(stringBuilder.toString())) {
-                                stringList.add(stringBuilder.toString());
+                            if (!addedBONDPairs.containsKey(molecularConnectivity.getIndex())
+                                    || (addedBONDPairs.containsKey(molecularConnectivity.getIndex())
+                                    && !addedBONDPairs.get(molecularConnectivity.getIndex())
+                                                      .contains(bondedIndexInPyLSD))) {
+                                stringBuilder = new StringBuilder();
+                                stringBuilder.append("BOND ")
+                                             .append(molecularConnectivity.getIndex())
+                                             .append(" ")
+                                             .append(bondedIndexInPyLSD)
+                                             .append(buildShiftsComment(molecularConnectivityMap, molecularConnectivity,
+                                                                        casekit.nmr.elucidation.Utilities.findMolecularConnectivityByIndex(
+                                                                                molecularConnectivityMap, "H", true,
+                                                                                bondedIndexInPyLSD)))
+                                             .append("\n");
+                                if (!stringList.contains(stringBuilder.toString())) {
+                                    stringList.add(stringBuilder.toString());
+                                }
+                                addedBONDPairs.putIfAbsent(molecularConnectivity.getIndex(), new HashSet<>());
+                                addedBONDPairs.get(molecularConnectivity.getIndex())
+                                              .add(bondedIndexInPyLSD);
+                                addedBONDPairs.putIfAbsent(bondedIndexInPyLSD, new HashSet<>());
+                                addedBONDPairs.get(bondedIndexInPyLSD)
+                                              .add(molecularConnectivity.getIndex());
                             }
                         }
                     }

@@ -17,6 +17,7 @@ import com.google.gson.reflect.TypeToken;
 import org.bson.Document;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.layout.StructureDiagramGenerator;
 import org.openscience.nmrshiftdb.util.AtomUtils;
 import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
@@ -28,6 +29,8 @@ public class HOSECodeShiftStatistics {
 
     private final static Gson GSON = new GsonBuilder().setLenient()
                                                       .create();
+    private final static StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
+    private final static ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
 
     public static Map<String, Map<String, List<Double>>> collectHOSECodeShifts(final List<DataSet> dataSetList,
                                                                                final Integer maxSphere,
@@ -60,8 +63,6 @@ public class HOSECodeShiftStatistics {
     public static boolean insert(final DataSet dataSet, final Integer maxSphere, final boolean use3D,
                                  final boolean withExplicitH,
                                  final Map<String, Map<String, List<Double>>> hoseCodeShifts) {
-        final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
-        final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
         final IAtomContainer structure;
         Signal signal;
         String hoseCode;
@@ -101,6 +102,14 @@ public class HOSECodeShiftStatistics {
 
                 if (use3D) {
                     try {
+                        // store wedge bond information
+                        final int[] ordinals = new int[structure.getBondCount()];
+                        int k = 0;
+                        for (final IBond bond : structure.bonds()) {
+                            ordinals[k] = bond.getStereo()
+                                              .ordinal();
+                            k++;
+                        }
                         // set 2D coordinates
                         structureDiagramGenerator.setMolecule(structure);
                         structureDiagramGenerator.generateCoordinates(structure);
@@ -108,6 +117,17 @@ public class HOSECodeShiftStatistics {
                         Utils.convertExplicitToImplicitHydrogens(structure);
                         /* add explicit H atoms */
                         AtomUtils.addAndPlaceHydrogens(structure);
+                        // restore wedge bond information
+                        k = 0;
+                        for (final IBond bond : structure.bonds()) {
+                            bond.setStereo(IBond.Stereo.values()[ordinals[k]]);
+
+                            k++;
+                            if (k
+                                    >= ordinals.length) {
+                                break;
+                            }
+                        }
                     } catch (final CDKException | IOException | ClassNotFoundException e) {
                         e.printStackTrace();
                     }

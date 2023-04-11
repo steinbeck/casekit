@@ -39,7 +39,7 @@ import java.util.List;
 @Setter
 public class StructureCompact {
 
-    private int[][][] bondProperties; // connected atom index, bond order, bond is in ring, bond is aromatic
+    private int[][][] bondProperties; // connected atom index, bond order, bond is in ring, bond is aromatic, bond stereo configuration
     private Integer[][] atomProperties; // element symbol, hybridization, implicitHydrogenCount, valency, formalCharge, isInRingAtom, isAromaticAtom
 
     public StructureCompact(final IAtomContainer ac) {
@@ -61,7 +61,8 @@ public class StructureCompact {
                                                                                       ? 1
                                                                                       : 0, bond.isAromatic()
                                                                                            ? 1
-                                                                                           : 0});
+                                                                                           : 0,
+                                                     bond.getStereo().ordinal()});
                 }
             }
             temp = new int[connectedAtomsList.size()][];
@@ -147,6 +148,7 @@ public class StructureCompact {
                                          == 1);
                 bond.setIsAromatic(this.bondProperties[i][k][3]
                                            == 1);
+                bond.setStereo(IBond.Stereo.values()[this.bondProperties[i][k][4]]);
                 ac.addBond(bond);
             }
         }

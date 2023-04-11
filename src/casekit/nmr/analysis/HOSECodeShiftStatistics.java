@@ -104,11 +104,11 @@ public class HOSECodeShiftStatistics {
                     try {
                         // store wedge bond information
                         final int[] ordinals = new int[structure.getBondCount()];
-                        int i = 0;
+                        int k = 0;
                         for (final IBond bond : structure.bonds()) {
-                            ordinals[i] = bond.getStereo()
+                            ordinals[k] = bond.getStereo()
                                               .ordinal();
-                            i++;
+                            k++;
                         }
                         // set 2D coordinates
                         structureDiagramGenerator.setMolecule(structure);
@@ -118,12 +118,12 @@ public class HOSECodeShiftStatistics {
                         /* add explicit H atoms */
                         AtomUtils.addAndPlaceHydrogens(structure);
                         // restore wedge bond information
-                        i = 0;
+                        k = 0;
                         for (final IBond bond : structure.bonds()) {
-                            bond.setStereo(IBond.Stereo.values()[ordinals[i]]);
+                            bond.setStereo(IBond.Stereo.values()[ordinals[k]]);
 
-                            i++;
-                            if (i
+                            k++;
+                            if (k
                                     >= ordinals.length) {
                                 break;
                             }

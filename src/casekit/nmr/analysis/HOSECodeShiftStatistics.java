@@ -17,9 +17,6 @@ import com.google.gson.reflect.TypeToken;
 import org.bson.Document;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
-import org.openscience.cdk.interfaces.IBond;
-import org.openscience.cdk.layout.StructureDiagramGenerator;
-import org.openscience.nmrshiftdb.util.AtomUtils;
 import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
 
 import java.io.*;
@@ -29,7 +26,6 @@ public class HOSECodeShiftStatistics {
 
     private final static Gson GSON = new GsonBuilder().setLenient()
                                                       .create();
-    private final static StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
     private final static ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
 
     public static Map<String, Map<String, List<Double>>> collectHOSECodeShifts(final List<DataSet> dataSetList,
@@ -102,32 +98,8 @@ public class HOSECodeShiftStatistics {
 
                 if (use3D) {
                     try {
-                        // store wedge bond information
-                        final int[] ordinals = new int[structure.getBondCount()];
-                        int k = 0;
-                        for (final IBond bond : structure.bonds()) {
-                            ordinals[k] = bond.getStereo()
-                                              .ordinal();
-                            k++;
-                        }
-                        // set 2D coordinates
-                        structureDiagramGenerator.setMolecule(structure);
-                        structureDiagramGenerator.generateCoordinates(structure);
-                        /* !!! No explicit H in mol !!! */
-                        Utils.convertExplicitToImplicitHydrogens(structure);
-                        /* add explicit H atoms */
-                        AtomUtils.addAndPlaceHydrogens(structure);
-                        // restore wedge bond information
-                        k = 0;
-                        for (final IBond bond : structure.bonds()) {
-                            bond.setStereo(IBond.Stereo.values()[ordinals[k]]);
-
-                            k++;
-                            if (k
-                                    >= ordinals.length) {
-                                break;
-                            }
-                        }
+                        Utils.placeExplicitHydrogens(structure);
+                        Utils.setAromaticityAndKekulize(structure);
                     } catch (final CDKException | IOException | ClassNotFoundException e) {
                         e.printStackTrace();
                     }

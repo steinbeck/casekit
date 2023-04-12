@@ -14,6 +14,7 @@ import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.graph.CycleFinder;
 import org.openscience.cdk.graph.Cycles;
 import org.openscience.cdk.interfaces.*;
+import org.openscience.cdk.layout.StructureDiagramGenerator;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.smiles.SmiFlavor;
 import org.openscience.cdk.smiles.SmilesGenerator;
@@ -21,13 +22,17 @@ import org.openscience.cdk.tools.CDKHydrogenAdder;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 import org.openscience.cdk.tools.manipulator.AtomTypeManipulator;
 import org.openscience.cdk.tools.manipulator.MolecularFormulaManipulator;
+import org.openscience.nmrshiftdb.util.AtomUtils;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Utils {
+
+    private static final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
 
     /**
      * Specified for carbons only -> not generic!!!
@@ -734,5 +739,35 @@ public class Utils {
         final Gson gson = new Gson();
         final String jsonString = gson.toJson(object, clazz);
         return gson.fromJson(jsonString, clazz);
+    }
+
+    public static void placeExplicitHydrogens(
+            final IAtomContainer structure) throws CDKException, IOException, ClassNotFoundException {
+        // store bond stereo information
+        final int[] ordinals = new int[structure.getBondCount()];
+        int k = 0;
+        for (final IBond bond : structure.bonds()) {
+            ordinals[k] = bond.getStereo()
+                              .ordinal();
+            k++;
+        }
+        // set 2D coordinates
+        structureDiagramGenerator.setMolecule(structure);
+        structureDiagramGenerator.generateCoordinates(structure);
+        /* !!! No explicit H in mol !!! */
+        Utils.convertExplicitToImplicitHydrogens(structure);
+        /* add explicit H atoms */
+        AtomUtils.addAndPlaceHydrogens(structure);
+        // restore bond stereo information
+        k = 0;
+        for (final IBond bond : structure.bonds()) {
+            bond.setStereo(IBond.Stereo.values()[ordinals[k]]);
+
+            k++;
+            if (k
+                    >= ordinals.length) {
+                break;
+            }
+        }
     }
 }

@@ -37,7 +37,6 @@ import casekit.threading.MultiThreading;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
-import org.openscience.cdk.layout.StructureDiagramGenerator;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.tools.CDKHydrogenAdder;
@@ -57,6 +56,8 @@ import java.util.function.Consumer;
  * @author Michael Wenk [https://github.com/michaelwenk]
  */
 public class Prediction {
+
+    private final static ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
 
     /**
      * Diastereotopic distinctions are not provided yet.
@@ -391,8 +392,6 @@ public class Prediction {
                                                     final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics) {
 
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
-        final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
-        final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
 
         final Assignment assignment;
         Signal signal;
@@ -405,14 +404,7 @@ public class Prediction {
         List<Double> medians;
 
         try {
-            // set 2D coordinates
-            structureDiagramGenerator.setMolecule(structure);
-            structureDiagramGenerator.generateCoordinates(structure);
-            /* !!! No explicit H in mol !!! */
-            Utils.convertExplicitToImplicitHydrogens(structure);
-            /* add explicit H atoms */
-            AtomUtils.addAndPlaceHydrogens(structure);
-            /* detect aromaticity */
+            Utils.placeExplicitHydrogens(structure);
             Utils.setAromaticityAndKekulize(structure);
 
             final DataSet dataSet = Utils.atomContainerToDataSet(structure, false);

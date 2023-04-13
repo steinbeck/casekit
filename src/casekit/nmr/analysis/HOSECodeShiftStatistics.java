@@ -99,7 +99,6 @@ public class HOSECodeShiftStatistics {
                 if (use3D) {
                     try {
                         Utils.placeExplicitHydrogens(structure);
-                        Utils.setAromaticityAndKekulize(structure);
                     } catch (final CDKException | IOException | ClassNotFoundException e) {
                         e.printStackTrace();
                     }

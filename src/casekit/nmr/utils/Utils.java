@@ -584,7 +584,7 @@ public class Utils {
      * @throws CDKException
      */
     public static DataSet atomContainerToDataSet(final IAtomContainer structure) throws CDKException {
-        return atomContainerToDataSet(structure, false);
+        return atomContainerToDataSet(structure, true);
     }
 
     /**

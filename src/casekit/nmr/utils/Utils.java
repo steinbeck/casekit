@@ -743,6 +743,10 @@ public class Utils {
 
     public static void placeExplicitHydrogens(
             final IAtomContainer structure) throws CDKException, IOException, ClassNotFoundException {
+        if (structure.getBondCount()
+                == 0) {
+            return;
+        }
         // store bond stereo information
         final int[] ordinals = new int[structure.getBondCount()];
         int k = 0;

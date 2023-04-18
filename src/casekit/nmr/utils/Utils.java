@@ -627,19 +627,10 @@ public class Utils {
                            : structure.getProperty("SMILES_ID", String.class)
                                       .split("\\.")[0]);
         }
-        final IMolecularFormula mf = casekit.nmr.utils.Utils.getMolecularFormulaFromAtomContainer(structure);
-        meta.put("mfOriginal", casekit.nmr.utils.Utils.molecularFormularToString(mf));
-        final StringBuilder mfAlphabetic = new StringBuilder();
-        final Map<String, Integer> mfAlphabeticMap = new TreeMap<>(
-                Utils.getMolecularFormulaElementCounts(Utils.molecularFormularToString(mf)));
-        for (final Map.Entry<String, Integer> entry : mfAlphabeticMap.entrySet()) {
-            mfAlphabetic.append(entry.getKey());
-            if (entry.getValue()
-                    > 1) {
-                mfAlphabetic.append(entry.getValue());
-            }
-        }
-        meta.put("mf", mfAlphabetic.toString());
+        final String mf = molecularFormularToString(
+                casekit.nmr.utils.Utils.getMolecularFormulaFromAtomContainer(structure));
+        meta.put("mfOriginal", mf);
+        meta.put("mf", buildAlphabeticMF(mf));
         try {
             final String smiles = getSmilesFromAtomContainer(structure);
             meta.put("smiles", smiles);
@@ -652,6 +643,20 @@ public class Utils {
         dataSet.setAttachment(new HashMap<>());
 
         return dataSet;
+    }
+
+    public static String buildAlphabeticMF(final String mf) {
+        final StringBuilder mfAlphabetic = new StringBuilder();
+        final Map<String, Integer> mfAlphabeticMap = new TreeMap<>(Utils.getMolecularFormulaElementCounts(mf));
+        for (final Map.Entry<String, Integer> entry : mfAlphabeticMap.entrySet()) {
+            mfAlphabetic.append(entry.getKey());
+            if (entry.getValue()
+                    > 1) {
+                mfAlphabetic.append(entry.getValue());
+            }
+        }
+
+        return mfAlphabetic.toString();
     }
 
     public static Signal extractFirstSignalFromCorrelation(final Correlation correlation) {

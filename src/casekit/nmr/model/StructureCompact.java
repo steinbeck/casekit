@@ -148,7 +148,14 @@ public class StructureCompact {
                                          == 1);
                 bond.setIsAromatic(this.bondProperties[i][k][3]
                                            == 1);
-                bond.setStereo(IBond.Stereo.values()[this.bondProperties[i][k][4]]);
+                if (this.bondProperties[i][k].length
+                        == 5) {
+                    // with stereo information
+                    bond.setStereo(IBond.Stereo.values()[this.bondProperties[i][k][4]]);
+                } else {
+                    // without stereo information
+                    bond.setStereo(IBond.Stereo.NONE);
+                }
                 ac.addBond(bond);
             }
         }

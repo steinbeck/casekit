@@ -17,15 +17,38 @@ public class Statistics {
      *
      * @return new array list without values outside the generated boundaries
      */
-    public static void removeOutliers(final List<Double> input, final double multiplierIQR) {
-        input.removeAll(getOutliers(input, multiplierIQR));
+    public static List<Double> removeOutliers(final List<Double> input, final double multiplierIQR) {
+        final List<Double> values = new ArrayList<>();
+        if (input.size()
+                <= 1) {
+            return values;
+        }
+        final double[] boundaries = getLowerAndUpperBoundaries(input, multiplierIQR);
+        final double lowerBound = boundaries[0];
+        final double upperBound = boundaries[1];
+
+        for (final Double value : input) {
+            if (value
+                    >= lowerBound
+                    && value
+                    <= upperBound) {
+                values.add(value);
+            }
+        }
+
+        return values;
     }
 
     /**
-     * @param input
-     * @param multiplierIQR
+     * Detects outliers in given array list of input values and returns them. <br>
+     * Here, outliers are those which are outside of a calculated lower and upper bound (whisker).
+     * The interquartile range (IQR) of the input values is therefore multiplied with a given value
+     * for whisker creation.
      *
-     * @return
+     * @param input         list of values to process
+     * @param multiplierIQR multiplier for IQR to use for lower and upper bound creation
+     *
+     * @return new array list with values outside the generated boundaries
      */
     public static List<Double> getOutliers(final List<Double> input, final double multiplierIQR) {
         final List<Double> outliers = new ArrayList<>();
@@ -33,6 +56,22 @@ public class Statistics {
                 <= 1) {
             return outliers;
         }
+        final double[] boundaries = getLowerAndUpperBoundaries(input, multiplierIQR);
+        final double lowerBound = boundaries[0];
+        final double upperBound = boundaries[1];
+        for (final Double value : input) {
+            if (value
+                    < lowerBound
+                    || value
+                    > upperBound) {
+                outliers.add(value);
+            }
+        }
+
+        return outliers;
+    }
+
+    public static double[] getLowerAndUpperBoundaries(final List<Double> input, final double multiplierIQR) {
         Collections.sort(input);
         final List<Double> data1 = input.subList(0, input.size()
                 / 2);
@@ -57,18 +96,8 @@ public class Statistics {
         final double upperBound = q3
                 + multiplierIQR
                 * iqr;
-        for (int i = 0; i
-                < input.size(); i++) {
-            if ((input.get(i)
-                    < lowerBound)
-                    || (input.get(i)
-                    > upperBound)) {
-                outliers.add(input.get(i));
-            }
-        }
-        //        System.out.println("input size: " + input.size());
-        //        System.out.println("output size: " + outliers.size());
-        return outliers;
+
+        return new double[]{lowerBound, upperBound};
     }
 
     /**

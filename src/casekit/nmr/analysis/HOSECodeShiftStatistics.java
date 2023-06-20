@@ -193,7 +193,7 @@ public class HOSECodeShiftStatistics {
             for (final Map.Entry<String, List<Double>> solvents : hoseCodes.getValue()
                                                                            .entrySet()) {
                 values = new ArrayList<>(solvents.getValue());
-                Statistics.removeOutliers(values, 1.5);
+                values = Statistics.removeOutliers(values, 1.5);
                 hoseCodeShiftStatistics.get(hoseCodes.getKey())
                                        .put(solvents.getKey(),
                                             new Double[]{(double) values.size(), Collections.min(values),
